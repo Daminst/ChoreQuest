@@ -1,9 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../hooks/useAuth';
 import { useSettings } from '../hooks/useSettings';
 import { useTheme } from '../hooks/useTheme';
+import {
+  addCalendarDays,
+  formatLocalISODate,
+  getMondayForCalendarWeek,
+  parseLocalISODate,
+} from '../utils/calendarDates';
 import { themedTitle } from '../utils/questThemeText';
 import Modal from '../components/Modal';
 import {
@@ -19,20 +25,10 @@ import {
   Trash2,
 } from 'lucide-react';
 
-function toISO(date) {
-  return date.toISOString().slice(0, 10);
-}
-
-function addDays(dateStr, n) {
-  const d = new Date(dateStr + 'T00:00:00');
-  d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0, 10);
-}
-
 const SHORT_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 function statusStyle(assignment, dayStr) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = formatLocalISODate(new Date());
 
   if (assignment.status === 'verified') {
     return {
@@ -74,12 +70,15 @@ function statusStyle(assignment, dayStr) {
 
 export default function Calendar() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { chore_trading_enabled } = useSettings();
   const { colorTheme } = useTheme();
   const isKid = user?.role === 'kid';
+  const assignmentParam = searchParams.get('assignment');
+  const focusedAssignmentId = assignmentParam ? Number(assignmentParam) : null;
 
-  const [startDate, setStartDate] = useState(() => toISO(new Date()));
+  const [startDate, setStartDate] = useState(() => formatLocalISODate(new Date()));
   const [assignments, setAssignments] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -102,27 +101,24 @@ export default function Calendar() {
     try {
       // The backend requires week_start to be a Monday. Our 7-day window
       // may span two Mon-Sun weeks, so fetch both if needed.
-      const d = new Date(startDate + 'T00:00:00');
-      const dayOfWeek = d.getDay(); // 0=Sun..6=Sat
-      const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-      const monday1 = addDays(startDate, mondayOffset);
+      const monday1 = getMondayForCalendarWeek(startDate);
 
       const data = await api(`/api/calendar?week_start=${monday1}`);
       const byDay = {};
       for (let i = 0; i < 7; i++) {
-        const dayKey = addDays(startDate, i);
+        const dayKey = addCalendarDays(startDate, i);
         byDay[dayKey] = data.days?.[dayKey] || [];
       }
 
       // If our window extends past Sunday of that week, fetch next week too
-      const monday2 = addDays(monday1, 7);
-      const lastDay = addDays(startDate, 6);
-      const sunday1 = addDays(monday1, 6);
+      const monday2 = addCalendarDays(monday1, 7);
+      const lastDay = addCalendarDays(startDate, 6);
+      const sunday1 = addCalendarDays(monday1, 6);
       if (lastDay > sunday1) {
         try {
           const data2 = await api(`/api/calendar?week_start=${monday2}`);
           for (let i = 0; i < 7; i++) {
-            const dayKey = addDays(startDate, i);
+            const dayKey = addCalendarDays(startDate, i);
             if (!byDay[dayKey]?.length && data2.days?.[dayKey]) {
               byDay[dayKey] = data2.days[dayKey];
             }
@@ -141,6 +137,27 @@ export default function Calendar() {
     fetchCalendar();
   }, [fetchCalendar]);
 
+  useEffect(() => {
+    if (!Number.isFinite(focusedAssignmentId)) return;
+
+    let ignore = false;
+    api(`/api/calendar/assignments/${focusedAssignmentId}`)
+      .then((assignment) => {
+        if (!ignore && assignment?.date) {
+          setStartDate(assignment.date);
+        }
+      })
+      .catch((err) => {
+        if (!ignore) {
+          setError(err.message || 'Could not load notification target');
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [focusedAssignmentId]);
+
   // Live updates via WebSocket
   useEffect(() => {
     const handler = () => { fetchCalendar(); };
@@ -148,9 +165,21 @@ export default function Calendar() {
     return () => window.removeEventListener('ws:message', handler);
   }, [fetchCalendar]);
 
-  const prevWeek = () => setStartDate(addDays(startDate, -7));
-  const nextWeek = () => setStartDate(addDays(startDate, 7));
-  const goToday = () => setStartDate(toISO(new Date()));
+  useEffect(() => {
+    if (loading || !Number.isFinite(focusedAssignmentId)) return;
+
+    const timeout = window.setTimeout(() => {
+      document
+        .getElementById(`calendar-assignment-${focusedAssignmentId}`)
+        ?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
+  }, [assignments, focusedAssignmentId, loading]);
+
+  const prevWeek = () => setStartDate(addCalendarDays(startDate, -7));
+  const nextWeek = () => setStartDate(addCalendarDays(startDate, 7));
+  const goToday = () => setStartDate(formatLocalISODate(new Date()));
 
   const openTrade = async (assignment) => {
     setTradeAssignment(assignment);
@@ -218,11 +247,11 @@ export default function Calendar() {
     }
   };
 
-  const endDate = addDays(startDate, 6);
-  const today = toISO(new Date());
+  const endDate = addCalendarDays(startDate, 6);
+  const today = formatLocalISODate(new Date());
   const isAtToday = startDate === today;
   const formatShortDate = (str) => {
-    const d = new Date(str + 'T00:00:00');
+    const d = parseLocalISODate(str);
     return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   };
 
@@ -307,8 +336,8 @@ export default function Calendar() {
       {!loading && (
         <div className="grid grid-cols-1 md:grid-cols-7 gap-3">
           {Array.from({ length: 7 }, (_, i) => {
-            const dayStr = addDays(startDate, i);
-            const d = new Date(dayStr + 'T00:00:00');
+            const dayStr = addCalendarDays(startDate, i);
+            const d = parseLocalISODate(dayStr);
             const label = SHORT_DAYS[d.getDay()];
             const isToday = dayStr === today;
             const allDayAssignments = assignments[dayStr] || [];
@@ -330,7 +359,7 @@ export default function Calendar() {
                     {label}
                   </div>
                   <div className="text-sm mt-1">
-                    {new Date(dayStr + 'T00:00:00').getDate()}
+                    {parseLocalISODate(dayStr).getDate()}
                   </div>
                 </div>
 
@@ -343,10 +372,15 @@ export default function Calendar() {
                   )}
                   {dayAssignments.map((a) => {
                     const style = statusStyle(a, dayStr);
+                    const isFocusedAssignment = focusedAssignmentId === Number(a.id);
                     return (
                       <div
                         key={a.id}
-                        className={`game-panel !border ${style.border} ${style.bg} p-2 cursor-pointer hover:border-accent/40 transition-colors`}
+                        id={`calendar-assignment-${a.id}`}
+                        data-notification-target={isFocusedAssignment ? 'true' : undefined}
+                        className={`game-panel !border ${style.border} ${style.bg} p-2 cursor-pointer hover:border-accent/40 transition-colors ${
+                          isFocusedAssignment ? 'ring-2 ring-accent border-accent/70' : ''
+                        }`}
                         onClick={() =>
                           navigate(`/chores/${a.chore_id || a.id}`)
                         }

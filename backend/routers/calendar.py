@@ -165,6 +165,45 @@ def _build_assignment_entry(
     return entry
 
 
+@router.get("/assignments/{assignment_id}")
+async def get_calendar_assignment(
+    assignment_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return one calendar assignment so deep links can open its week."""
+    result = await db.execute(
+        select(ChoreAssignment)
+        .options(
+            selectinload(ChoreAssignment.chore).selectinload(Chore.category),
+            selectinload(ChoreAssignment.user),
+        )
+        .where(ChoreAssignment.id == assignment_id)
+    )
+    assignment = result.scalar_one_or_none()
+    if assignment is None:
+        raise HTTPException(status_code=404, detail="Assignment not found")
+
+    if current_user.role == UserRole.kid and assignment.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not your assignment")
+
+    rule_result = await db.execute(
+        select(ChoreAssignmentRule).where(
+            ChoreAssignmentRule.chore_id == assignment.chore_id,
+            ChoreAssignmentRule.user_id == assignment.user_id,
+            ChoreAssignmentRule.is_active == True,
+        )
+    )
+    rule = rule_result.scalar_one_or_none()
+    effective_requires_photo = (
+        rule.requires_photo
+        if rule is not None
+        else (assignment.chore.requires_photo if assignment.chore else False)
+    )
+
+    return _build_assignment_entry(assignment, effective_requires_photo)
+
+
 # ---------------------------------------------------------------------------
 # Chore Trading
 # ---------------------------------------------------------------------------

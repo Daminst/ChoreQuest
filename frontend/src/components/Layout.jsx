@@ -6,6 +6,7 @@ import { useSettings } from '../hooks/useSettings';
 import { useTheme } from '../hooks/useTheme';
 import { useNotifications } from '../hooks/useNotifications';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
+import { getNotificationTarget } from '../utils/notificationTargets';
 import {
   Bell,
   Swords,
@@ -106,6 +107,25 @@ export default function Layout({ children }) {
 
   const isActive = (path) => path === '/' ? location.pathname === '/' : (location.pathname === path || location.pathname.startsWith(path + '/'));
 
+  const handleNotificationClick = useCallback(async (notification) => {
+    const target = getNotificationTarget(notification);
+    const keepTradeUnread =
+      chore_trading_enabled &&
+      notification.type === 'trade_proposed' &&
+      !notification.is_read;
+
+    if (!notification.is_read && !keepTradeUnread) {
+      try {
+        await markRead(notification.id);
+      } catch {
+        // Navigation is still useful if marking read fails.
+      }
+    }
+
+    setShowNotifs(false);
+    navigate(target.path);
+  }, [chore_trading_enabled, markRead, navigate]);
+
   return (
     <div className="min-h-screen bg-navy flex overflow-x-clip max-w-[100vw]">
       {/* Desktop Sidebar */}
@@ -192,10 +212,7 @@ export default function Layout({ children }) {
             <div className="relative" ref={panelRef}>
               <button
                 onClick={() => {
-                  setShowNotifs((v) => {
-                    if (!v && unreadCount > 0) markAllRead();
-                    return !v;
-                  });
+                  setShowNotifs((v) => !v);
                 }}
                 className="relative p-2 rounded-md hover:bg-surface-raised transition-colors"
                 aria-label="Notifications"
@@ -240,10 +257,20 @@ export default function Layout({ children }) {
                     ) : (
                       notifications.map((n) => {
                         const isTrade = chore_trading_enabled && n.type === 'trade_proposed' && !n.is_read;
+                        const target = getNotificationTarget(n);
                         return (
                           <div
                             key={n.id}
-                            onClick={() => { if (!n.is_read && !isTrade) markRead(n.id); }}
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`${target.label}: ${n.title}`}
+                            onClick={() => handleNotificationClick(n)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                handleNotificationClick(n);
+                              }
+                            }}
                             className={`w-full text-left px-4 py-3 border-b border-border/50 hover:bg-surface-raised transition-colors cursor-pointer ${
                               !n.is_read ? 'bg-accent/5' : ''
                             }`}
@@ -287,6 +314,9 @@ export default function Layout({ children }) {
                                 )}
                                 <p className="text-muted/60 text-xs mt-1">
                                   {timeAgo(n.created_at)}
+                                </p>
+                                <p className="text-accent/80 text-[11px] mt-1">
+                                  {target.label}
                                 </p>
                               </div>
                             </div>
