@@ -5,6 +5,7 @@ import { api } from '../api/client';
 import { useAuth } from '../hooks/useAuth';
 import AvatarDisplay from './AvatarDisplay';
 import { renderPet, renderPetExtras, buildPetColors } from './avatar/pets';
+import { THEMED_AVATAR_OPTIONS } from './avatar/themedAvatarCatalog';
 import { Save, Loader2, ChevronLeft, ChevronRight, Lock, Heart, Star, Crosshair, ArrowLeft } from 'lucide-react';
 
 const HEAD_OPTIONS = [
@@ -40,6 +41,7 @@ const HAIR_OPTIONS = [
   { id: 'shoulder', label: 'Shoulder' },
   { id: 'undercut', label: 'Undercut' },
   { id: 'twin_buns', label: 'Twin Buns' },
+  ...THEMED_AVATAR_OPTIONS.hair,
 ];
 
 const EYES_OPTIONS = [
@@ -97,6 +99,7 @@ const HAT_OPTIONS = [
   { id: 'cat_ears', label: 'Cat Ears' },
   { id: 'halo', label: 'Halo' },
   { id: 'viking', label: 'Viking' },
+  ...THEMED_AVATAR_OPTIONS.hat,
 ];
 
 const ACCESSORY_OPTIONS = [
@@ -107,6 +110,7 @@ const ACCESSORY_OPTIONS = [
   { id: 'wings', label: 'Wings' },
   { id: 'shield', label: 'Shield' },
   { id: 'sword', label: 'Sword' },
+  ...THEMED_AVATAR_OPTIONS.accessory,
 ];
 
 const FACE_EXTRA_OPTIONS = [
@@ -117,6 +121,7 @@ const FACE_EXTRA_OPTIONS = [
   { id: 'scar', label: 'Scar' },
   { id: 'bandage', label: 'Bandage' },
   { id: 'stickers', label: 'Stickers' },
+  ...THEMED_AVATAR_OPTIONS.face_extra,
 ];
 
 const OUTFIT_PATTERN_OPTIONS = [
@@ -126,6 +131,7 @@ const OUTFIT_PATTERN_OPTIONS = [
   { id: 'camo', label: 'Camo' },
   { id: 'tie_dye', label: 'Tie Dye' },
   { id: 'plaid', label: 'Plaid' },
+  ...THEMED_AVATAR_OPTIONS.outfit_pattern,
 ];
 
 const PET_OPTIONS = [

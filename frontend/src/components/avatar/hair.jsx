@@ -170,6 +170,17 @@ export function renderHair(style, color) {
           <circle cx="22" cy="5" r="3" fill={color} />
         </>
       );
+    case 'idol_waves':
+      return (
+        <>
+          <ellipse cx="16" cy="8.5" rx="7.8" ry="4.2" fill={color} />
+          <path d="M8.5,9 Q7.5,13 9.2,17 Q10.5,20 8.8,23" stroke={color} strokeWidth="2.8" fill="none" strokeLinecap="round" />
+          <path d="M23.5,9 Q24.5,13 22.8,17 Q21.5,20 23.2,23" stroke={color} strokeWidth="2.8" fill="none" strokeLinecap="round" />
+          <path d="M11,8 Q14,5.5 18,6.5 Q20.5,7 22,9" stroke="white" strokeWidth="0.5" fill="none" opacity="0.16" strokeLinecap="round" />
+          <path d="M9.6,12 Q10.6,15 9.7,18" stroke="#ff6b9d" strokeWidth="0.55" fill="none" opacity="0.65" strokeLinecap="round" />
+          <path d="M22.4,12 Q21.4,15 22.3,18" stroke="#64dfdf" strokeWidth="0.55" fill="none" opacity="0.65" strokeLinecap="round" />
+        </>
+      );
     case 'none':
       return null;
     default:
