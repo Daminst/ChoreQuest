@@ -869,6 +869,41 @@ h1, h2, h3, h4, h5, h6 {
   vector-effect: non-scaling-stroke;
 }
 
+.avatar-editor-shell {
+  background:
+    radial-gradient(circle at 12% 6%, color-mix(in srgb, var(--color-accent) 12%, transparent), transparent 32%),
+    radial-gradient(circle at 86% 92%, color-mix(in srgb, var(--color-gold) 8%, transparent), transparent 34%),
+    var(--color-surface);
+}
+
+.avatar-preview-stage {
+  background:
+    radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--color-accent) 15%, transparent), transparent 32%),
+    linear-gradient(155deg, color-mix(in srgb, var(--color-surface-raised) 88%, transparent), color-mix(in srgb, var(--color-navy) 92%, transparent));
+}
+
+.avatar-stage-halo {
+  background:
+    radial-gradient(circle, color-mix(in srgb, var(--color-accent) 22%, transparent) 0 18%, transparent 19% 31%, color-mix(in srgb, var(--color-accent-light) 13%, transparent) 32% 33%, transparent 34%),
+    conic-gradient(from 20deg, transparent, color-mix(in srgb, var(--color-gold) 14%, transparent), transparent 38%, color-mix(in srgb, var(--color-accent) 16%, transparent), transparent 70%);
+  filter: blur(1px);
+  opacity: 0.85;
+}
+
+.avatar-option-card {
+  content-visibility: auto;
+  contain-intrinsic-size: 112px;
+}
+
+.avatar-option-card .avatar-svg {
+  transition: transform 180ms ease, filter 180ms ease;
+}
+
+.avatar-option-card:hover .avatar-svg {
+  transform: scale(1.06);
+  filter: saturate(1.08);
+}
+
 .avatar-idle .avatar-eyelid {
   animation: avatar-blink 5s ease-in-out infinite;
   animation-delay: var(--avatar-delay, 0s);
