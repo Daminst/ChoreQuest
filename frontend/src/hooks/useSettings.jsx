@@ -1,18 +1,25 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { api } from '../api/client';
+import { useAuth } from './useAuth';
 
 const SettingsContext = createContext({
   leaderboard_enabled: true,
   spin_wheel_enabled: true,
   chore_trading_enabled: true,
+  bad_behavior_enabled: false,
 });
 
+const DEFAULT_FEATURES = {
+  leaderboard_enabled: true,
+  spin_wheel_enabled: true,
+  chore_trading_enabled: true,
+  bad_behavior_enabled: false,
+};
+
 export function SettingsProvider({ children }) {
-  const [features, setFeatures] = useState({
-    leaderboard_enabled: true,
-    spin_wheel_enabled: true,
-    chore_trading_enabled: true,
-  });
+  const { user } = useAuth();
+  const userId = user?.id;
+  const [features, setFeatures] = useState(DEFAULT_FEATURES);
 
   const fetchFeatures = useCallback(async () => {
     try {
@@ -21,6 +28,7 @@ export function SettingsProvider({ children }) {
         leaderboard_enabled: data.leaderboard_enabled !== 'false',
         spin_wheel_enabled: data.spin_wheel_enabled !== 'false',
         chore_trading_enabled: data.chore_trading_enabled !== 'false',
+        bad_behavior_enabled: data.bad_behavior_enabled === 'true',
       });
     } catch {
       // If fetch fails, keep defaults (all enabled)
@@ -28,8 +36,12 @@ export function SettingsProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    fetchFeatures();
-  }, [fetchFeatures]);
+    if (userId) {
+      fetchFeatures();
+    } else {
+      setFeatures(DEFAULT_FEATURES);
+    }
+  }, [fetchFeatures, userId]);
 
   // Re-fetch when settings are saved (listen for custom event)
   useEffect(() => {

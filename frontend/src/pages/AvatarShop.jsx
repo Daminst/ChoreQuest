@@ -57,13 +57,13 @@ function unlockLabel(item) {
     case 'shop':
       return `${item.unlock_value} XP`;
     case 'xp':
-      return `Earn ${item.unlock_value} XP`;
+      return `Zdobądź ${item.unlock_value} XP`;
     case 'streak':
-      return `${item.unlock_value}-day streak`;
+      return `${item.unlock_value}-dniowa seria`;
     case 'quest_drop':
-      return 'Quest drop';
+      return 'Drop z misji';
     default:
-      return 'Free';
+      return 'Darmowe';
   }
 }
 
@@ -320,15 +320,15 @@ export default function AvatarShop() {
                         ) : (
                           <ShoppingBag size={12} />
                         )}
-                        {isBuying ? 'Buying...' : `Buy · ${item.unlock_value} XP`}
+                        {isBuying ? 'Kupowanie...' : `Kup \u00B7 ${item.unlock_value} XP`}
                       </button>
                     ) : (
                       <div className="flex items-center gap-1 text-muted text-xs">
                         <Lock size={12} />
-                        {item.unlock_method === 'quest_drop' ? 'Find in quests' :
-                         item.unlock_method === 'xp' ? `Earn ${item.unlock_value} total XP` :
-                         item.unlock_method === 'streak' ? `${item.unlock_value}-day streak` :
-                         'Locked'}
+                        {item.unlock_method === 'quest_drop' ? 'Znajdź w misjach' :
+                         item.unlock_method === 'xp' ? `Zdobądź ${item.unlock_value} XP` :
+                         item.unlock_method === 'streak' ? `${item.unlock_value}-dniowa seria` :
+                         'Zablokowane'}
                       </div>
                     )}
                   </div>

@@ -7,6 +7,7 @@ import { useTheme } from '../hooks/useTheme';
 import { useNotifications } from '../hooks/useNotifications';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { getNotificationTarget } from '../utils/notificationTargets';
+import { getInterfaceMode, getKidLayoutClassName } from '../utils/kidInterfaceTheme';
 import {
   Bell,
   Swords,
@@ -96,6 +97,7 @@ export default function Layout({ children }) {
   }, [location.pathname]);
 
   const isParent = user?.role === 'parent' || user?.role === 'admin';
+  const interfaceMode = getInterfaceMode(user);
   const navItems = ALL_NAV_ITEMS.filter((item) => {
     if (item.parentOnly && !isParent) return false;
     if (item.settingKey && settings[item.settingKey] === false) return false;
@@ -127,7 +129,7 @@ export default function Layout({ children }) {
   }, [chore_trading_enabled, markRead, navigate]);
 
   return (
-    <div className="min-h-screen bg-navy flex overflow-x-clip max-w-[100vw]">
+    <div className={getKidLayoutClassName(user)} data-interface-mode={interfaceMode}>
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex flex-col w-[248px] bg-surface border-r border-border min-h-screen fixed left-0 top-0 z-30">
         <div

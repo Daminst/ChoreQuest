@@ -5,9 +5,11 @@ services:
       - "8122:8122"
     environment:
       - SECRET_KEY=${SECRET_KEY}
+      - FEATURE_FLAGS_PATH=/srv/chorequest/features.json
       - TZ=Europe/London
     volumes:
       - ./data:/app/data
+      - ./srv/chorequest:/srv/chorequest
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8122/api/health')"]

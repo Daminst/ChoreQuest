@@ -32,6 +32,23 @@ const requiredAvatarThemeTranslations = [
   ['Mischief Hood', 'Psotny kaptur'],
 ];
 
+const requiredKidInterfaceTranslations = [
+  ['Focus map', 'Mapa skupienia'],
+  ['One clear step, then a reward.', 'Jeden jasny krok, potem nagroda.'],
+  ['Next step', 'Następny krok'],
+  ['See the quests for today without the extra noise.', 'Zobacz dzisiejsze misje bez nadmiaru bodźców.'],
+  ['Style lab', 'Laboratorium stylu'],
+  ['Open avatar looks with playful safe themes.', 'Otwórz stylizacje awatara w bezpiecznych klimatach.'],
+  ['Reward vault', 'Sejf nagród'],
+  ['Check what your XP can unlock next.', 'Sprawdź, co możesz odblokować za XP.'],
+  ['Mischief Kawaii', 'Psotne kawaii'],
+  ['Shadow Hunt', 'Łowy w cieniu'],
+  ['Block Builder', 'Budowanie z bloków'],
+  ['Arcade Run', 'Arcade run'],
+  ['Workshop Tasks', 'Warsztatowe zadania'],
+  ['Winter Workshop', 'Zimowy warsztat'],
+];
+
 test('polish overlay translates chore detail metadata', () => {
   for (const fileUrl of overlayFiles) {
     const source = fs.readFileSync(fileUrl, 'utf8');
@@ -100,6 +117,37 @@ test('polish overlay translates themed avatar collections', () => {
     );
 
     for (const [english, polish] of requiredAvatarThemeTranslations) {
+      assert.equal(
+        translations.get(english),
+        polish,
+        `${fileUrl.pathname} maps ${english} incorrectly`,
+      );
+    }
+  }
+});
+
+test('avatar shop dynamic unlock copy is Polish at the source', () => {
+  const source = fs.readFileSync(
+    new URL('../pages/AvatarShop.jsx', import.meta.url),
+    'utf8',
+  );
+
+  assert.match(source, /Zdobądź \$\{item\.unlock_value\} XP/);
+  assert.match(source, /Znajdź w misjach/);
+  assert.doesNotMatch(source, /Earn \$\{item\.unlock_value\}( total)? XP|Find in quests/);
+});
+
+test('polish overlay translates kid interface theme text', () => {
+  for (const fileUrl of overlayFiles) {
+    const source = fs.readFileSync(fileUrl, 'utf8');
+    const translations = new Map(
+      [...source.matchAll(/^\s*'([^']+)': '([^']*)',/gm)].map((match) => [
+        match[1],
+        match[2],
+      ]),
+    );
+
+    for (const [english, polish] of requiredKidInterfaceTranslations) {
       assert.equal(
         translations.get(english),
         polish,
