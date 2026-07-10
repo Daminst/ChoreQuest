@@ -332,7 +332,7 @@ h1, h2, h3, h4, h5, h6 {
   line-height: 1.1;
 }
 
-.kid-interface-audhd .avatar-idle .avatar-svg {
+.kid-interface-audhd .avatar-idle {
   animation-duration: 6s, 18s;
 }
 
@@ -833,12 +833,32 @@ h1, h2, h3, h4, h5, h6 {
   97% { opacity: 0.5; }
 }
 
-.avatar-idle .avatar-svg {
+.avatar-idle {
   animation:
     avatar-sway 4s ease-in-out infinite,
     avatar-fidget 12s ease-in-out infinite;
   animation-delay: var(--avatar-delay, 0s);
-  transform-origin: 16px 28px;
+  transform-origin: center 88%;
+  will-change: transform;
+}
+
+.avatar-illustration {
+  display: block;
+  shape-rendering: geometricPrecision;
+  isolation: isolate;
+}
+
+.avatar-main-silhouette {
+  transform-origin: 16px 27px;
+}
+
+.avatar-rim-light,
+.avatar-backdrop-orb {
+  pointer-events: none;
+}
+
+.avatar-rim-light {
+  mix-blend-mode: screen;
 }
 
 .avatar-idle .avatar-eyelid {
@@ -867,6 +887,17 @@ h1, h2, h3, h4, h5, h6 {
 .avatar-idle .avatar-sparkle {
   animation: avatar-sparkle 6s ease-in-out infinite;
   animation-delay: var(--avatar-delay, 0s);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .avatar-idle,
+  .avatar-idle .avatar-eyelid,
+  .avatar-idle .avatar-mouth,
+  .avatar-idle .avatar-pet,
+  .avatar-idle .avatar-pet-tail,
+  .avatar-idle .avatar-sparkle {
+    animation: none !important;
+  }
 }
 
 /* Quest Board Themes — subtle border tints only */
