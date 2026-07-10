@@ -198,6 +198,183 @@ h1, h2, h3, h4, h5, h6 {
   background: var(--color-border-light);
 }
 
+/* Kid interface: safe interest-inspired, high-readability shell */
+.kid-interface {
+  --color-navy: #171221;
+  --color-navy-light: #21192c;
+  --color-navy-mid: #2a2037;
+  --color-surface: #21192c;
+  --color-surface-raised: #2c223a;
+  --color-border: #3d304f;
+  --color-border-light: #5a4770;
+  --color-cream: #f7f3ff;
+  --color-muted: #beb2cc;
+  --color-accent: #f472b6;
+  --color-accent-light: #5eead4;
+  --color-sky: #22d3ee;
+  --color-gold: #facc15;
+  --color-purple: #a78bfa;
+  background:
+    linear-gradient(180deg, rgba(244, 114, 182, 0.11) 0%, rgba(34, 211, 238, 0.06) 240px, transparent 560px),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 34px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 34px),
+    var(--color-navy);
+  background-attachment: fixed;
+}
+
+.light-mode .kid-interface {
+  --color-navy: #fff7fb;
+  --color-navy-light: #fdf2f8;
+  --color-navy-mid: #f5e8f1;
+  --color-surface: #ffffff;
+  --color-surface-raised: #fff0f8;
+  --color-border: #ead7e7;
+  --color-border-light: #d9bad5;
+  --color-cream: #211827;
+  --color-muted: #6e6174;
+  --color-accent: #db2777;
+  --color-accent-light: #0f766e;
+  --color-sky: #0891b2;
+  --color-gold: #b7791f;
+  --color-purple: #7c3aed;
+  background:
+    linear-gradient(180deg, rgba(244, 114, 182, 0.14) 0%, rgba(34, 211, 238, 0.08) 240px, transparent 560px),
+    repeating-linear-gradient(0deg, rgba(219, 39, 119, 0.045) 0 1px, transparent 1px 34px),
+    repeating-linear-gradient(90deg, rgba(8, 145, 178, 0.035) 0 1px, transparent 1px 34px),
+    var(--color-navy);
+  background-attachment: fixed;
+}
+
+.kid-interface main {
+  background:
+    linear-gradient(135deg, rgba(244, 114, 182, 0.045) 0%, transparent 34%),
+    linear-gradient(315deg, rgba(34, 211, 238, 0.035) 0%, transparent 38%);
+}
+
+.kid-interface .game-panel {
+  border-color: rgba(244, 114, 182, 0.22);
+  box-shadow: 0 10px 28px rgba(12, 8, 20, 0.18);
+}
+
+.kid-interface .game-panel:hover {
+  border-color: rgba(94, 234, 212, 0.38);
+}
+
+.kid-interface .game-btn,
+.kid-interface button {
+  min-height: 40px;
+}
+
+.kid-interface button:focus-visible,
+.kid-interface a:focus-visible,
+.kid-interface input:focus-visible,
+.kid-interface select:focus-visible,
+.kid-interface textarea:focus-visible {
+  outline: 3px solid rgba(94, 234, 212, 0.55);
+  outline-offset: 2px;
+}
+
+.kid-interface .xp-bar {
+  height: 8px;
+  border-radius: 999px;
+}
+
+.kid-interface .xp-bar-fill {
+  background: linear-gradient(90deg, #f472b6 0%, #22d3ee 52%, #84cc16 100%);
+}
+
+.kid-focus-panel {
+  position: relative;
+  background:
+    linear-gradient(135deg, rgba(244, 114, 182, 0.16) 0%, rgba(34, 211, 238, 0.08) 52%, rgba(132, 204, 22, 0.08) 100%),
+    var(--color-surface);
+}
+
+.kid-focus-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: linear-gradient(180deg, #f472b6, #22d3ee, #84cc16);
+}
+
+.kid-focus-mark {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid rgba(250, 204, 21, 0.45);
+  background: rgba(250, 204, 21, 0.14);
+  color: var(--color-gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.kid-step-card {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-height: 76px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.045);
+  transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
+}
+
+.light-mode .kid-step-card {
+  border-color: rgba(219, 39, 119, 0.16);
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.kid-step-card:hover {
+  border-color: rgba(94, 234, 212, 0.52);
+  background: rgba(94, 234, 212, 0.08);
+  transform: translateY(-1px);
+}
+
+.kid-step-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #171221;
+  background: linear-gradient(135deg, #f472b6, #22d3ee);
+}
+
+.kid-style-cue {
+  --cue-accent: var(--color-accent);
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--cue-accent) 42%, transparent);
+  background: color-mix(in srgb, var(--cue-accent) 12%, transparent);
+  color: var(--color-cream);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.1;
+}
+
+.kid-interface-audhd .avatar-idle .avatar-svg {
+  animation-duration: 6s, 18s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kid-interface-audhd *,
+  .kid-interface-audhd *::before,
+  .kid-interface-audhd *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* Color Themes */
 
 /* Dragon Fire */
