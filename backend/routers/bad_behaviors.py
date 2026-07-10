@@ -27,17 +27,10 @@ from backend.services.bad_behavior import (
     get_bad_behavior_penalty_preview,
     normalize_behavior_title,
 )
-from backend.services.feature_flags import is_bad_behavior_enabled
 from backend.websocket_manager import ws_manager
 
 
 router = APIRouter(prefix="/api/bad-behaviors", tags=["bad-behaviors"])
-
-
-def _require_feature_enabled():
-    if not is_bad_behavior_enabled():
-        raise HTTPException(status_code=403, detail="Bad behavior feature is disabled")
-
 
 async def _get_kid(db: AsyncSession, user_id: int) -> User:
     result = await db.execute(
@@ -108,7 +101,6 @@ async def list_bad_behaviors(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_parent),
 ):
-    _require_feature_enabled()
     stmt = select(BadBehavior).order_by(BadBehavior.created_at.desc()).limit(limit)
     if user_id is not None:
         stmt = stmt.where(BadBehavior.user_id == user_id)
@@ -138,7 +130,6 @@ async def list_bad_behavior_suggestions(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_parent),
 ):
-    _require_feature_enabled()
     await _get_kid(db, user_id)
     result = await db.execute(
         select(BadBehavior)
@@ -189,7 +180,6 @@ async def preview_bad_behavior_penalty(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_parent),
 ):
-    _require_feature_enabled()
     await _get_kid(db, user_id)
     title_normalized = normalize_behavior_title(title)
     if not title_normalized:
@@ -219,7 +209,6 @@ async def create_bad_behavior(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_parent),
 ):
-    _require_feature_enabled()
     kid = await _get_kid(db, body.user_id)
     title = body.title.strip()
     title_normalized = normalize_behavior_title(title)

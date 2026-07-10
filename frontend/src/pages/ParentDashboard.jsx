@@ -18,7 +18,6 @@ import { useTheme } from '../hooks/useTheme';
 import { themedTitle } from '../utils/questThemeText';
 import { api } from '../api/client';
 import { useAuth } from '../hooks/useAuth';
-import { useSettings } from '../hooks/useSettings';
 import AvatarDisplay from '../components/AvatarDisplay';
 import BadBehaviorPanel from '../components/BadBehaviorPanel';
 import Modal from '../components/Modal';
@@ -27,7 +26,6 @@ export default function ParentDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { colorTheme } = useTheme();
-  const { bad_behavior_enabled } = useSettings();
 
   const [familyStats, setFamilyStats] = useState([]);
   const [pendingVerifications, setPendingVerifications] = useState([]);
@@ -391,9 +389,7 @@ export default function ParentDashboard() {
         </button>
       </section>
 
-      {bad_behavior_enabled && (
-        <BadBehaviorPanel kids={familyStats} onRecorded={fetchData} />
-      )}
+      <BadBehaviorPanel kids={familyStats} onRecorded={fetchData} />
 
       {/* Bonus XP Modal */}
       <Modal
