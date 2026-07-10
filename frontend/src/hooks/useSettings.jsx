@@ -6,14 +6,12 @@ const SettingsContext = createContext({
   leaderboard_enabled: true,
   spin_wheel_enabled: true,
   chore_trading_enabled: true,
-  bad_behavior_enabled: false,
 });
 
 const DEFAULT_FEATURES = {
   leaderboard_enabled: true,
   spin_wheel_enabled: true,
   chore_trading_enabled: true,
-  bad_behavior_enabled: false,
 };
 
 export function SettingsProvider({ children }) {
@@ -28,7 +26,6 @@ export function SettingsProvider({ children }) {
         leaderboard_enabled: data.leaderboard_enabled !== 'false',
         spin_wheel_enabled: data.spin_wheel_enabled !== 'false',
         chore_trading_enabled: data.chore_trading_enabled !== 'false',
-        bad_behavior_enabled: data.bad_behavior_enabled === 'true',
       });
     } catch {
       // If fetch fails, keep defaults (all enabled)

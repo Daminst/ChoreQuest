@@ -9,9 +9,10 @@ export function renderHat(style, color) {
           <polygon points="10,8 11,4 13,7 16,3 19,7 21,4 22,8" fill={color} />
           <rect x="10" y="7" width="12" height="2" rx="0.5" fill={color} />
           {/* Gem highlights */}
-          <circle cx="13" cy="6" r="0.5" fill="white" opacity="0.4" />
-          <circle cx="16" cy="4" r="0.5" fill="white" opacity="0.4" />
-          <circle cx="19" cy="6" r="0.5" fill="white" opacity="0.4" />
+          <circle className="avatar-highlight" cx="13" cy="6" r="0.5" fill="white" opacity="0.58" />
+          <circle className="avatar-highlight" cx="16" cy="4" r="0.5" fill="white" opacity="0.58" />
+          <circle className="avatar-highlight" cx="19" cy="6" r="0.5" fill="white" opacity="0.58" />
+          <path className="avatar-detail" d="M10.5,8 Q16,9 21.5,8" stroke="#92400e" strokeWidth="0.25" fill="none" opacity="0.34" />
         </g>
       );
     case 'wizard':

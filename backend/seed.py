@@ -56,6 +56,7 @@ DEFAULT_SETTINGS = {
     "leaderboard_enabled": "true",
     "spin_wheel_enabled": "true",
     "chore_trading_enabled": "true",
+    "special_theme": "none",
 }
 
 # Template quests with RPG-flavoured descriptions

@@ -23,10 +23,6 @@ from backend.schemas import (
 )
 from backend.auth import hash_password
 from backend.dependencies import require_admin, require_parent, get_current_user
-from backend.services.feature_flags import (
-    BAD_BEHAVIOR_FLAG,
-    load_file_feature_flags,
-)
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -311,7 +307,6 @@ async def get_feature_settings(
     features = {k: "true" for k in feature_keys}
     for s in settings_list:
         features[s.key] = s.value
-    features[BAD_BEHAVIOR_FLAG] = load_file_feature_flags().get(BAD_BEHAVIOR_FLAG, "false")
     return features
 
 

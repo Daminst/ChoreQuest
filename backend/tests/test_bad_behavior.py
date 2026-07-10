@@ -1,5 +1,6 @@
 import unittest
 from datetime import datetime
+from pathlib import Path
 from types import SimpleNamespace
 
 from backend.services.bad_behavior import (
@@ -9,7 +10,6 @@ from backend.services.bad_behavior import (
     get_bad_behavior_penalty_preview,
     normalize_behavior_title,
 )
-from backend.services.feature_flags import read_file_feature_flags
 
 
 class FixedRandom:
@@ -98,20 +98,13 @@ class BadBehaviorPenaltyTest(unittest.TestCase):
         self.assertIn("wylosowana", entry["detail"])
 
 
-class FeatureFlagFileTest(unittest.TestCase):
-    def test_reads_bad_behavior_flag_from_json_file(self):
-        flags = read_file_feature_flags(
-            '{"bad_behavior_enabled": true, "other": "ignored"}'
-        )
+class BadBehaviorAvailabilityTest(unittest.TestCase):
+    def test_router_has_no_feature_flag_guard(self):
+        source = Path("backend/routers/bad_behaviors.py").read_text(encoding="utf-8")
 
-        self.assertEqual(flags, {"bad_behavior_enabled": "true"})
-
-    def test_reads_bad_behavior_flag_from_key_value_file(self):
-        flags = read_file_feature_flags(
-            "bad_behavior_enabled=false\n# comment\n"
-        )
-
-        self.assertEqual(flags, {"bad_behavior_enabled": "false"})
+        self.assertNotIn("feature_flags", source)
+        self.assertNotIn("_require_feature_enabled", source)
+        self.assertIn("Depends(require_parent)", source)
 
 
 if __name__ == "__main__":

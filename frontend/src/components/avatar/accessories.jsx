@@ -8,7 +8,8 @@ export function renderAccessory(style, color) {
         <g>
           <rect x="9" y="20" width="14" height="3" rx="1" fill={color} />
           <rect x="9" y="20" width="3" height="6" rx="1" fill={color} />
-          <line x1="10" y1="22" x2="11" y2="22" stroke="white" strokeWidth="0.3" opacity="0.15" />
+          <line className="avatar-highlight" x1="10" y1="22" x2="11" y2="22" stroke="white" strokeWidth="0.4" opacity="0.3" />
+          <path className="avatar-detail" d="M10,24 L11,25 M10.8,24 L11.8,25" stroke="#020617" strokeWidth="0.2" opacity="0.25" />
         </g>
       );
     case 'necklace':

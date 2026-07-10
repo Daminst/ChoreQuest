@@ -24,6 +24,7 @@ import {
   MoreHorizontal,
 } from 'lucide-react';
 import AvatarDisplay from './AvatarDisplay';
+import SeasonalThemeLayer from './SeasonalThemeLayer';
 
 const ALL_NAV_ITEMS = [
   { label: 'Home', icon: Home, path: '/' },
@@ -52,7 +53,7 @@ export default function Layout({ children }) {
   const { user } = useAuth();
   const settings = useSettings();
   const { chore_trading_enabled } = settings;
-  const { syncFromUser } = useTheme();
+  const { specialTheme } = useTheme();
   const { notifications, unreadCount, markRead, markAllRead, refresh } = useNotifications();
 
   const handlePullRefresh = useCallback(async () => {
@@ -61,9 +62,6 @@ export default function Layout({ children }) {
   }, []);
   const { pulling, pullDistance, refreshing } = usePullToRefresh(handlePullRefresh);
 
-  useEffect(() => {
-    if (user) syncFromUser(user);
-  }, [user, syncFromUser]);
   const [showNotifs, setShowNotifs] = useState(false);
   const [showMore, setShowMore] = useState(false);
   const panelRef = useRef(null);
@@ -130,6 +128,7 @@ export default function Layout({ children }) {
 
   return (
     <div className={getKidLayoutClassName(user)} data-interface-mode={interfaceMode}>
+      <SeasonalThemeLayer theme={specialTheme} />
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex flex-col w-[248px] bg-surface border-r border-border min-h-screen fixed left-0 top-0 z-30">
         <div
