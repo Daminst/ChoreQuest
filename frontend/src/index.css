@@ -354,6 +354,282 @@ h1, h2, h3, h4, h5, h6 {
   --color-border-light: #d8b4fe;
 }
 
+/* Family holiday themes */
+.theme-christmas {
+  --color-sky: #60a5fa;
+  --color-accent: #ef4444;
+  --color-accent-light: #fbbf24;
+  --color-gold: #fbbf24;
+  --color-navy: #07140f;
+  --color-navy-light: #0c1e17;
+  --color-navy-mid: #143126;
+  --color-surface: #0d2119;
+  --color-surface-raised: #153428;
+  --color-border: #24533f;
+  --color-border-light: #3d745c;
+  --color-cream: #fffaf0;
+  --color-muted: #b8cfc4;
+}
+
+.theme-christmas.light-mode {
+  --color-navy: #f3faf6;
+  --color-navy-light: #e4f3e9;
+  --color-navy-mid: #d4eadc;
+  --color-surface: #ffffff;
+  --color-surface-raised: #f1f8f3;
+  --color-border: #b9dac5;
+  --color-border-light: #86b99a;
+  --color-cream: #173526;
+  --color-muted: #587165;
+}
+
+.theme-easter {
+  --color-sky: #7dd3fc;
+  --color-accent: #f472b6;
+  --color-accent-light: #86efac;
+  --color-gold: #fde68a;
+  --color-navy: #151223;
+  --color-navy-light: #201a31;
+  --color-navy-mid: #2d2441;
+  --color-surface: #211b33;
+  --color-surface-raised: #312744;
+  --color-border: #493a61;
+  --color-border-light: #6b5585;
+  --color-cream: #fff8fd;
+  --color-muted: #cfc2d8;
+}
+
+.theme-easter.light-mode {
+  --color-navy: #fff8fc;
+  --color-navy-light: #f8edf5;
+  --color-navy-mid: #eee2ed;
+  --color-surface: #ffffff;
+  --color-surface-raised: #fbf1f8;
+  --color-border: #e5cfe0;
+  --color-border-light: #cfaec6;
+  --color-cream: #34263a;
+  --color-muted: #74647a;
+}
+
+.theme-christmas body,
+.theme-easter body {
+  background:
+    radial-gradient(circle at 12% -5%, color-mix(in srgb, var(--color-accent) 18%, transparent), transparent 30%),
+    radial-gradient(circle at 88% 0%, color-mix(in srgb, var(--color-accent-light) 14%, transparent), transparent 28%),
+    var(--color-navy);
+}
+
+.theme-christmas .game-panel,
+.theme-easter .game-panel {
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.seasonal-theme-layer {
+  --seasonal-safe-top: 54px;
+  contain: layout paint;
+}
+
+.seasonal-garland {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 54px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  filter: drop-shadow(0 4px 9px rgba(0, 0, 0, 0.24));
+}
+
+.seasonal-garland-christmas {
+  background: linear-gradient(180deg, rgba(4, 44, 27, 0.72), transparent);
+}
+
+.seasonal-evergreen {
+  position: absolute;
+  top: -12px;
+  left: -8px;
+  font-size: 52px;
+  transform: rotate(34deg);
+  opacity: 0.82;
+}
+
+.seasonal-evergreen-right {
+  left: auto;
+  right: -8px;
+  transform: scaleX(-1) rotate(34deg);
+}
+
+.seasonal-light-string {
+  width: min(76vw, 760px);
+  height: 24px;
+  border-top: 2px solid rgba(255, 255, 255, 0.24);
+  border-radius: 50%;
+  display: flex;
+  justify-content: space-around;
+}
+
+.seasonal-light {
+  width: 7px;
+  height: 11px;
+  margin-top: -2px;
+  border-radius: 45% 45% 60% 60%;
+  box-shadow: 0 0 12px currentColor;
+  animation: seasonal-light-twinkle 2.2s ease-in-out infinite alternate;
+  animation-delay: calc(var(--seasonal-index) * -0.17s);
+}
+
+.seasonal-particles {
+  position: absolute;
+  inset: 0;
+}
+
+.seasonal-particle {
+  position: absolute;
+  left: var(--seasonal-left);
+  top: -24px;
+  width: var(--seasonal-size);
+  height: var(--seasonal-size);
+  opacity: 0.68;
+  will-change: transform;
+}
+
+.seasonal-snowflake {
+  color: rgba(255, 255, 255, 0.92);
+  font-size: var(--seasonal-size);
+  text-shadow: 0 0 8px rgba(147, 197, 253, 0.8);
+  animation: seasonal-snow-fall var(--seasonal-duration) linear infinite;
+  animation-delay: var(--seasonal-delay);
+}
+
+.seasonal-petal {
+  background: var(--petal-color);
+  border-radius: 90% 10% 70% 30%;
+  box-shadow: inset 1px 1px rgba(255, 255, 255, 0.55);
+  animation: seasonal-petal-drift var(--seasonal-duration) linear infinite;
+  animation-delay: var(--seasonal-delay);
+}
+
+.seasonal-garland-easter {
+  justify-content: space-between;
+  padding-inline: 9vw;
+  background: linear-gradient(180deg, rgba(134, 239, 172, 0.18), transparent);
+}
+
+.seasonal-spring-branch {
+  font-size: 38px;
+  transform: rotate(18deg);
+  opacity: 0.8;
+}
+
+.seasonal-spring-branch-right {
+  transform: scaleX(-1) rotate(18deg);
+}
+
+.seasonal-egg-row {
+  display: flex;
+  gap: clamp(12px, 4vw, 38px);
+  padding-top: 5px;
+}
+
+.seasonal-egg {
+  width: 16px;
+  height: 21px;
+  border-radius: 50% 50% 46% 46% / 62% 62% 38% 38%;
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.7), transparent 32%),
+    repeating-linear-gradient(45deg, transparent 0 4px, rgba(255, 255, 255, 0.28) 4px 6px),
+    var(--egg-color);
+  transform: rotate(calc((var(--seasonal-index) - 2) * 5deg));
+  box-shadow: 0 4px 8px rgba(72, 44, 86, 0.2);
+}
+
+.seasonal-corner {
+  position: absolute;
+  bottom: 12px;
+  font-size: clamp(28px, 5vw, 48px);
+  opacity: 0.82;
+  filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.2));
+}
+
+.seasonal-corner-left {
+  left: 14px;
+}
+
+.seasonal-corner-right {
+  right: 14px;
+}
+
+.seasonal-bunny {
+  transform: scaleX(-1);
+}
+
+.seasonal-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 16px;
+  opacity: 0.7;
+}
+
+.seasonal-snow-bank {
+  background:
+    radial-gradient(42px 14px at 8% 100%, rgba(255, 255, 255, 0.82), transparent 72%),
+    radial-gradient(60px 17px at 48% 100%, rgba(219, 234, 254, 0.82), transparent 72%),
+    radial-gradient(48px 14px at 88% 100%, rgba(255, 255, 255, 0.82), transparent 72%);
+}
+
+.seasonal-grass-bank {
+  background:
+    repeating-linear-gradient(102deg, transparent 0 11px, rgba(74, 222, 128, 0.52) 12px 14px, transparent 15px 20px),
+    linear-gradient(180deg, transparent, rgba(34, 197, 94, 0.28));
+}
+
+@keyframes seasonal-snow-fall {
+  0% { transform: translate3d(0, -24px, 0) rotate(0deg); }
+  50% { transform: translate3d(var(--seasonal-sway), 50vh, 0) rotate(160deg); }
+  100% { transform: translate3d(0, 104vh, 0) rotate(340deg); }
+}
+
+@keyframes seasonal-petal-drift {
+  0% { transform: translate3d(0, -24px, 0) rotate(15deg); }
+  45% { transform: translate3d(var(--seasonal-sway), 46vh, 0) rotate(170deg); }
+  100% { transform: translate3d(calc(var(--seasonal-sway) * -0.4), 104vh, 0) rotate(330deg); }
+}
+
+@keyframes seasonal-light-twinkle {
+  from { opacity: 0.48; transform: scale(0.88); }
+  to { opacity: 1; transform: scale(1.08); }
+}
+
+@media (max-width: 639px) {
+  .seasonal-particle:nth-child(even) {
+    display: none;
+  }
+
+  .seasonal-egg-row {
+    gap: 14px;
+  }
+
+  .seasonal-garland-easter {
+    padding-inline: 3vw;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seasonal-particle,
+  .seasonal-light {
+    animation: none !important;
+  }
+
+  .seasonal-particle {
+    top: var(--seasonal-left);
+  }
+}
+
 /* Hide scrollbar for horizontal strip */
 .scrollbar-hide {
   -ms-overflow-style: none;
