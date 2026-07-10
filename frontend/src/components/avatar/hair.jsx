@@ -10,7 +10,8 @@ export function renderHair(style, color) {
           <ellipse cx="16" cy="9" rx="7.5" ry="4" fill={color} />
           <rect x="8.5" y="8" width="3" height="5" rx="1" fill={color} />
           <rect x="20.5" y="8" width="3" height="5" rx="1" fill={color} />
-          <ellipse cx="14" cy="8" rx="3" ry="1.5" fill="white" opacity="0.06" />
+          <ellipse className="avatar-highlight" cx="14" cy="8" rx="3" ry="1.5" fill="white" opacity="0.14" />
+          <path className="avatar-detail" d="M9.5,10 Q13,6.2 18,6.8" stroke="white" strokeWidth="0.32" fill="none" opacity="0.16" strokeLinecap="round" />
         </>
       );
     case 'long':

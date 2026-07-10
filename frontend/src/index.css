@@ -861,6 +861,14 @@ h1, h2, h3, h4, h5, h6 {
   mix-blend-mode: screen;
 }
 
+.avatar-highlight {
+  mix-blend-mode: screen;
+}
+
+.avatar-detail {
+  vector-effect: non-scaling-stroke;
+}
+
 .avatar-idle .avatar-eyelid {
   animation: avatar-blink 5s ease-in-out infinite;
   animation-delay: var(--avatar-delay, 0s);
