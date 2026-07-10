@@ -3,7 +3,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../hooks/useAuth';
 import { useSettings } from '../hooks/useSettings';
-import { useTheme } from '../hooks/useTheme';
 import { useNotifications } from '../hooks/useNotifications';
 import { usePullToRefresh } from '../hooks/usePullToRefresh';
 import { getNotificationTarget } from '../utils/notificationTargets';
@@ -51,7 +50,6 @@ export default function Layout({ children }) {
   const { user } = useAuth();
   const settings = useSettings();
   const { chore_trading_enabled } = settings;
-  const { syncFromUser } = useTheme();
   const { notifications, unreadCount, markRead, markAllRead, refresh } = useNotifications();
 
   const handlePullRefresh = useCallback(async () => {
@@ -60,9 +58,6 @@ export default function Layout({ children }) {
   }, []);
   const { pulling, pullDistance, refreshing } = usePullToRefresh(handlePullRefresh);
 
-  useEffect(() => {
-    if (user) syncFromUser(user);
-  }, [user, syncFromUser]);
   const [showNotifs, setShowNotifs] = useState(false);
   const [showMore, setShowMore] = useState(false);
   const panelRef = useRef(null);
