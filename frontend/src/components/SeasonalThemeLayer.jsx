@@ -9,6 +9,38 @@ const PARTICLES = Array.from({ length: 24 }, (_, index) => ({
 
 const LIGHT_COLORS = ['#fef08a', '#fca5a5', '#86efac', '#93c5fd'];
 const EGG_COLORS = ['#f9a8d4', '#c4b5fd', '#93c5fd', '#86efac', '#fde68a'];
+const EXTRA_THEME_DECORATIONS = {
+  birthday: {
+    top: ['🎈', '🎉', '🎈'],
+    particles: ['●', '◆', '■', '▲'],
+    left: '🎂',
+    right: '🎁',
+  },
+  halloween: {
+    top: ['🦇', '🌙', '🦇'],
+    particles: ['🦇', '✦', '👻'],
+    left: '🎃',
+    right: '👻',
+  },
+  april_fools: {
+    top: ['🎭', '🃏', '🎭'],
+    particles: ['?', '!', '★', '◆'],
+    left: '🤡',
+    right: '🪄',
+  },
+  wet_monday: {
+    top: ['💧', '💦', '💧'],
+    particles: ['💧', '•', '💦'],
+    left: '🪣',
+    right: '🧽',
+  },
+  summer_vacation: {
+    top: ['☀️', '🕶️', '☀️'],
+    particles: ['☀', '✦', '🌺'],
+    left: '🌴',
+    right: '🏖️',
+  },
+};
 
 
 function ChristmasLayer() {
@@ -97,15 +129,70 @@ function EasterLayer() {
   );
 }
 
+function ExtraThemeLayer({ theme }) {
+  const decoration = EXTRA_THEME_DECORATIONS[theme];
+  if (!decoration) return null;
+
+  return (
+    <>
+      <div className={`seasonal-garland seasonal-garland-${theme}`}>
+        {decoration.top.map((symbol, index) => (
+          <span
+            key={`${symbol}-${index}`}
+            className="seasonal-top-symbol"
+            style={{ '--seasonal-index': index }}
+          >
+            {symbol}
+          </span>
+        ))}
+      </div>
+
+      <div className={`seasonal-particles seasonal-particles-${theme}`}>
+        {PARTICLES.map((particle) => (
+          <span
+            key={particle.id}
+            className={`seasonal-particle seasonal-extra-particle seasonal-${theme}-particle`}
+            style={{
+              '--seasonal-left': `${particle.left}%`,
+              '--seasonal-delay': `${particle.delay}s`,
+              '--seasonal-duration': `${particle.duration + 2}s`,
+              '--seasonal-size': `${particle.size}px`,
+              '--seasonal-sway': `${particle.sway}px`,
+            }}
+          >
+            {decoration.particles[particle.id % decoration.particles.length]}
+          </span>
+        ))}
+      </div>
+
+      <div className="seasonal-corner seasonal-corner-left">{decoration.left}</div>
+      <div className="seasonal-corner seasonal-corner-right">{decoration.right}</div>
+      <div className={`seasonal-bottom seasonal-bottom-${theme}`} />
+    </>
+  );
+}
+
 export default function SeasonalThemeLayer({ theme }) {
-  if (theme !== 'christmas' && theme !== 'easter') return null;
+  const isDecorativeTheme = [
+    'christmas',
+    'easter',
+    'birthday',
+    'halloween',
+    'april_fools',
+    'wet_monday',
+    'summer_vacation',
+  ].includes(theme);
+
+  if (!isDecorativeTheme) return null;
 
   return (
     <div
       className={`seasonal-theme-layer seasonal-theme-${theme} fixed inset-0 z-[1] overflow-hidden pointer-events-none`}
       aria-hidden="true"
     >
-      {theme === 'christmas' ? <ChristmasLayer /> : <EasterLayer />}
+      {theme === 'christmas' ? <ChristmasLayer /> : null}
+      {theme === 'easter' ? <EasterLayer /> : null}
+      {EXTRA_THEME_DECORATIONS[theme] ? <ExtraThemeLayer theme={theme} /> : null}
     </div>
   );
 }
