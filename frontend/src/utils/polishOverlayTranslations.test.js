@@ -32,6 +32,23 @@ const requiredAvatarThemeTranslations = [
   ['Mischief Hood', 'Psotny kaptur'],
 ];
 
+const requiredSpecialThemeTranslations = [
+  ['Easter', 'Wielkanoc'],
+  ['Christmas', 'Boże Narodzenie'],
+  ['Birthday', 'Urodziny'],
+  ['Halloween', 'Halloween'],
+  ["April Fools' Day", 'Prima Aprilis'],
+  ['Wet Monday', 'Śmigus Dyngus'],
+  ['Summer Vacation', 'Wakacje'],
+  ['Spring petals, painted eggs and bunny decorations', 'Wiosenne płatki, pisanki i królicze ozdoby'],
+  ['Falling snow, warm lights and festive greenery', 'Padający śnieg, ciepłe lampki i świąteczne gałązki'],
+  ['Confetti, balloons and a birthday cake', 'Konfetti, balony i urodzinowy tort'],
+  ['Pumpkins, friendly ghosts and flying bats', 'Dynie, przyjazne duszki i latające nietoperze'],
+  ['Colourful streamers and playful decorations', 'Kolorowe serpentyny i psotne dekoracje'],
+  ['Droplets, splashes and water play', 'Krople, rozbryzgi i wodna zabawa'],
+  ['Sunshine, palms and a beach atmosphere', 'Słońce, palmy i plażowa atmosfera'],
+];
+
 test('polish overlay translates chore detail metadata', () => {
   for (const fileUrl of overlayFiles) {
     const source = fs.readFileSync(fileUrl, 'utf8');
@@ -103,6 +120,21 @@ test('polish overlay translates themed avatar collections', () => {
       assert.equal(
         translations.get(english),
         polish,
+        `${fileUrl.pathname} maps ${english} incorrectly`,
+      );
+    }
+  }
+});
+
+test('polish overlay translates every family special theme', () => {
+  for (const fileUrl of overlayFiles) {
+    const source = fs.readFileSync(fileUrl, 'utf8');
+
+    for (const [english, polish] of requiredSpecialThemeTranslations) {
+      const escapedEnglish = english.replaceAll("'", "\\'");
+      assert.equal(
+        source.includes(`'${escapedEnglish}': '${polish}',`),
+        true,
         `${fileUrl.pathname} maps ${english} incorrectly`,
       );
     }
