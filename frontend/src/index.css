@@ -411,16 +411,154 @@ h1, h2, h3, h4, h5, h6 {
   --color-muted: #74647a;
 }
 
-.theme-christmas body,
-.theme-easter body {
+.theme-birthday {
+  --color-sky: #c084fc;
+  --color-accent: #ec4899;
+  --color-accent-light: #fbbf24;
+  --color-gold: #fbbf24;
+  --color-navy: #180d20;
+  --color-navy-light: #24112f;
+  --color-navy-mid: #351942;
+  --color-surface: #271331;
+  --color-surface-raised: #3a1c48;
+  --color-border: #5b2b6d;
+  --color-border-light: #86429b;
+  --color-cream: #fff7fd;
+  --color-muted: #d8bdd8;
+}
+
+.theme-birthday.light-mode {
+  --color-navy: #fff7fc;
+  --color-navy-light: #fce7f3;
+  --color-navy-mid: #f5d8ec;
+  --color-surface: #ffffff;
+  --color-surface-raised: #fff1f8;
+  --color-border: #f0bddc;
+  --color-border-light: #df8fbe;
+  --color-cream: #462038;
+  --color-muted: #805b70;
+}
+
+.theme-halloween {
+  --color-sky: #a855f7;
+  --color-accent: #f97316;
+  --color-accent-light: #a855f7;
+  --color-gold: #fbbf24;
+  --color-navy: #0f0a14;
+  --color-navy-light: #191020;
+  --color-navy-mid: #281733;
+  --color-surface: #1b1022;
+  --color-surface-raised: #2b1835;
+  --color-border: #4b2859;
+  --color-border-light: #754088;
+  --color-cream: #fff7ed;
+  --color-muted: #cbb8cf;
+}
+
+.theme-halloween.light-mode {
+  --color-navy: #fff7ed;
+  --color-navy-light: #ffedd5;
+  --color-navy-mid: #fed7aa;
+  --color-surface: #ffffff;
+  --color-surface-raised: #fff7ed;
+  --color-border: #d8b4fe;
+  --color-border-light: #c084fc;
+  --color-cream: #3b1d13;
+  --color-muted: #765b52;
+}
+
+.theme-april_fools {
+  --color-sky: #22d3ee;
+  --color-accent: #db2777;
+  --color-accent-light: #22d3ee;
+  --color-gold: #facc15;
+  --color-navy: #101126;
+  --color-navy-light: #181a35;
+  --color-navy-mid: #24274a;
+  --color-surface: #1b1d38;
+  --color-surface-raised: #292c50;
+  --color-border: #414676;
+  --color-border-light: #6369a0;
+  --color-cream: #fffafd;
+  --color-muted: #c7c5dc;
+}
+
+.theme-april_fools.light-mode {
+  --color-navy: #fffdf2;
+  --color-navy-light: #fef9c3;
+  --color-navy-mid: #fdf08a;
+  --color-surface: #ffffff;
+  --color-surface-raised: #fffbea;
+  --color-border: #a5f3fc;
+  --color-border-light: #67e8f9;
+  --color-cream: #342044;
+  --color-muted: #705d78;
+}
+
+.theme-wet_monday {
+  --color-sky: #38bdf8;
+  --color-accent: #06b6d4;
+  --color-accent-light: #2dd4bf;
+  --color-gold: #67e8f9;
+  --color-navy: #061523;
+  --color-navy-light: #0a2133;
+  --color-navy-mid: #103149;
+  --color-surface: #0c2639;
+  --color-surface-raised: #12384f;
+  --color-border: #1d5670;
+  --color-border-light: #2f7894;
+  --color-cream: #f0fdff;
+  --color-muted: #acd1dc;
+}
+
+.theme-wet_monday.light-mode {
+  --color-navy: #effcff;
+  --color-navy-light: #cffafe;
+  --color-navy-mid: #a5f3fc;
+  --color-surface: #ffffff;
+  --color-surface-raised: #ecfeff;
+  --color-border: #a5e7f3;
+  --color-border-light: #67d4e8;
+  --color-cream: #123744;
+  --color-muted: #587680;
+}
+
+.theme-summer_vacation {
+  --color-sky: #38bdf8;
+  --color-accent: #fb7185;
+  --color-accent-light: #facc15;
+  --color-gold: #facc15;
+  --color-navy: #071a25;
+  --color-navy-light: #0c2735;
+  --color-navy-mid: #12394a;
+  --color-surface: #0e2c3a;
+  --color-surface-raised: #154052;
+  --color-border: #236076;
+  --color-border-light: #37839b;
+  --color-cream: #fffdf0;
+  --color-muted: #b7d4d6;
+}
+
+.theme-summer_vacation.light-mode {
+  --color-navy: #f0fbff;
+  --color-navy-light: #e0f5fb;
+  --color-navy-mid: #c8ebf5;
+  --color-surface: #ffffff;
+  --color-surface-raised: #fffbea;
+  --color-border: #a7dce8;
+  --color-border-light: #66bfd3;
+  --color-cream: #173b43;
+  --color-muted: #58757a;
+}
+
+:is(.theme-christmas, .theme-easter, .theme-birthday, .theme-halloween, .theme-april_fools, .theme-wet_monday, .theme-summer_vacation) body {
   background:
     radial-gradient(circle at 12% -5%, color-mix(in srgb, var(--color-accent) 18%, transparent), transparent 30%),
     radial-gradient(circle at 88% 0%, color-mix(in srgb, var(--color-accent-light) 14%, transparent), transparent 28%),
     var(--color-navy);
 }
 
-.theme-christmas .game-panel,
-.theme-easter .game-panel {
+:is(.theme-christmas, .theme-easter, .theme-birthday, .theme-halloween, .theme-april_fools, .theme-wet_monday, .theme-summer_vacation) .game-panel {
   box-shadow:
     0 14px 34px rgba(0, 0, 0, 0.18),
     inset 0 1px 0 rgba(255, 255, 255, 0.04);
@@ -588,6 +726,41 @@ h1, h2, h3, h4, h5, h6 {
     linear-gradient(180deg, transparent, rgba(34, 197, 94, 0.28));
 }
 
+.seasonal-garland-birthday,
+.seasonal-garland-halloween,
+.seasonal-garland-april_fools,
+.seasonal-garland-wet_monday,
+.seasonal-garland-summer_vacation {
+  gap: min(18vw, 180px);
+  padding-top: 5px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-accent-light) 16%, transparent), transparent);
+}
+
+.seasonal-top-symbol {
+  font-size: clamp(24px, 4vw, 38px);
+  animation: seasonal-symbol-float 3.4s ease-in-out infinite alternate;
+  animation-delay: calc(var(--seasonal-index) * -0.55s);
+}
+
+.seasonal-extra-particle {
+  display: grid;
+  place-items: center;
+  font-size: var(--seasonal-size);
+  animation: seasonal-extra-fall var(--seasonal-duration) linear infinite;
+  animation-delay: var(--seasonal-delay);
+}
+
+.seasonal-birthday-particle { color: #fbbf24; }
+.seasonal-halloween-particle { color: #f97316; }
+.seasonal-april_fools-particle { color: #22d3ee; animation-name: seasonal-fool-fall; }
+.seasonal-wet_monday-particle { color: #67e8f9; }
+.seasonal-summer_vacation-particle { color: #facc15; }
+.seasonal-bottom-birthday { background: linear-gradient(90deg, #ec4899, #fbbf24, #8b5cf6); height: 5px; }
+.seasonal-bottom-halloween { background: repeating-linear-gradient(135deg, #18181b 0 16px, #f97316 16px 32px); height: 6px; }
+.seasonal-bottom-april_fools { background: linear-gradient(90deg, #db2777, #06b6d4, #facc15); height: 5px; }
+.seasonal-bottom-wet_monday { background: radial-gradient(40px 10px at 20% 100%, #38bdf8aa, transparent 75%), radial-gradient(55px 12px at 75% 100%, #2dd4bf99, transparent 75%); }
+.seasonal-bottom-summer_vacation { background: linear-gradient(180deg, transparent, #facc1555 45%, #fbbf2488); }
+
 @keyframes seasonal-snow-fall {
   0% { transform: translate3d(0, -24px, 0) rotate(0deg); }
   50% { transform: translate3d(var(--seasonal-sway), 50vh, 0) rotate(160deg); }
@@ -605,6 +778,23 @@ h1, h2, h3, h4, h5, h6 {
   to { opacity: 1; transform: scale(1.08); }
 }
 
+@keyframes seasonal-symbol-float {
+  from { transform: translateY(-2px) rotate(-8deg); }
+  to { transform: translateY(5px) rotate(8deg); }
+}
+
+@keyframes seasonal-extra-fall {
+  0% { transform: translate3d(0, -24px, 0) rotate(0deg); }
+  50% { transform: translate3d(var(--seasonal-sway), 50vh, 0) rotate(170deg); }
+  100% { transform: translate3d(0, 104vh, 0) rotate(350deg); }
+}
+
+@keyframes seasonal-fool-fall {
+  0% { transform: translate3d(0, -24px, 0) rotate(0deg); }
+  45% { transform: translate3d(var(--seasonal-sway), 45vh, 0) rotate(-190deg); }
+  100% { transform: translate3d(calc(var(--seasonal-sway) * -0.5), 104vh, 0) rotate(390deg); }
+}
+
 @media (max-width: 639px) {
   .seasonal-particle:nth-child(even) {
     display: none;
@@ -617,11 +807,24 @@ h1, h2, h3, h4, h5, h6 {
   .seasonal-garland-easter {
     padding-inline: 3vw;
   }
+
+  .seasonal-top-symbol {
+    font-size: 24px;
+  }
+
+  .seasonal-garland-birthday,
+  .seasonal-garland-halloween,
+  .seasonal-garland-april_fools,
+  .seasonal-garland-wet_monday,
+  .seasonal-garland-summer_vacation {
+    gap: 18vw;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .seasonal-particle,
-  .seasonal-light {
+  .seasonal-light,
+  .seasonal-top-symbol {
     animation: none !important;
   }
 
