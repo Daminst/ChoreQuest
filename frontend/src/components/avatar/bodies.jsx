@@ -6,7 +6,8 @@ export function renderBody(shape, color) {
       return (
         <>
           <path d="M12,22 Q11,22 11,24 L11,32 L21,32 L21,24 Q21,22 20,22 Z" fill={color} />
-          <path d="M13,22 Q16,23 19,22" stroke="white" strokeWidth="0.3" fill="none" opacity="0.1" />
+          <path className="avatar-highlight" d="M13,22 Q16,23 19,22" stroke="white" strokeWidth="0.38" fill="none" opacity="0.2" />
+          <path className="avatar-detail" d="M12.2,25 Q16,23.8 19.8,25" stroke="#020617" strokeWidth="0.24" fill="none" opacity="0.16" />
         </>
       );
     case 'broad':

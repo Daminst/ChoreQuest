@@ -14,8 +14,10 @@ export function renderFaceExtra(style) {
     case 'blush':
       return (
         <>
-          <ellipse cx="11" cy="16.5" rx="2" ry="1" fill="#e8878a" opacity="0.2" />
-          <ellipse cx="21" cy="16.5" rx="2" ry="1" fill="#e8878a" opacity="0.2" />
+          <ellipse className="avatar-detail" cx="11" cy="16.5" rx="2" ry="1" fill="#e8878a" opacity="0.24" />
+          <ellipse className="avatar-highlight" cx="10.5" cy="16.15" rx="0.65" ry="0.25" fill="white" opacity="0.2" />
+          <ellipse className="avatar-detail" cx="21" cy="16.5" rx="2" ry="1" fill="#e8878a" opacity="0.24" />
+          <ellipse className="avatar-highlight" cx="20.5" cy="16.15" rx="0.65" ry="0.25" fill="white" opacity="0.2" />
         </>
       );
     case 'face_paint':

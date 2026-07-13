@@ -23,7 +23,9 @@ import {
   Loader2,
   X,
   Trash2,
+  AlertTriangle,
 } from 'lucide-react';
+import { isBadBehaviorCalendarEntry } from '../utils/calendarEntries';
 
 const SHORT_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -371,6 +373,43 @@ export default function Calendar() {
                     </p>
                   )}
                   {dayAssignments.map((a) => {
+                    if (isBadBehaviorCalendarEntry(a)) {
+                      return (
+                        <div
+                          key={a.id}
+                          className="game-panel !border border-crimson/50 bg-crimson/10 p-2"
+                        >
+                          <div className="flex items-start gap-1.5">
+                            <AlertTriangle size={16} className="text-crimson flex-shrink-0 mt-0.5" />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm leading-tight text-cream font-medium break-words">
+                                {a.title || 'Z\u0142e zachowanie'}
+                              </p>
+                              <span className="inline-flex mt-1 text-crimson text-xs font-semibold">
+                                -{a.total_penalty} XP
+                              </span>
+                              {!isKid && a.user?.display_name && (
+                                <p className="text-xs text-purple font-medium mt-0.5 truncate">
+                                  {a.user.display_name}
+                                </p>
+                              )}
+                              <p className="text-muted text-xs mt-1 leading-relaxed">
+                                Wpis nr {a.occurrence_count}
+                                {a.bonus_penalty > 0
+                                  ? `, losowanie ${a.bonus_multiplier_percent}% (+${a.bonus_penalty} XP kary)`
+                                  : ''}
+                              </p>
+                              {a.note && (
+                                <p className="text-muted text-xs mt-1 leading-relaxed">
+                                  {a.note}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+
                     const style = statusStyle(a, dayStr);
                     const isFocusedAssignment = focusedAssignmentId === Number(a.id);
                     return (
