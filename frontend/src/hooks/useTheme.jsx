@@ -10,6 +10,7 @@ import {
 import { api } from '../api/client';
 import { useAuth } from './useAuth';
 import {
+  SPECIAL_THEME_IDS,
   normalizePersonalTheme,
   normalizeSpecialTheme,
   resolveEffectiveTheme,
@@ -37,9 +38,8 @@ export const COLOR_THEMES = [
 
 const ALL_THEME_CLASS_IDS = [
   ...COLOR_THEMES.map(({ id }) => id),
-  'easter',
-  'christmas',
-].filter((id) => id !== 'default');
+  ...SPECIAL_THEME_IDS,
+].filter((id) => id !== 'default' && id !== 'none');
 
 export function ThemeProvider({ children }) {
   const { user, updateUser } = useAuth();

@@ -12,6 +12,7 @@ import {
 } from '../utils/calendarDates';
 import { themedTitle } from '../utils/questThemeText';
 import Modal from '../components/Modal';
+import CalendarNotificationHistory from '../components/CalendarNotificationHistory';
 import {
   ChevronLeft,
   ChevronRight,
@@ -26,6 +27,10 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { isBadBehaviorCalendarEntry } from '../utils/calendarEntries';
+import {
+  mergeCalendarCollections,
+  unwrapCalendarResponses,
+} from '../utils/calendarNotifications';
 
 const SHORT_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -82,6 +87,7 @@ export default function Calendar() {
 
   const [startDate, setStartDate] = useState(() => formatLocalISODate(new Date()));
   const [assignments, setAssignments] = useState({});
+  const [calendarNotifications, setCalendarNotifications] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -101,33 +107,21 @@ export default function Calendar() {
     setLoading(true);
     setError('');
     try {
-      // The backend requires week_start to be a Monday. Our 7-day window
-      // may span two Mon-Sun weeks, so fetch both if needed.
       const monday1 = getMondayForCalendarWeek(startDate);
-
-      const data = await api(`/api/calendar?week_start=${monday1}`);
-      const byDay = {};
-      for (let i = 0; i < 7; i++) {
-        const dayKey = addCalendarDays(startDate, i);
-        byDay[dayKey] = data.days?.[dayKey] || [];
-      }
-
-      // If our window extends past Sunday of that week, fetch next week too
       const monday2 = addCalendarDays(monday1, 7);
       const lastDay = addCalendarDays(startDate, 6);
       const sunday1 = addCalendarDays(monday1, 6);
-      if (lastDay > sunday1) {
-        try {
-          const data2 = await api(`/api/calendar?week_start=${monday2}`);
-          for (let i = 0; i < 7; i++) {
-            const dayKey = addCalendarDays(startDate, i);
-            if (!byDay[dayKey]?.length && data2.days?.[dayKey]) {
-              byDay[dayKey] = data2.days[dayKey];
-            }
-          }
-        } catch { /* second fetch is best-effort */ }
-      }
-      setAssignments(byDay);
+      const weekStarts = lastDay > sunday1 ? [monday1, monday2] : [monday1];
+      const results = await Promise.allSettled(
+        weekStarts.map((weekStart) => api(`/api/calendar?week_start=${weekStart}`)),
+      );
+
+      const responses = unwrapCalendarResponses(results);
+
+      setAssignments(mergeCalendarCollections(startDate, responses, 'days'));
+      setCalendarNotifications(
+        mergeCalendarCollections(startDate, responses, 'notifications'),
+      );
     } catch (err) {
       setError(err.message || 'Failed to load calendar');
     } finally {
@@ -484,6 +478,11 @@ export default function Calendar() {
                     );
                   })}
                 </div>
+                <CalendarNotificationHistory
+                  day={dayStr}
+                  notifications={calendarNotifications[dayStr] || []}
+                  isKid={isKid}
+                />
               </div>
             );
           })}

@@ -31,10 +31,47 @@ export const SPECIAL_THEMES = [
     description: 'Falling snow, warm lights and festive greenery',
     colors: ['#15803d', '#dc2626', '#fbbf24'],
   },
+  {
+    id: 'birthday',
+    label: 'Birthday',
+    icon: '🎂',
+    description: 'Confetti, balloons and a birthday cake',
+    colors: ['#ec4899', '#8b5cf6', '#fbbf24'],
+  },
+  {
+    id: 'halloween',
+    label: 'Halloween',
+    icon: '🎃',
+    description: 'Pumpkins, friendly ghosts and flying bats',
+    colors: ['#f97316', '#9333ea', '#18181b'],
+  },
+  {
+    id: 'april_fools',
+    label: "April Fools' Day",
+    icon: '🃏',
+    description: 'Colourful streamers and playful decorations',
+    colors: ['#db2777', '#06b6d4', '#facc15'],
+  },
+  {
+    id: 'wet_monday',
+    label: 'Wet Monday',
+    icon: '💦',
+    description: 'Droplets, splashes and water play',
+    colors: ['#06b6d4', '#2563eb', '#2dd4bf'],
+  },
+  {
+    id: 'summer_vacation',
+    label: 'Summer Vacation',
+    icon: '🏖️',
+    description: 'Sunshine, palms and a beach atmosphere',
+    colors: ['#38bdf8', '#facc15', '#fb7185'],
+  },
 ];
 
+export const SPECIAL_THEME_IDS = SPECIAL_THEMES.map(({ id }) => id);
+
 const PERSONAL_THEME_SET = new Set(PERSONAL_THEME_IDS);
-const SPECIAL_THEME_SET = new Set(SPECIAL_THEMES.map(({ id }) => id));
+const SPECIAL_THEME_SET = new Set(SPECIAL_THEME_IDS);
 
 export function normalizePersonalTheme(theme) {
   return PERSONAL_THEME_SET.has(theme) ? theme : 'default';
