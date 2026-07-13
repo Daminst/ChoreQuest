@@ -33,6 +33,7 @@ const requiredAvatarThemeTranslations = [
 ];
 
 const requiredSpecialThemeTranslations = [
+  ['None', 'Brak'],
   ['Easter', 'Wielkanoc'],
   ['Christmas', 'Boże Narodzenie'],
   ['Birthday', 'Urodziny'],
@@ -40,6 +41,7 @@ const requiredSpecialThemeTranslations = [
   ["April Fools' Day", 'Prima Aprilis'],
   ['Wet Monday', 'Śmigus Dyngus'],
   ['Summer Vacation', 'Wakacje'],
+  ['Active', 'Aktywny'],
   ['Spring petals, painted eggs and bunny decorations', 'Wiosenne płatki, pisanki i królicze ozdoby'],
   ['Falling snow, warm lights and festive greenery', 'Padający śnieg, ciepłe lampki i świąteczne gałązki'],
   ['Confetti, balloons and a birthday cake', 'Konfetti, balony i urodzinowy tort'],

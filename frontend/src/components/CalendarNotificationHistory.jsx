@@ -1,11 +1,6 @@
 import { useState } from 'react';
 import { Bell, ChevronDown, ChevronUp } from 'lucide-react';
-
-
-const TIME_FORMATTER = new Intl.DateTimeFormat(undefined, {
-  hour: '2-digit',
-  minute: '2-digit',
-});
+import { formatCalendarNotificationTime } from '../utils/calendarNotifications';
 
 
 export default function CalendarNotificationHistory({
@@ -58,7 +53,7 @@ export default function CalendarNotificationHistory({
                   {notification.title}
                 </p>
                 <time className="text-[10px] text-muted flex-shrink-0">
-                  {TIME_FORMATTER.format(new Date(notification.created_at))}
+                  {formatCalendarNotificationTime(notification.created_at)}
                 </time>
               </div>
               <p className="mt-1 text-[11px] leading-relaxed text-muted break-words">

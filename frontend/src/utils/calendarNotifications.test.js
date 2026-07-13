@@ -2,7 +2,35 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 
-import { mergeCalendarCollections } from './calendarNotifications.js';
+import {
+  formatCalendarNotificationTime,
+  mergeCalendarCollections,
+  unwrapCalendarResponses,
+} from './calendarNotifications.js';
+
+
+test('formats notification times explicitly in the Warsaw timezone', () => {
+  assert.equal(
+    formatCalendarNotificationTime('2026-07-13T22:30:00Z', 'en-GB'),
+    '00:30',
+  );
+  assert.equal(
+    formatCalendarNotificationTime('2026-01-13T22:30:00Z', 'en-GB'),
+    '23:30',
+  );
+});
+
+
+test('rejects the whole visible range when either weekly request fails', () => {
+  const error = new Error('second week unavailable');
+  assert.throws(
+    () => unwrapCalendarResponses([
+      { status: 'fulfilled', value: { days: {} } },
+      { status: 'rejected', reason: error },
+    ]),
+    (thrown) => thrown === error,
+  );
+});
 
 
 test('merges notifications from two API weeks into the visible seven days', () => {
@@ -35,6 +63,7 @@ test('calendar fetches weeks concurrently and renders history after day entries'
   );
 
   assert.match(source, /Promise\.allSettled/);
+  assert.match(source, /unwrapCalendarResponses\(results\)/);
   assert.match(source, /setCalendarNotifications/);
   assert.match(source, /<CalendarNotificationHistory/);
   assert.ok(

@@ -19,3 +19,7 @@ test('calendar notification history hides recipient labels from children', () =>
   assert.match(source, /!isKid && notification\.recipient_name/);
   assert.match(source, /notification\.is_read \? 'Read' : 'Unread'/);
 });
+
+test('calendar notification history uses the Warsaw time formatter', () => {
+  assert.match(source, /formatCalendarNotificationTime\(notification\.created_at\)/);
+});

@@ -27,7 +27,10 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { isBadBehaviorCalendarEntry } from '../utils/calendarEntries';
-import { mergeCalendarCollections } from '../utils/calendarNotifications';
+import {
+  mergeCalendarCollections,
+  unwrapCalendarResponses,
+} from '../utils/calendarNotifications';
 
 const SHORT_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -113,10 +116,7 @@ export default function Calendar() {
         weekStarts.map((weekStart) => api(`/api/calendar?week_start=${weekStart}`)),
       );
 
-      if (results[0].status === 'rejected') throw results[0].reason;
-      const responses = results
-        .filter((result) => result.status === 'fulfilled')
-        .map((result) => result.value);
+      const responses = unwrapCalendarResponses(results);
 
       setAssignments(mergeCalendarCollections(startDate, responses, 'days'));
       setCalendarNotifications(
