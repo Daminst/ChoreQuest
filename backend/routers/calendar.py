@@ -22,6 +22,10 @@ from backend.models import (
 from backend.schemas import TradeRequest
 from backend.dependencies import get_current_user, require_parent
 from backend.services.bad_behavior import build_bad_behavior_calendar_entry
+from backend.services.calendar_notifications import (
+    calendar_week_utc_bounds,
+    group_calendar_notifications,
+)
 from backend.websocket_manager import ws_manager
 from backend.services.assignment_generator import auto_generate_week_assignments
 
@@ -105,11 +109,13 @@ async def get_weekly_calendar(
         grouped[day_key].append(entry)
 
     await _append_bad_behavior_entries(db, grouped, week_start, week_end, current_user)
+    notifications = await _get_calendar_notifications(db, week_start, current_user)
 
     return {
         "week_start": week_start.isoformat(),
         "week_end": week_end.isoformat(),
         "days": grouped,
+        "notifications": notifications,
     }
 
 
@@ -148,6 +154,28 @@ async def _append_bad_behavior_entries(
                 else None,
             )
         )
+
+
+async def _get_calendar_notifications(
+    db: AsyncSession,
+    week_start: date,
+    current_user: User,
+) -> dict[str, list[dict]]:
+    utc_start, utc_end = calendar_week_utc_bounds(week_start)
+    stmt = (
+        select(Notification)
+        .options(selectinload(Notification.user))
+        .where(
+            Notification.created_at >= utc_start,
+            Notification.created_at < utc_end,
+        )
+        .order_by(Notification.created_at.desc(), Notification.id.desc())
+    )
+    if current_user.role == UserRole.kid:
+        stmt = stmt.where(Notification.user_id == current_user.id)
+
+    result = await db.execute(stmt)
+    return group_calendar_notifications(result.scalars().all(), current_user)
 
 
 def _build_assignment_entry(
