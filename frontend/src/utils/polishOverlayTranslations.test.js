@@ -66,6 +66,14 @@ const requiredKidInterfaceTranslations = [
   ['Winter Workshop', 'Zimowy warsztat'],
 ];
 
+const requiredCalendarNotificationTranslations = [
+  ['Notifications', 'Powiadomienia'],
+  ['Unread', 'Nieprzeczytane'],
+  ['Read', 'Przeczytane'],
+  ['Recipient', 'Odbiorca'],
+  ['Family member', 'Członek rodziny'],
+];
+
 test('polish overlay translates chore detail metadata', () => {
   for (const fileUrl of overlayFiles) {
     const source = fs.readFileSync(fileUrl, 'utf8');
@@ -180,6 +188,26 @@ test('polish overlay translates kid interface theme text', () => {
     );
 
     for (const [english, polish] of requiredKidInterfaceTranslations) {
+      assert.equal(
+        translations.get(english),
+        polish,
+        `${fileUrl.pathname} maps ${english} incorrectly`,
+      );
+    }
+  }
+});
+
+test('polish overlay translates calendar notification history', () => {
+  for (const fileUrl of overlayFiles) {
+    const source = fs.readFileSync(fileUrl, 'utf8');
+    const translations = new Map(
+      [...source.matchAll(/^\s*'([^']+)': '([^']*)',/gm)].map((match) => [
+        match[1],
+        match[2],
+      ]),
+    );
+
+    for (const [english, polish] of requiredCalendarNotificationTranslations) {
       assert.equal(
         translations.get(english),
         polish,
