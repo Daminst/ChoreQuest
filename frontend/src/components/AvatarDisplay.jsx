@@ -21,7 +21,7 @@ const SIZES = {
   option: 76,
   lg: 128,
   xl: 176,
-  studio: 288,
+  studio: 420,
 };
 
 const AVATAR_COLORS = [

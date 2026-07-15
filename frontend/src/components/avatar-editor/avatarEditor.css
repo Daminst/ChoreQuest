@@ -2,7 +2,7 @@
   --studio-bg: color-mix(in srgb, var(--color-navy) 94%, #061018);
   --studio-panel: color-mix(in srgb, var(--color-surface) 92%, #070c11);
   --studio-raised: color-mix(in srgb, var(--color-surface-raised) 88%, #0b151d);
-  --studio-stage: color-mix(in srgb, var(--color-navy) 88%, #08151e);
+  --studio-stage: color-mix(in srgb, var(--color-navy) 72%, #0c2630);
   --studio-border: color-mix(in srgb, var(--color-border) 84%, #31414d);
   --studio-border-strong: color-mix(in srgb, var(--color-border-light) 76%, #5a6a75);
   --studio-text: var(--color-cream);
@@ -193,6 +193,13 @@
   opacity: 0.86;
 }
 
+.avatar-editor-toolbar .avatar-save-button:disabled {
+  border-color: color-mix(in srgb, var(--color-accent) 56%, var(--studio-border));
+  color: #061715;
+  background: color-mix(in srgb, var(--color-accent) 78%, var(--studio-raised));
+  opacity: 0.68;
+}
+
 .avatar-editor-toolbar .animate-spin {
   flex: 0 0 auto;
 }
@@ -308,9 +315,9 @@
   aspect-ratio: 1;
   border: 2px solid color-mix(in srgb, var(--studio-border-strong) 72%, transparent);
   border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--color-accent) 22%, transparent) 0,
-    color-mix(in srgb, var(--color-accent) 7%, transparent) 38%, transparent 70%);
-  box-shadow: inset 0 0 72px rgb(0 0 0 / 0.2), 0 24px 70px rgb(0 0 0 / 0.2);
+  background: radial-gradient(circle, color-mix(in srgb, var(--color-accent) 32%, transparent) 0,
+    color-mix(in srgb, var(--color-accent) 11%, transparent) 42%, transparent 72%);
+  box-shadow: inset 0 0 72px rgb(0 0 0 / 0.16), 0 24px 70px rgb(0 0 0 / 0.18);
   transform: translate(-50%, -50%);
   pointer-events: none;
 }
@@ -328,9 +335,9 @@
 .avatar-stage__plinth {
   position: absolute;
   z-index: 1;
-  bottom: 13%;
-  width: min(50%, 340px);
-  height: 52px;
+  bottom: 11%;
+  width: min(54%, 420px);
+  height: 58px;
   border: 1px solid color-mix(in srgb, var(--studio-border-strong) 66%, transparent);
   border-radius: 50%;
   background: color-mix(in srgb, var(--color-accent) 12%, var(--studio-raised));
@@ -1073,7 +1080,10 @@
   }
 
   .avatar-stage__character {
-    transform: scale(0.82);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.56);
   }
 
   .avatar-stage__plinth {

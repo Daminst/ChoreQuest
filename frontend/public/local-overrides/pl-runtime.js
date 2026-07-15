@@ -8,6 +8,7 @@
     // Shell and navigation
     'Loading...': 'Ładowanie...',
     'Error': 'Błąd',
+    'Request failed': 'Żądanie nie powiodło się',
     'Not Found': 'Nie znaleziono',
     'Awaiting Approval': 'Oczekuje na zatwierdzenie',
     'Skipped': 'Pominięte',
@@ -1281,7 +1282,7 @@
     const original = node.nodeValue;
     const clean = normalize(original);
 
-    if (node.parentElement?.closest('.fixed.inset-0')) {
+    if (node.parentElement?.closest('.avatar-editor-shell, .fixed.inset-0')) {
       if (clean === 'Pet') {
         node.nodeValue = withOriginalWhitespace(original, 'Pupil');
         return;
@@ -1338,7 +1339,10 @@
       if (!element.hasAttribute(attr)) continue;
       const original = element.getAttribute(attr);
       const clean = normalize(original);
-      const translated = translateClean(clean);
+      const avatarTranslation = element.closest?.('.avatar-editor-shell, .fixed.inset-0')
+        ? { Pet: 'Pupil', Custom: 'Własna' }[clean]
+        : null;
+      const translated = avatarTranslation || translateClean(clean);
       if (translated && translated !== clean) {
         element.setAttribute(attr, translated);
       }
@@ -1416,7 +1420,11 @@
           translateTextNode(mutation.target);
           continue;
         }
-        schedule();
+        if (mutation.addedNodes?.length) {
+          for (const node of mutation.addedNodes) walk(node);
+          continue;
+        }
+        schedule(mutation.target);
       }
     });
 

@@ -53,6 +53,52 @@ function loadTranslateClean(fileUrl) {
   return window.__translateCleanForTest;
 }
 
+function loadMutationObserverCallback(fileUrl) {
+  const source = fs.readFileSync(fileUrl, 'utf8');
+  let observerCallback;
+  const pendingFrames = [];
+  const root = {
+    nodeType: 1,
+    tagName: 'BODY',
+    hasAttribute() { return false; },
+  };
+  const window = {
+    alert() {},
+    confirm() {},
+    prompt() {},
+  };
+  const document = {
+    readyState: 'complete',
+    body: root,
+    documentElement: root,
+    createTreeWalker(walkRoot) {
+      return {
+        currentNode: walkRoot,
+        nextNode() { return null; },
+      };
+    },
+  };
+
+  class MutationObserver {
+    constructor(callback) {
+      observerCallback = callback;
+    }
+
+    observe() {}
+  }
+
+  vm.runInNewContext(source, {
+    document,
+    window,
+    MutationObserver,
+    Node: { TEXT_NODE: 3, ELEMENT_NODE: 1, DOCUMENT_NODE: 9 },
+    NodeFilter: { SHOW_ELEMENT: 1, SHOW_TEXT: 4, FILTER_ACCEPT: 1, FILTER_REJECT: 2 },
+    requestAnimationFrame(callback) { pendingFrames.push(callback); },
+  }, { filename: fileUrl.pathname });
+
+  return { observerCallback, pendingFrames, root };
+}
+
 const requiredAvatarStudioTranslations = [
   ['Hero Studio', 'Studio Bohatera'],
   ['Randomise', 'Losuj'],
@@ -103,6 +149,7 @@ const requiredAvatarStudioTranslations = [
   ['Back', 'Wstecz'],
   ['Saving...', 'Zapisywanie...'],
   ['Save', 'Zapisz'],
+  ['Request failed', 'Żądanie nie powiodło się'],
   ['Tap to place your pet', 'Dotknij, aby ustawić pupila'],
   ['Position', 'Pozycja'],
   ['Locked', 'Zablokowane'],
@@ -221,6 +268,53 @@ test('polish overlay translates Hero Studio controls', () => {
         polish,
         `${fileUrl.pathname} maps ${english} incorrectly`,
       );
+    }
+  }
+});
+
+test('polish overlay translates dynamically added avatar labels before the next frame', () => {
+  for (const fileUrl of overlayFiles) {
+    const { observerCallback, pendingFrames, root } = loadMutationObserverCallback(fileUrl);
+    const textNode = {
+      nodeType: 3,
+      nodeValue: 'Short',
+      parentElement: { closest() { return null; } },
+    };
+
+    observerCallback([{ type: 'childList', target: root, addedNodes: [textNode] }]);
+
+    assert.equal(textNode.nodeValue, 'Krótkie', `${fileUrl.pathname} translates an added label immediately`);
+    assert.equal(pendingFrames.length, 0, `${fileUrl.pathname} does not defer an added label to a later frame`);
+  }
+});
+
+test('polish overlay keeps avatar-specific Pet and Custom labels in the studio context', () => {
+  for (const fileUrl of overlayFiles) {
+    const { observerCallback, root } = loadMutationObserverCallback(fileUrl);
+    const studioParent = {
+      closest(selector) { return selector.includes('.avatar-editor-shell') ? {} : null; },
+    };
+    const petNode = { nodeType: 3, nodeValue: 'Pet', parentElement: studioParent };
+    const customNode = { nodeType: 3, nodeValue: 'Custom', parentElement: studioParent };
+
+    observerCallback([{ type: 'childList', target: root, addedNodes: [petNode, customNode] }]);
+
+    assert.equal(petNode.nodeValue, 'Pupil');
+    assert.equal(customNode.nodeValue, 'Własna');
+
+    for (const [english, polish] of [['Pet', 'Pupil'], ['Custom', 'Własna']]) {
+      const attributes = new Map([['aria-label', english]]);
+      const element = {
+        nodeType: 1,
+        tagName: 'BUTTON',
+        closest(selector) { return selector.includes('.avatar-editor-shell') ? {} : null; },
+        hasAttribute(name) { return attributes.has(name); },
+        getAttribute(name) { return attributes.get(name) ?? null; },
+        setAttribute(name, value) { attributes.set(name, value); },
+      };
+
+      observerCallback([{ type: 'attributes', target: element }]);
+      assert.equal(attributes.get('aria-label'), polish);
     }
   }
 });

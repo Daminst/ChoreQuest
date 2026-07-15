@@ -132,6 +132,24 @@ test('stage owns live preview and pet placement while pet customiser exposes fou
   assert.doesNotMatch(pet, /tabIndex={isActive/);
 });
 
+test('studio stage keeps the hero prominent and the clean save action legible', () => {
+  const display = read('../AvatarDisplay.jsx');
+  const css = read('./avatarEditor.css');
+  const spotlight = extractCssBlock(css, '.avatar-stage__spotlight');
+  const plinth = extractCssBlock(css, '.avatar-stage__plinth');
+  const disabledSave = extractCssBlock(css, '.avatar-editor-toolbar .avatar-save-button:disabled');
+  const mobile = extractCssBlock(css, '@media (max-width: 720px)');
+
+  assert.match(display, /studio:\s*420/);
+  assert.match(spotlight, /var\(--color-accent\) 32%/);
+  assert.match(plinth, /width:\s*min\(54%,\s*420px\)/);
+  assert.match(disabledSave, /color:\s*#061715/);
+  assert.match(disabledSave, /opacity:\s*0\.68/);
+  assert.match(mobile, /\.avatar-stage__character\s*\{[^}]*position:\s*absolute/s);
+  assert.match(mobile, /\.avatar-stage__character\s*\{[^}]*top:\s*50%[^}]*left:\s*50%/s);
+  assert.match(mobile, /\.avatar-stage__character\s*\{[^}]*transform:\s*translate\(-50%,\s*-50%\)\s*scale\(0\.56\)/s);
+});
+
 test('pet studio consumes shared semantics and resets colour overrides atomically', () => {
   const editor = read('../AvatarEditor.jsx');
   const pet = read('./PetCustomizer.jsx');
