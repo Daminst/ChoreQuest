@@ -44,6 +44,7 @@ test('stage owns live preview and pet placement while pet customiser exposes fou
   const stage = read('./AvatarStage.jsx');
   const pet = read('./PetCustomizer.jsx');
   assert.match(stage, /AvatarDisplay/);
+  assert.match(stage, /avatarStagePlacement/);
   assert.match(stage, /viewBox="0 0 32 32"/);
   assert.match(stage, /Tap to place your pet/);
   for (const label of ['Appearance', 'Colours', 'Position', 'Accessory']) {
@@ -51,4 +52,39 @@ test('stage owns live preview and pet placement while pet customiser exposes fou
   }
   assert.match(pet, /aria-selected=/);
   assert.doesNotMatch(pet, /tabIndex={isActive/);
+});
+
+test('pet studio consumes shared semantics and resets colour overrides atomically', () => {
+  const editor = read('../AvatarEditor.jsx');
+  const pet = read('./PetCustomizer.jsx');
+  assert.match(editor, /from '.\/avatar-editor\/avatarPetCatalog'/);
+  assert.match(pet, /from '.\/avatarPetCatalog'/);
+  for (const source of [editor, pet]) {
+    assert.doesNotMatch(source, /const PET_OPTIONS =/);
+    assert.doesNotMatch(source, /const PET_POSITION_OPTIONS =/);
+    assert.doesNotMatch(source, /const PET_ACCESSORY_OPTIONS =/);
+    assert.doesNotMatch(source, /const PET_COLORS =/);
+    assert.doesNotMatch(source, /const PET_LEVEL_THRESHOLDS =/);
+    assert.doesNotMatch(source, /const PET_LEVEL_NAMES =/);
+    assert.doesNotMatch(source, /const PET_LEVEL_COLORS =/);
+    assert.doesNotMatch(source, /function getPetLevelInfo/);
+    assert.doesNotMatch(source, /function getPetXpForPet/);
+  }
+  assert.doesNotMatch(editor, /set\('pet_color_body'/);
+  assert.equal((pet.match(/onPatch\(PET_COLOR_RESET_PATCH\)/g) || []).length, 1);
+  assert.doesNotMatch(pet, /pet_color_body/);
+  assert.doesNotMatch(pet, /const resetPartColors = \(\) => \{[^}]*onChange\(/);
+});
+
+test('every pet tab controls a mounted labelled panel', () => {
+  const pet = read('./PetCustomizer.jsx');
+  for (const section of ['appearance', 'colours', 'position', 'accessory']) {
+    assert.match(pet, new RegExp(`tabId: 'avatar-pet-tab-${section}'`));
+    assert.match(pet, new RegExp(`panelId: 'avatar-pet-panel-${section}'`));
+  }
+  assert.match(pet, /id={section\.panelId}/);
+  assert.match(pet, /aria-controls={section\.panelId}/);
+  assert.match(pet, /aria-labelledby={section\.tabId}/);
+  assert.match(pet, /hidden={activeSection !== section\.id}/);
+  assert.doesNotMatch(pet, /activeSection === 'appearance' && renderAppearanceControls/);
 });

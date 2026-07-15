@@ -6,6 +6,16 @@ import { useAuth } from '../hooks/useAuth';
 import AvatarDisplay from './AvatarDisplay';
 import { renderPet, renderPetExtras, buildPetColors } from './avatar/pets';
 import { THEMED_AVATAR_OPTIONS } from './avatar/themedAvatarCatalog';
+import {
+  PET_ACCESSORY_OPTIONS,
+  PET_COLORS,
+  PET_LEVEL_COLORS,
+  PET_LEVEL_NAMES,
+  PET_OPTIONS,
+  PET_POSITION_OPTIONS,
+  getPetLevelInfo,
+  getPetXpForPet,
+} from './avatar-editor/avatarPetCatalog';
 import { Save, Loader2, ChevronLeft, ChevronRight, Lock, Heart, Star, Crosshair, ArrowLeft } from 'lucide-react';
 
 const HEAD_OPTIONS = [
@@ -134,33 +144,6 @@ const OUTFIT_PATTERN_OPTIONS = [
   ...THEMED_AVATAR_OPTIONS.outfit_pattern,
 ];
 
-const PET_OPTIONS = [
-  { id: 'none', label: 'None' },
-  { id: 'cat', label: 'Cat' },
-  { id: 'dog', label: 'Dog' },
-  { id: 'dragon', label: 'Dragon' },
-  { id: 'owl', label: 'Owl' },
-  { id: 'bunny', label: 'Bunny' },
-  { id: 'phoenix', label: 'Phoenix' },
-];
-
-const PET_POSITION_OPTIONS = [
-  { id: 'right', label: 'Right' },
-  { id: 'left', label: 'Left' },
-  { id: 'head', label: 'Head' },
-  { id: 'custom', label: 'Custom' },
-];
-
-const PET_ACCESSORY_OPTIONS = [
-  { id: 'none', label: 'None' },
-  { id: 'crown', label: 'Crown' },
-  { id: 'party_hat', label: 'Party Hat' },
-  { id: 'bow', label: 'Bow' },
-  { id: 'bandana', label: 'Bandana' },
-  { id: 'halo', label: 'Halo' },
-  { id: 'flower', label: 'Flower' },
-];
-
 const SKIN_COLORS = [
   '#ffe0bd', '#ffcc99', '#f5d6b8', '#f8d9c0',
   '#e8b88a', '#d4a373', '#c68642', '#a67c52',
@@ -206,12 +189,6 @@ const ACCESSORY_COLORS = [
   '#3b82f6', '#ef4444', '#10b981', '#f39c12',
   '#a855f7', '#ec4899', '#c0c0c0', '#f9d71c',
   '#8b4513', '#1a1a2e', '#ecf0f1', '#06b6d4',
-];
-
-const PET_COLORS = [
-  '#8b4513', '#4a3728', '#f39c12', '#ef4444',
-  '#10b981', '#a855f7', '#ecf0f1', '#1a1a2e',
-  '#c0c0c0', '#ff6b9d', '#06b6d4', '#f59e0b',
 ];
 
 const AVATAR_CONFIG_VERSION = 2;
@@ -349,22 +326,6 @@ function MultiShapeSelector({ options, selected, onToggle, lockedItems, configKe
   );
 }
 
-// ── Pet level thresholds (mirror backend) ──
-const PET_LEVEL_THRESHOLDS = [0, 50, 150, 350, 700, 1200, 2000, 3500];
-const PET_LEVEL_NAMES = ['', 'Hatchling', 'Youngling', 'Companion', 'Loyal', 'Brave', 'Mighty', 'Majestic', 'Legendary'];
-const PET_LEVEL_COLORS = ['', '#94a3b8', '#10b981', '#3b82f6', '#a855f7', '#f59e0b', '#f97316', '#ef4444', '#d946ef'];
-
-function getPetLevelInfo(petXp) {
-  let level = 1;
-  for (let i = 0; i < PET_LEVEL_THRESHOLDS.length; i++) {
-    if (petXp >= PET_LEVEL_THRESHOLDS[i]) level = i + 1;
-  }
-  const threshold = PET_LEVEL_THRESHOLDS[level - 1] || 0;
-  const nextThreshold = PET_LEVEL_THRESHOLDS[level] || null;
-  const progress = nextThreshold ? (petXp - threshold) / (nextThreshold - threshold) : 1;
-  return { level, name: PET_LEVEL_NAMES[level], nextName: PET_LEVEL_NAMES[level + 1] || null, xp: petXp, threshold, nextThreshold, progress };
-}
-
 /** Inline SVG preview of a single pet at larger scale */
 function PetPreviewSvg({ petType, colors, level = 1 }) {
   if (!petType || petType === 'none') return null;
@@ -433,14 +394,6 @@ function TapToPlaceOverlay({ config, onPlace }) {
       </p>
     </div>
   );
-}
-
-/** Get XP for a specific pet from per-pet map, falling back to legacy */
-function getPetXpForPet(config, petType) {
-  if (!petType || petType === 'none') return 0;
-  const xpMap = config.pet_xp_map || {};
-  if (petType in xpMap) return xpMap[petType];
-  return config.pet_xp || 0;
 }
 
 /** Full pet customisation section */
@@ -540,7 +493,6 @@ function PetCustomiser({ config, set, locked, previewProps, petStats }) {
               <p className="text-muted text-xs font-medium">Body Colour</p>
               <button
                 onClick={() => {
-                  set('pet_color_body', '');
                   set('pet_color_ears', '');
                   set('pet_color_tail', '');
                   set('pet_color_accent', '');

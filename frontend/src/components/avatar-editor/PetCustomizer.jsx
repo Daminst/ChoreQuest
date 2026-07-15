@@ -2,75 +2,24 @@ import { useState } from 'react';
 import { Heart } from 'lucide-react';
 import { buildPetColors, renderPet, renderPetExtras } from '../avatar/pets';
 import { AvatarColorPalette, AvatarOptionCard, AvatarOptionGrid } from './AvatarOptionControls';
+import {
+  PET_ACCESSORY_OPTIONS,
+  PET_COLORS,
+  PET_COLOR_RESET_PATCH,
+  PET_LEVEL_COLORS,
+  PET_LEVEL_NAMES,
+  PET_OPTIONS,
+  PET_POSITION_OPTIONS,
+  getPetLevelInfo,
+  getPetXpForPet,
+} from './avatarPetCatalog';
 
 const PET_SECTIONS = [
-  { id: 'appearance', label: 'Appearance' },
-  { id: 'colours', label: 'Colours' },
-  { id: 'position', label: 'Position' },
-  { id: 'accessory', label: 'Accessory' },
+  { id: 'appearance', label: 'Appearance', tabId: 'avatar-pet-tab-appearance', panelId: 'avatar-pet-panel-appearance' },
+  { id: 'colours', label: 'Colours', tabId: 'avatar-pet-tab-colours', panelId: 'avatar-pet-panel-colours' },
+  { id: 'position', label: 'Position', tabId: 'avatar-pet-tab-position', panelId: 'avatar-pet-panel-position' },
+  { id: 'accessory', label: 'Accessory', tabId: 'avatar-pet-tab-accessory', panelId: 'avatar-pet-panel-accessory' },
 ];
-
-const PET_OPTIONS = [
-  { id: 'none', label: 'None' },
-  { id: 'cat', label: 'Cat' },
-  { id: 'dog', label: 'Dog' },
-  { id: 'dragon', label: 'Dragon' },
-  { id: 'owl', label: 'Owl' },
-  { id: 'bunny', label: 'Bunny' },
-  { id: 'phoenix', label: 'Phoenix' },
-];
-
-const PET_POSITION_OPTIONS = [
-  { id: 'right', label: 'Right' },
-  { id: 'left', label: 'Left' },
-  { id: 'head', label: 'Head' },
-  { id: 'custom', label: 'Custom' },
-];
-
-const PET_ACCESSORY_OPTIONS = [
-  { id: 'none', label: 'None' },
-  { id: 'crown', label: 'Crown' },
-  { id: 'party_hat', label: 'Party Hat' },
-  { id: 'bow', label: 'Bow' },
-  { id: 'bandana', label: 'Bandana' },
-  { id: 'halo', label: 'Halo' },
-  { id: 'flower', label: 'Flower' },
-];
-
-const PET_COLORS = [
-  '#8b4513', '#4a3728', '#f39c12', '#ef4444',
-  '#10b981', '#a855f7', '#ecf0f1', '#1a1a2e',
-  '#c0c0c0', '#ff6b9d', '#06b6d4', '#f59e0b',
-];
-
-const PET_LEVEL_THRESHOLDS = [0, 50, 150, 350, 700, 1200, 2000, 3500];
-const PET_LEVEL_NAMES = ['', 'Hatchling', 'Youngling', 'Companion', 'Loyal', 'Brave', 'Mighty', 'Majestic', 'Legendary'];
-const PET_LEVEL_COLORS = ['', '#94a3b8', '#10b981', '#3b82f6', '#a855f7', '#f59e0b', '#f97316', '#ef4444', '#d946ef'];
-
-function getPetLevelInfo(petXp) {
-  let level = 1;
-  for (let index = 0; index < PET_LEVEL_THRESHOLDS.length; index += 1) {
-    if (petXp >= PET_LEVEL_THRESHOLDS[index]) level = index + 1;
-  }
-  const threshold = PET_LEVEL_THRESHOLDS[level - 1] || 0;
-  const nextThreshold = PET_LEVEL_THRESHOLDS[level] || null;
-  const progress = nextThreshold ? (petXp - threshold) / (nextThreshold - threshold) : 1;
-  return {
-    level,
-    name: PET_LEVEL_NAMES[level],
-    nextName: PET_LEVEL_NAMES[level + 1] || null,
-    xp: petXp,
-    threshold,
-    nextThreshold,
-    progress,
-  };
-}
-
-function getPetXpForPet(config, petType) {
-  if (!petType || petType === 'none') return 0;
-  const xpMap = config.pet_xp_map || {};
-  return petType in xpMap ? xpMap[petType] : (config.pet_xp || 0);
-}
 
 function PetPreviewSvg({ petType, colors, level = 1 }) {
   if (!petType || petType === 'none') return null;
@@ -165,7 +114,7 @@ function renderPetCards({ options, configKey, config, selected, locked, lockedMe
 function renderAppearanceControls({ config, locked, lockedMeta, getUnlockLabel, onChange, onPreview, onPreviewEnd }) {
   const hasPet = config.pet && config.pet !== 'none';
   return (
-    <div id="avatar-pet-panel-appearance" role="tabpanel" aria-labelledby="avatar-pet-tab-appearance">
+    <>
       {renderPetCards({
         options: PET_OPTIONS,
         configKey: 'pet',
@@ -183,62 +132,58 @@ function renderAppearanceControls({ config, locked, lockedMeta, getUnlockLabel, 
       ) : (
         <p className="avatar-pet-empty">Choose a companion to unlock colours, placement, and accessories.</p>
       )}
-    </div>
+    </>
   );
 }
 
-function renderColourControls({ config, onChange }) {
+function renderColourControls({ config, onChange, onPatch }) {
   const bodyColor = config.pet_color || '#8b4513';
   const choosePartColor = (key, color) => onChange(key, color === bodyColor ? '' : color);
-  const resetPartColors = () => {
-    onChange('pet_color_body', '');
-    onChange('pet_color_ears', '');
-    onChange('pet_color_tail', '');
-    onChange('pet_color_accent', '');
-  };
+  const resetPartColors = () => onPatch(PET_COLOR_RESET_PATCH);
 
   return (
-    <div id="avatar-pet-panel-colours" role="tabpanel" aria-labelledby="avatar-pet-tab-colours">
+    <>
       <button type="button" className="avatar-pet-colours__reset" onClick={resetPartColors}>Reset all to match</button>
       <AvatarColorPalette label="Body" colors={PET_COLORS} selected={bodyColor} onSelect={(color) => onChange('pet_color', color)} />
       <AvatarColorPalette label="Ears" colors={PET_COLORS} selected={config.pet_color_ears || bodyColor} onSelect={(color) => choosePartColor('pet_color_ears', color)} />
       <AvatarColorPalette label="Tail" colors={PET_COLORS} selected={config.pet_color_tail || bodyColor} onSelect={(color) => choosePartColor('pet_color_tail', color)} />
       <AvatarColorPalette label="Accent" colors={PET_COLORS} selected={config.pet_color_accent || bodyColor} onSelect={(color) => choosePartColor('pet_color_accent', color)} />
-    </div>
+    </>
   );
 }
 
 function renderPositionControls({ config, onChange }) {
-  return (
-    <div id="avatar-pet-panel-position" role="tabpanel" aria-labelledby="avatar-pet-tab-position">
-      {renderPetCards({
-        options: PET_POSITION_OPTIONS,
-        configKey: 'pet_position',
-        config,
-        selected: config.pet_position || 'right',
-        onChange,
-      })}
-    </div>
-  );
+  return renderPetCards({
+    options: PET_POSITION_OPTIONS,
+    configKey: 'pet_position',
+    config,
+    selected: config.pet_position || 'right',
+    onChange,
+  });
 }
 
 function renderAccessoryControls({ config, onChange }) {
-  return (
-    <div id="avatar-pet-panel-accessory" role="tabpanel" aria-labelledby="avatar-pet-tab-accessory">
-      {renderPetCards({
-        options: PET_ACCESSORY_OPTIONS,
-        configKey: 'pet_accessory',
-        config,
-        selected: config.pet_accessory || 'none',
-        onChange,
-      })}
-    </div>
-  );
+  return renderPetCards({
+    options: PET_ACCESSORY_OPTIONS,
+    configKey: 'pet_accessory',
+    config,
+    selected: config.pet_accessory || 'none',
+    onChange,
+  });
 }
 
-export function PetCustomizer({ config, locked, lockedMeta, getUnlockLabel, onChange, onPreview, onPreviewEnd }) {
+function renderSectionControls(sectionId, controls) {
+  if (sectionId === 'appearance') return renderAppearanceControls(controls);
+  if (sectionId === 'colours') return renderColourControls(controls);
+  if (sectionId === 'position') return renderPositionControls(controls);
+  if (sectionId === 'accessory') return renderAccessoryControls(controls);
+  return null;
+}
+
+export function PetCustomizer({ config, locked, lockedMeta, getUnlockLabel, onChange, onPatch, onPreview, onPreviewEnd }) {
   const [activeSection, setActiveSection] = useState('appearance');
   const hasPet = config.pet && config.pet !== 'none';
+  const controls = { config, locked, lockedMeta, getUnlockLabel, onChange, onPatch, onPreview, onPreviewEnd };
 
   return (
     <div className="avatar-pet-customiser">
@@ -248,11 +193,11 @@ export function PetCustomizer({ config, locked, lockedMeta, getUnlockLabel, onCh
           return (
             <button
               key={section.id}
-              id={`avatar-pet-tab-${section.id}`}
+              id={section.tabId}
               type="button"
               role="tab"
               aria-selected={isActive}
-              aria-controls={`avatar-pet-panel-${section.id}`}
+              aria-controls={section.panelId}
               disabled={!hasPet && section.id !== 'appearance'}
               onClick={() => setActiveSection(section.id)}
             >
@@ -261,10 +206,17 @@ export function PetCustomizer({ config, locked, lockedMeta, getUnlockLabel, onCh
           );
         })}
       </div>
-      {activeSection === 'appearance' && renderAppearanceControls({ config, locked, lockedMeta, getUnlockLabel, onChange, onPreview, onPreviewEnd })}
-      {activeSection === 'colours' && renderColourControls({ config, onChange })}
-      {activeSection === 'position' && renderPositionControls({ config, onChange })}
-      {activeSection === 'accessory' && renderAccessoryControls({ config, onChange })}
+      {PET_SECTIONS.map((section) => (
+        <div
+          key={section.panelId}
+          id={section.panelId}
+          role="tabpanel"
+          aria-labelledby={section.tabId}
+          hidden={activeSection !== section.id}
+        >
+          {renderSectionControls(section.id, controls)}
+        </div>
+      ))}
     </div>
   );
 }

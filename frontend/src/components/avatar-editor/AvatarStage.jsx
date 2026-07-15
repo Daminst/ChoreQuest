@@ -1,12 +1,6 @@
 import { Crosshair, LockKeyhole } from 'lucide-react';
 import AvatarDisplay from '../AvatarDisplay';
-
-const MIN_PET_COORDINATE = 4;
-const MAX_PET_COORDINATE = 28;
-
-function clampPetCoordinate(value) {
-  return Math.max(MIN_PET_COORDINATE, Math.min(MAX_PET_COORDINATE, value));
-}
+import { mapPetPointerPosition, movePetWithKeyboard } from './avatarStagePlacement';
 
 export function AvatarStage({ config, placementMode = false, previewMessage = '', onPlacePet }) {
   const petX = config.pet_x ?? 26;
@@ -14,25 +8,15 @@ export function AvatarStage({ config, placementMode = false, previewMessage = ''
 
   const place = (event) => {
     const rect = event.currentTarget.getBoundingClientRect();
-    const x = Math.round(((event.clientX - rect.left) / rect.width) * 32);
-    const y = Math.round(((event.clientY - rect.top) / rect.height) * 32);
-    onPlacePet?.(clampPetCoordinate(x), clampPetCoordinate(y));
+    const next = mapPetPointerPosition(event.clientX, event.clientY, rect);
+    onPlacePet?.(next.x, next.y);
   };
 
   const moveWithKeyboard = (event) => {
-    const moves = {
-      ArrowLeft: [-1, 0],
-      ArrowRight: [1, 0],
-      ArrowUp: [0, -1],
-      ArrowDown: [0, 1],
-    };
-    const delta = moves[event.key];
-    if (!delta) return;
+    const next = movePetWithKeyboard(petX, petY, event.key);
+    if (!next) return;
     event.preventDefault();
-    onPlacePet?.(
-      clampPetCoordinate(petX + delta[0]),
-      clampPetCoordinate(petY + delta[1]),
-    );
+    onPlacePet?.(next.x, next.y);
   };
 
   return (
