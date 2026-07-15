@@ -227,7 +227,11 @@ test('polish overlay translates Hero Studio controls', () => {
 
 test('polish overlay translates composed Hero Studio aria labels at runtime', () => {
   const composedAriaTranslations = [
-    ['Round, locked, Complete 12 quests', 'Okrągła, opcja zablokowana, Ukończ 12 misji'],
+    ['Round, locked, 120 XP', 'Okrągła, opcja zablokowana, 120 XP'],
+    ['Round, locked, Earn 120 XP', 'Okrągła, opcja zablokowana, Zdobądź 120 XP'],
+    ['Round, locked, 12-day streak', 'Okrągła, opcja zablokowana, 12-dniowa seria'],
+    ['Round, locked, Find in quests', 'Okrągła, opcja zablokowana, Znajdź w misjach'],
+    ['Round, locked, Locked', 'Okrągła, opcja zablokowana'],
     ['Hair colour: #ff00aa', 'Kolor włosów: #ff00aa'],
     ['Body Colour: #ff00aa', 'Kolor ciała: #ff00aa'],
     ['73% to level 5', '73% do poziomu 5'],

@@ -1097,7 +1097,11 @@
   }));
 
   const PATTERNS = [
-    [/^(.+), locked, (.+)$/, (_whole, option, requirement) => `${translateKnownTerm(option)}, opcja zablokowana, ${translateClean(requirement) || translateKnownTerm(requirement)}`],
+    [/^(.+), locked, (.+)$/, (_whole, option, requirement) => {
+      const translatedOption = translateKnownTerm(option);
+      if (requirement === 'Locked') return `${translatedOption}, opcja zablokowana`;
+      return `${translatedOption}, opcja zablokowana, ${translateClean(requirement) || translateKnownTerm(requirement)}`;
+    }],
     [/^(.+): (#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8}))$/, (whole, label, colour) => {
       const translatedLabel = translateKnownTerm(label);
       return translatedLabel === label ? whole : `${translatedLabel}: ${colour}`;
