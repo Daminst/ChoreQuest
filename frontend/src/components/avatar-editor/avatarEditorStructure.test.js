@@ -77,6 +77,15 @@ test('discard dialog contains keyboard focus for its open lifetime and restores 
   assert.doesNotMatch(dialog, /<motion\.section[^>]*onKeyDown=/s);
 });
 
+test('reduced motion forces the discard dialog to its final visual state', () => {
+  const css = read('./avatarEditor.css');
+  const reducedMotion = css.match(/@media \(prefers-reduced-motion: reduce\) \{([\s\S]*)\}\s*$/)?.[1] || '';
+  assert.match(
+    reducedMotion,
+    /\.avatar-discard-backdrop,\s*\.avatar-discard-dialog\s*\{[^}]*opacity:\s*1\s*!important;[^}]*transform:\s*none\s*!important;[^}]*\}/,
+  );
+});
+
 test('stage owns live preview and pet placement while pet customiser exposes four sections', () => {
   const stage = read('./AvatarStage.jsx');
   const pet = read('./PetCustomizer.jsx');
