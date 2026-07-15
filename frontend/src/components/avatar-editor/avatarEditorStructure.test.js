@@ -26,3 +26,16 @@ test('category navigation and toolbar expose semantic state and named actions', 
   assert.match(dialog, /Keep editing/);
   assert.match(dialog, /Discard/);
 });
+
+test('discard dialog contains keyboard focus for its open lifetime and restores it', () => {
+  const dialog = read('./AvatarDiscardDialog.jsx');
+  assert.match(dialog, /previousFocusRef\.current = document\.activeElement/);
+  assert.match(dialog, /document\.addEventListener\('keydown', handleKeyDown\)/);
+  assert.match(dialog, /document\.removeEventListener\('keydown', handleKeyDown\)/);
+  assert.match(dialog, /event\.key === 'Escape'/);
+  assert.match(dialog, /event\.key !== 'Tab'/);
+  assert.match(dialog, /event\.shiftKey/);
+  assert.match(dialog, /dialogRef\.current\?\.contains\(activeElement\)/);
+  assert.match(dialog, /previousFocus\.focus\(\)/);
+  assert.doesNotMatch(dialog, /<motion\.section[^>]*onKeyDown=/s);
+});
