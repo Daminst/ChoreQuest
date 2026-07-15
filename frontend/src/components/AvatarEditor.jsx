@@ -25,6 +25,7 @@ import { AvatarOptionsPanel } from './avatar-editor/AvatarOptionsPanel';
 import { AvatarStage } from './avatar-editor/AvatarStage';
 import { PET_OPTIONS, normalizeAvatarPetColors } from './avatar-editor/avatarPetCatalog';
 import { isCurrentAvatarSave } from './avatar-editor/avatarSaveLifecycle';
+import './avatar-editor/avatarEditor.css';
 import {
   applyAvatarChange,
   buildDisplayConfig,
