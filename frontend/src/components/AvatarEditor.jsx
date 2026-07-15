@@ -24,6 +24,7 @@ import { AvatarEditorToolbar } from './avatar-editor/AvatarEditorToolbar';
 import { AvatarOptionsPanel } from './avatar-editor/AvatarOptionsPanel';
 import { AvatarStage } from './avatar-editor/AvatarStage';
 import { PET_OPTIONS, normalizeAvatarPetColors } from './avatar-editor/avatarPetCatalog';
+import { isCurrentAvatarSave } from './avatar-editor/avatarSaveLifecycle';
 import {
   applyAvatarChange,
   buildDisplayConfig,
@@ -318,12 +319,16 @@ export default function AvatarEditor() {
   const [lockedItemMeta, setLockedItemMeta] = useState({});
   const [discardOpen, setDiscardOpen] = useState(false);
   const allowNextPopRef = useRef(false);
+  const mountedRef = useRef(true);
+  const savePendingRef = useRef(false);
+  const saveRequestRef = useRef(0);
   const saveNavigationTimerRef = useRef(null);
 
   const dirty = !configsEqual(config, savedConfig);
   const displayConfig = buildDisplayConfig(config, preview);
 
   const commitChange = useCallback((nextConfig) => {
+    if (savePendingRef.current) return;
     if (configsEqual(config, nextConfig)) return;
     setHistory((items) => pushAvatarHistory(items, config));
     setConfig(nextConfig);
@@ -348,6 +353,7 @@ export default function AvatarEditor() {
   }, [commitChange, config]);
 
   const undo = useCallback(() => {
+    if (savePendingRef.current) return;
     const result = undoAvatarChange(history, config);
     setHistory(result.history);
     setConfig(result.config);
@@ -356,6 +362,7 @@ export default function AvatarEditor() {
   }, [config, history]);
 
   useEffect(() => {
+    if (savePendingRef.current) return;
     const userCfg = normalizeAvatarPetColors({ ...initialConfig });
     setConfig(userCfg);
     setSavedConfig(userCfg);
@@ -400,39 +407,47 @@ export default function AvatarEditor() {
   }, [lockedByCategory]);
 
   const randomise = useCallback(() => {
+    if (savePendingRef.current) return;
     commitChange(randomiseAvatarConfig(config, RANDOMISE_RECIPE, lockedByCategory));
   }, [commitChange, config, lockedByCategory]);
 
   const leaveEditor = useCallback(() => {
+    if (savePendingRef.current) return;
     allowNextPopRef.current = true;
     navigate(-1);
   }, [navigate]);
 
   const requestExit = useCallback(() => {
+    if (savePendingRef.current) return;
     if (dirty) setDiscardOpen(true);
     else leaveEditor();
   }, [dirty, leaveEditor]);
 
   const cancelDiscard = useCallback(() => {
+    if (savePendingRef.current) return;
     setDiscardOpen(false);
   }, []);
 
   const selectCategory = useCallback((category) => {
+    if (savePendingRef.current) return;
     setOpenCategory(category);
     setPreview(null);
   }, []);
 
   const startPreview = useCallback((key, value) => {
+    if (savePendingRef.current) return;
     setPreview({ key, value });
   }, []);
 
   const endPreview = useCallback(() => {
+    if (savePendingRef.current) return;
     setPreview(null);
   }, []);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
-      if (event.key === 'Escape' && !discardOpen) requestExit();
+      if (event.key !== 'Escape' || savePendingRef.current) return;
+      if (!discardOpen) requestExit();
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
@@ -440,7 +455,7 @@ export default function AvatarEditor() {
 
   useEffect(() => {
     const beforeUnload = (event) => {
-      if (!dirty) return;
+      if (!dirty && !savePendingRef.current) return;
       event.preventDefault();
       event.returnValue = '';
     };
@@ -454,6 +469,11 @@ export default function AvatarEditor() {
         allowNextPopRef.current = false;
         return;
       }
+      if (savePendingRef.current) {
+        allowNextPopRef.current = true;
+        navigate(1);
+        return;
+      }
       if (dirty) {
         allowNextPopRef.current = true;
         navigate(1);
@@ -464,17 +484,28 @@ export default function AvatarEditor() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [dirty, navigate]);
 
-  useEffect(() => () => {
-    if (saveNavigationTimerRef.current) {
-      window.clearTimeout(saveNavigationTimerRef.current);
-    }
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      saveRequestRef.current += 1;
+      if (saveNavigationTimerRef.current) {
+        window.clearTimeout(saveNavigationTimerRef.current);
+      }
+    };
   }, []);
 
   const save = useCallback(async () => {
+    if (savePendingRef.current || !dirty) return;
+    savePendingRef.current = true;
+    const requestToken = ++saveRequestRef.current;
     setSaving(true);
     setStatus('');
+    setPreview(null);
+    setDiscardOpen(false);
     try {
       const response = await api('/api/avatar', { method: 'PUT', body: { config } });
+      if (!isCurrentAvatarSave(mountedRef.current, saveRequestRef.current, requestToken)) return;
       const persisted = normalizeAvatarPetColors(response.avatar_config || config);
       updateUser({ avatar_config: persisted });
       setConfig(persisted);
@@ -482,14 +513,18 @@ export default function AvatarEditor() {
       setHistory([]);
       setPreview(null);
       setStatus('Saved!');
-      allowNextPopRef.current = true;
-      saveNavigationTimerRef.current = window.setTimeout(() => navigate(-1), 600);
+      saveNavigationTimerRef.current = window.setTimeout(() => {
+        if (!isCurrentAvatarSave(mountedRef.current, saveRequestRef.current, requestToken)) return;
+        allowNextPopRef.current = true;
+        navigate(-1);
+      }, 600);
     } catch (error) {
-      setStatus(error.message || 'Failed to save');
-    } finally {
+      if (!isCurrentAvatarSave(mountedRef.current, saveRequestRef.current, requestToken)) return;
+      savePendingRef.current = false;
       setSaving(false);
+      setStatus(error?.message || 'Failed to save');
     }
-  }, [config, navigate, updateUser]);
+  }, [config, dirty, navigate, updateUser]);
 
   return (
     <div className="avatar-editor-shell">
@@ -503,7 +538,7 @@ export default function AvatarEditor() {
         onUndo={undo}
         onSave={save}
       />
-      <div className="avatar-editor-workspace">
+      <div className="avatar-editor-workspace" aria-busy={saving} inert={saving ? '' : undefined}>
         <AvatarCategoryRail categories={CATEGORIES} activeCategory={openCategory} onSelect={selectCategory} />
         <AvatarStage
           config={displayConfig}

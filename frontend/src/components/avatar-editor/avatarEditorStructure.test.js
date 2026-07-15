@@ -25,7 +25,7 @@ test('category navigation and toolbar expose semantic state and named actions', 
   assert.match(toolbar, /Randomise/);
   assert.match(toolbar, /Undo/);
   assert.match(toolbar, /Save/);
-  assert.match(toolbar, /disabled={!canUndo}/);
+  assert.match(toolbar, /disabled={saving \|\| !canUndo}/);
   assert.match(dialog, /role="dialog"/);
   assert.match(dialog, /Keep editing/);
   assert.match(dialog, /Discard/);
@@ -121,6 +121,47 @@ test('editor boundaries normalize legacy body colour and pet controls emit atomi
   assert.match(editor, /const persisted = normalizeAvatarPetColors\(/);
   assert.equal((pet.match(/onPatch\(createPetBodyColorPatch\(color\)\)/g) || []).length, 1);
   assert.doesNotMatch(pet, /onChange\('pet_color', color\)/);
+});
+
+test('saving disables every toolbar action and makes the editor workspace inert', () => {
+  const editor = read('../AvatarEditor.jsx');
+  const toolbar = read('./AvatarEditorToolbar.jsx');
+  assert.match(toolbar, /aria-label="Back" disabled={saving}/);
+  assert.match(toolbar, /className="avatar-tool-button" disabled={saving} onClick={onRandomise}/);
+  assert.match(toolbar, /disabled={saving \|\| !canUndo}/);
+  assert.match(toolbar, /disabled={saving \|\| !dirty}/);
+  assert.match(editor, /className="avatar-editor-workspace" aria-busy={saving} inert={saving \? '' : undefined}/);
+});
+
+test('save transactions are serialized and stale async completions are ignored', () => {
+  const editor = read('../AvatarEditor.jsx');
+  for (const ref of ['mountedRef', 'savePendingRef', 'saveRequestRef']) {
+    assert.match(editor, new RegExp(`const ${ref} = useRef\\(`));
+  }
+  assert.match(editor, /if \(savePendingRef\.current \|\| !dirty\) return;/);
+  assert.match(editor, /savePendingRef\.current = true;/);
+  assert.match(editor, /const requestToken = \+\+saveRequestRef\.current;/);
+  assert.equal((editor.match(/isCurrentAvatarSave\(mountedRef\.current, saveRequestRef\.current, requestToken\)/g) || []).length, 3);
+  assert.match(editor, /mountedRef\.current = false;/);
+  assert.match(editor, /saveRequestRef\.current \+= 1;/);
+  assert.match(editor, /window\.clearTimeout\(saveNavigationTimerRef\.current\)/);
+  assert.doesNotMatch(editor, /finally\s*{/);
+  assert.match(editor, /catch \(error\) \{[\s\S]*savePendingRef\.current = false;[\s\S]*setSaving\(false\);/);
+  assert.match(editor, /window\.setTimeout\(\(\) => \{[\s\S]*isCurrentAvatarSave[\s\S]*allowNextPopRef\.current = true;[\s\S]*navigate\(-1\)/);
+});
+
+test('pending saves guard mutations, exits, previews, unload, and browser traversal', () => {
+  const editor = read('../AvatarEditor.jsx');
+  for (const callback of [
+    'commitChange', 'undo', 'randomise', 'leaveEditor', 'requestExit',
+    'cancelDiscard', 'selectCategory', 'startPreview', 'endPreview',
+  ]) {
+    assert.match(editor, new RegExp(`const ${callback} = useCallback\\([^]*?=> \\{\\s*if \\(savePendingRef\\.current\\) return;`));
+  }
+  assert.match(editor, /setDiscardOpen\(false\);/);
+  assert.match(editor, /if \(event\.key !== 'Escape' \|\| savePendingRef\.current\) return;/);
+  assert.match(editor, /if \(!dirty && !savePendingRef\.current\) return;/);
+  assert.match(editor, /if \(savePendingRef\.current\) \{[\s\S]*navigate\(1\);[\s\S]*return;[\s\S]*\}/);
 });
 
 test('every pet tab controls a mounted labelled panel', () => {
