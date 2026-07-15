@@ -998,20 +998,25 @@
   }
 
   .avatar-editor-toolbar {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    gap: 8px;
     min-height: 64px;
     padding: 8px 12px;
   }
 
   .avatar-editor-toolbar__identity {
-    gap: 0;
+    display: contents;
   }
 
   .avatar-editor-toolbar__identity > div {
-    position: absolute;
-    left: 50%;
+    position: static;
     display: block;
+    width: 100%;
+    min-width: 0;
     max-width: 132px;
-    transform: translateX(-50%);
+    justify-self: center;
+    transform: none;
   }
 
   .avatar-editor-toolbar__identity h1 {

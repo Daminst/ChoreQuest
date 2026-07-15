@@ -49,6 +49,23 @@ test('category navigation and toolbar expose semantic state and named actions', 
   assert.match(dialog, /Discard/);
 });
 
+test('mobile toolbar gives Back, title, and actions separate shrink-safe columns', () => {
+  const toolbar = read('./AvatarEditorToolbar.jsx');
+  const css = read('./avatarEditor.css');
+  const mobile = extractCssBlock(css, '@media (max-width: 720px)');
+  const narrow = extractCssBlock(css, '@media (max-width: 360px)');
+
+  assert.match(toolbar, /avatar-editor-toolbar__identity[\s\S]*aria-label="Back"[\s\S]*<h1>Hero Studio<\/h1>/);
+  assert.match(toolbar, /avatar-editor-toolbar__actions[\s\S]*Undo[\s\S]*Save/);
+  assert.match(mobile, /\.avatar-editor-toolbar\s*\{[^}]*display:\s*grid/);
+  assert.match(mobile, /\.avatar-editor-toolbar\s*\{[^}]*grid-template-columns:\s*44px\s+minmax\(0,\s*1fr\)\s+auto/);
+  assert.match(mobile, /\.avatar-editor-toolbar__identity\s*\{[^}]*display:\s*contents/);
+  assert.match(mobile, /\.avatar-editor-toolbar__identity\s*>\s*div\s*\{[^}]*position:\s*static[^}]*width:\s*100%[^}]*min-width:\s*0[^}]*justify-self:\s*center[^}]*transform:\s*none/s);
+  assert.match(mobile, /\.avatar-tool-button\s*\{[^}]*width:\s*44px[^}]*min-width:\s*44px/s);
+  assert.match(mobile, /\.avatar-save-button\s*\{[^}]*min-width:\s*82px/s);
+  assert.match(narrow, /\.avatar-save-button\s*\{[^}]*min-width:\s*72px/s);
+});
+
 test('editor composes the studio instead of the legacy category strip', () => {
   const editor = read('../AvatarEditor.jsx');
   assert.match(editor, /AvatarEditorToolbar/);
