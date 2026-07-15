@@ -32,6 +32,7 @@ export function applyAvatarChange(config, key, value) {
 }
 
 export function pushAvatarHistory(history, config, limit = AVATAR_HISTORY_LIMIT) {
+  if (limit === 1) return [cloneAvatarConfig(config)];
   return [...history.slice(-(limit - 1)), cloneAvatarConfig(config)];
 }
 
@@ -63,14 +64,20 @@ export function toggleAvatarAccessory(config, itemId) {
   return { ...cloneAvatarConfig(config), accessories, accessory: accessories[0] || 'none' };
 }
 
+function isPetKey(key) {
+  return key === 'pet' || key.startsWith('pet_');
+}
+
 export function randomiseAvatarConfig(config, recipe, lockedByCategory = {}, random = Math.random) {
   const next = cloneAvatarConfig(config);
   for (const group of recipe.optionGroups) {
+    if (isPetKey(group.key)) continue;
     const locked = lockedByCategory[group.itemCategory] || new Set();
     const available = group.options.filter((option) => !locked.has(option.id));
     if (available.length) next[group.key] = available[Math.floor(random() * available.length)].id;
   }
   for (const group of recipe.colourGroups) {
+    if (isPetKey(group.key)) continue;
     if (group.values.length) next[group.key] = group.values[Math.floor(random() * group.values.length)];
   }
   if (recipe.accessoryGroup) {

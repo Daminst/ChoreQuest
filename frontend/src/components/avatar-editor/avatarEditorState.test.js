@@ -24,6 +24,13 @@ test('history is immutable, capped at 30 snapshots, and undo returns the latest 
   assert.equal(undone.history.length, 29);
 });
 
+test('history limit of one keeps only the newest snapshot', () => {
+  const history = [{ head: 'round' }, { head: 'square' }];
+  const config = { head: 'oval', accessories: ['cape'] };
+
+  assert.deepEqual(pushAvatarHistory(history, config, 1), [config]);
+});
+
 test('pet changes refresh legacy pet_xp without mutating pet_xp_map', () => {
   const original = { pet: 'cat', pet_xp: 10, pet_xp_map: { cat: 10, dog: 42 } };
   const changed = applyAvatarChange(original, 'pet', 'dog');
@@ -79,6 +86,54 @@ test('randomise excludes locked choices and preserves pet identity and progressi
   assert.equal(randomised.pet_xp, 350);
   assert.equal(randomised.pet_position, 'head');
   assert.equal(randomised.pet_color_body, '#222222');
+});
+
+test('randomise skips pet recipe groups without consuming random values', () => {
+  const config = {
+    head: 'round', head_color: '#111111',
+    pet: 'dragon', pet_xp: 350, pet_xp_map: { dragon: 350 },
+    pet_position: 'head', pet_color_body: '#222222',
+  };
+  const recipe = {
+    optionGroups: [
+      { key: 'pet', itemCategory: 'pet', options: [{ id: 'cat' }] },
+      { key: 'pet_xp', itemCategory: 'pet', options: [{ id: 0 }] },
+      { key: 'head', itemCategory: 'head', options: [{ id: 'round' }, { id: 'oval' }] },
+      { key: 'pet_position', itemCategory: 'pet', options: [{ id: 'ground' }] },
+    ],
+    colourGroups: [
+      { key: 'pet_color_body', values: ['#ffffff'] },
+      { key: 'head_color', values: ['#111111', '#eeeeee'] },
+      { key: 'pet_xp_map', values: [{ cat: 0 }] },
+    ],
+  };
+  const values = [0.999, 0, 0.25, 0.25, 0.25, 0.25, 0.25];
+  let randomCalls = 0;
+  const randomised = randomiseAvatarConfig(config, recipe, {}, () => {
+    const value = values[randomCalls];
+    randomCalls += 1;
+    return value;
+  });
+
+  assert.deepEqual({
+    head: randomised.head,
+    head_color: randomised.head_color,
+    pet: randomised.pet,
+    pet_xp: randomised.pet_xp,
+    pet_xp_map: randomised.pet_xp_map,
+    pet_position: randomised.pet_position,
+    pet_color_body: randomised.pet_color_body,
+    randomCalls,
+  }, {
+    head: 'oval',
+    head_color: '#111111',
+    pet: 'dragon',
+    pet_xp: 350,
+    pet_xp_map: { dragon: 350 },
+    pet_position: 'head',
+    pet_color_body: '#222222',
+    randomCalls: 2,
+  });
 });
 
 test('dirty comparison treats cloned nested avatar data as equal', () => {
