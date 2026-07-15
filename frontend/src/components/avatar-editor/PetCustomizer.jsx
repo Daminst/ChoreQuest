@@ -145,7 +145,7 @@ function renderColourControls({ config, onChange, onPatch }) {
   return (
     <>
       <button type="button" className="avatar-pet-colours__reset" onClick={resetPartColors}>Reset all to match</button>
-      <AvatarColorPalette label="Body" colors={PET_COLORS} selected={bodyColor} onSelect={(color) => onPatch(createPetBodyColorPatch(color))} />
+      <AvatarColorPalette label="Body Colour" colors={PET_COLORS} selected={bodyColor} onSelect={(color) => onPatch(createPetBodyColorPatch(color))} />
       <AvatarColorPalette label="Ears" colors={PET_COLORS} selected={config.pet_color_ears || bodyColor} onSelect={(color) => choosePartColor('pet_color_ears', color)} />
       <AvatarColorPalette label="Tail" colors={PET_COLORS} selected={config.pet_color_tail || bodyColor} onSelect={(color) => choosePartColor('pet_color_tail', color)} />
       <AvatarColorPalette label="Accent" colors={PET_COLORS} selected={config.pet_color_accent || bodyColor} onSelect={(color) => choosePartColor('pet_color_accent', color)} />

@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
+import vm from 'node:vm';
 
 const overlayFiles = [
   new URL('../../../polish_translation/pl-runtime.js', import.meta.url),
   new URL('../../public/local-overrides/pl-runtime.js', import.meta.url),
 ];
+const petCustomizerFile = new URL('../components/avatar-editor/PetCustomizer.jsx', import.meta.url);
 
 const requiredChoreDetailTranslations = [
   ['Trivial', 'Trywialna'],
@@ -32,6 +34,25 @@ const requiredAvatarThemeTranslations = [
   ['Mischief Hood', 'Psotny kaptur'],
 ];
 
+function loadTranslateClean(fileUrl) {
+  const source = fs.readFileSync(fileUrl, 'utf8');
+  const marker = '  function translateDialogMessage(message) {';
+  assert.ok(source.includes(marker), `${fileUrl.pathname} exposes the expected translation seam`);
+
+  const instrumentedSource = source.replace(
+    marker,
+    `  window.__translateCleanForTest = translateClean;\n\n${marker}`,
+  );
+  const window = {};
+  const document = {
+    readyState: 'loading',
+    addEventListener() {},
+  };
+
+  vm.runInNewContext(instrumentedSource, { document, window }, { filename: fileUrl.pathname });
+  return window.__translateCleanForTest;
+}
+
 const requiredAvatarStudioTranslations = [
   ['Hero Studio', 'Studio Bohatera'],
   ['Randomise', 'Losuj'],
@@ -49,8 +70,8 @@ const requiredAvatarStudioTranslations = [
   ['Accessory', 'Akcesorium'],
   ['Equipment', 'Ekwipunek'],
   ['Background', 'Tło'],
-  ['Avatar categories', 'Kategorie avatara'],
-  ['Live avatar preview', 'Podgląd avatara na żywo'],
+  ['Avatar categories', 'Kategorie awatara'],
+  ['Live avatar preview', 'Podgląd awatara na żywo'],
   ['Pet customisation', 'Edycja pupila'],
   ['Multiple selection', 'Wybór wielokrotny'],
   ['Choose a head shape', 'Wybierz kształt głowy'],
@@ -97,8 +118,9 @@ const requiredAvatarStudioTranslations = [
   ['Pet level progression', 'Postęp rozwoju pupila'],
   ['Eight pet levels', 'Osiem poziomów pupila'],
   ['Choose a companion to unlock colours, placement, and accessories.', 'Wybierz pupila, aby odblokować kolory, ustawienie i akcesoria.'],
-  ['Reset all to match', 'Zresetuj wszystko do zgodności'],
+  ['Reset all to match', 'Ujednolić wszystkie kolory'],
   ['Body', 'Sylwetka'],
+  ['Body Colour', 'Kolor ciała'],
   ['Ears', 'Uszy'],
   ['Tail', 'Ogon'],
   ['Accent', 'Akcent'],
@@ -201,4 +223,37 @@ test('polish overlay translates Hero Studio controls', () => {
       );
     }
   }
+});
+
+test('polish overlay translates composed Hero Studio aria labels at runtime', () => {
+  const composedAriaTranslations = [
+    ['Round, locked, Complete 12 quests', 'Okrągła, opcja zablokowana, Ukończ 12 misji'],
+    ['Hair colour: #ff00aa', 'Kolor włosów: #ff00aa'],
+    ['Body Colour: #ff00aa', 'Kolor ciała: #ff00aa'],
+    ['73% to level 5', '73% do poziomu 5'],
+  ];
+
+  for (const fileUrl of overlayFiles) {
+    const translateClean = loadTranslateClean(fileUrl);
+    for (const [english, polish] of composedAriaTranslations) {
+      assert.equal(
+        translateClean(english),
+        polish,
+        `${fileUrl.pathname} translates ${english} at runtime`,
+      );
+    }
+  }
+});
+
+test('pet customiser uses the context-specific body colour translation key', () => {
+  const source = fs.readFileSync(petCustomizerFile, 'utf8');
+
+  assert.match(
+    source,
+    /<AvatarColorPalette label="Body Colour" colors=\{PET_COLORS\}/,
+  );
+  assert.doesNotMatch(
+    source,
+    /<AvatarColorPalette label="Body" colors=\{PET_COLORS\}/,
+  );
 });

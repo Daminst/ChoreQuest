@@ -670,8 +670,8 @@
     'Accessory': 'Akcesorium',
     'Equipment': 'Ekwipunek',
     'Background': 'Tło',
-    'Avatar categories': 'Kategorie avatara',
-    'Live avatar preview': 'Podgląd avatara na żywo',
+    'Avatar categories': 'Kategorie awatara',
+    'Live avatar preview': 'Podgląd awatara na żywo',
     'Pet customisation': 'Edycja pupila',
     'Multiple selection': 'Wybór wielokrotny',
     'Choose a head shape': 'Wybierz kształt głowy',
@@ -733,7 +733,7 @@
     'Gear': 'Ekwipunek',
     '(select multiple)': '(wybierz kilka)',
     'Clear all gear': 'Wyczyść ekwipunek',
-    'Reset all to match': 'Zresetuj wszystko do zgodności',
+    'Reset all to match': 'Ujednolić wszystkie kolory',
     'Tap to place your pet': 'Dotknij, aby ustawić pupila',
     'Scroll left': 'Przewiń w lewo',
     'Scroll right': 'Przewiń w prawo',
@@ -1097,6 +1097,12 @@
   }));
 
   const PATTERNS = [
+    [/^(.+), locked, (.+)$/, (_whole, option, requirement) => `${translateKnownTerm(option)}, opcja zablokowana, ${translateClean(requirement) || translateKnownTerm(requirement)}`],
+    [/^(.+): (#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8}))$/, (whole, label, colour) => {
+      const translatedLabel = translateKnownTerm(label);
+      return translatedLabel === label ? whole : `${translatedLabel}: ${colour}`;
+    }],
+    [/^(\d+)% to level (\d+)$/, '$1% do poziomu $2'],
     [/^(\d+)m ago$/, '$1 min temu'],
     [/^(\d+)h ago$/, '$1 godz. temu'],
     [/^(\d+)d ago$/, '$1 dni temu'],
