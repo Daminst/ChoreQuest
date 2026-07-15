@@ -7,6 +7,24 @@ const readIfPresent = (name) => {
   const url = new URL(name, import.meta.url);
   return fs.existsSync(url) ? fs.readFileSync(url, 'utf8') : '';
 };
+const extractCssBlock = (source, blockHeader) => {
+  const headerStart = source.indexOf(blockHeader);
+  if (headerStart === -1) return '';
+  const openingBrace = source.indexOf('{', headerStart + blockHeader.length);
+  if (openingBrace === -1) return '';
+
+  let depth = 0;
+  for (let index = openingBrace; index < source.length; index += 1) {
+    if (source[index] === '{') depth += 1;
+    if (source[index] !== '}') continue;
+    depth -= 1;
+    if (depth === 0) return source.slice(openingBrace + 1, index);
+  }
+  return '';
+};
+const extractReducedMotionBlock = (source) => (
+  extractCssBlock(source, '@media (prefers-reduced-motion: reduce)')
+);
 
 test('option cards and colour swatches expose selected state without colour alone', () => {
   const source = read('./AvatarOptionControls.jsx');
@@ -79,11 +97,25 @@ test('discard dialog contains keyboard focus for its open lifetime and restores 
 
 test('reduced motion forces the discard dialog to its final visual state', () => {
   const css = read('./avatarEditor.css');
-  const reducedMotion = css.match(/@media \(prefers-reduced-motion: reduce\) \{([\s\S]*)\}\s*$/)?.[1] || '';
+  const dialogOverride = /\.avatar-discard-backdrop,\s*\.avatar-discard-dialog\s*\{[^}]*opacity:\s*1\s*!important;[^}]*transform:\s*none\s*!important;[^}]*\}/;
+  const reducedMotion = extractReducedMotionBlock(css);
   assert.match(
     reducedMotion,
-    /\.avatar-discard-backdrop,\s*\.avatar-discard-dialog\s*\{[^}]*opacity:\s*1\s*!important;[^}]*transform:\s*none\s*!important;[^}]*\}/,
+    dialogOverride,
   );
+
+  const misplacedOverride = `
+    @media (prefers-reduced-motion: reduce) {
+      .avatar-editor-shell * { transition-duration: 0.01ms !important; }
+    }
+    .avatar-discard-backdrop,
+    .avatar-discard-dialog {
+      opacity: 1 !important;
+      transform: none !important;
+    }
+    .avatar-later-rule { color: red; }
+  `;
+  assert.doesNotMatch(extractReducedMotionBlock(misplacedOverride), dialogOverride);
 });
 
 test('stage owns live preview and pet placement while pet customiser exposes four sections', () => {
