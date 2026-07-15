@@ -45,6 +45,19 @@ export const PET_COLOR_RESET_PATCH = Object.freeze({
   pet_color_accent: '',
 });
 
+export function normalizeAvatarPetColors(config) {
+  if (!config.pet_color_body) return config;
+  return {
+    ...config,
+    pet_color: config.pet_color_body,
+    pet_color_body: '',
+  };
+}
+
+export function createPetBodyColorPatch(color) {
+  return Object.freeze({ pet_color: color, pet_color_body: '' });
+}
+
 export function getPetLevelInfo(petXp) {
   let level = 1;
   for (let index = 0; index < PET_LEVEL_THRESHOLDS.length; index += 1) {

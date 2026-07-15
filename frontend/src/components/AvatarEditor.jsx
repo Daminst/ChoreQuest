@@ -9,12 +9,15 @@ import { THEMED_AVATAR_OPTIONS } from './avatar/themedAvatarCatalog';
 import {
   PET_ACCESSORY_OPTIONS,
   PET_COLORS,
+  PET_COLOR_RESET_PATCH,
   PET_LEVEL_COLORS,
   PET_LEVEL_NAMES,
   PET_OPTIONS,
   PET_POSITION_OPTIONS,
+  createPetBodyColorPatch,
   getPetLevelInfo,
   getPetXpForPet,
+  normalizeAvatarPetColors,
 } from './avatar-editor/avatarPetCatalog';
 import { Save, Loader2, ChevronLeft, ChevronRight, Lock, Heart, Star, Crosshair, ArrowLeft } from 'lucide-react';
 
@@ -492,17 +495,13 @@ function PetCustomiser({ config, set, locked, previewProps, petStats }) {
             <div className="flex items-center justify-between mb-2">
               <p className="text-muted text-xs font-medium">Body Colour</p>
               <button
-                onClick={() => {
-                  set('pet_color_ears', '');
-                  set('pet_color_tail', '');
-                  set('pet_color_accent', '');
-                }}
+                onClick={() => set(PET_COLOR_RESET_PATCH)}
                 className="text-[10px] text-accent hover:text-accent/80 transition-colors"
               >
                 Reset all to match
               </button>
             </div>
-            <ColorSwatch colors={PET_COLORS} selected={config.pet_color} onSelect={(v) => set('pet_color', v)} />
+            <ColorSwatch colors={PET_COLORS} selected={config.pet_color} onSelect={(v) => set(createPetBodyColorPatch(v))} />
           </div>
 
           <div>
@@ -756,7 +755,7 @@ function CategoryStrip({ openCategory, onSelect }) {
 export default function AvatarEditor() {
   const { user, updateUser } = useAuth();
   const navigate = useNavigate();
-  const [config, setConfig] = useState(() => ({
+  const [config, setConfig] = useState(() => normalizeAvatarPetColors({
     ...DEFAULT_CONFIG,
     ...(user?.avatar_config || {}),
   }));
@@ -793,7 +792,7 @@ export default function AvatarEditor() {
     if (user?.avatar_config) {
       setConfig((prev) => {
         // Only reset if user config actually changed (e.g. after save from another tab)
-        const userCfg = { ...DEFAULT_CONFIG, ...(user.avatar_config || {}) };
+        const userCfg = normalizeAvatarPetColors({ ...DEFAULT_CONFIG, ...(user.avatar_config || {}) });
         if (JSON.stringify(prev) === JSON.stringify(userCfg)) return prev;
         return userCfg;
       });
@@ -817,13 +816,14 @@ export default function AvatarEditor() {
     }
   }
 
-  const set = (key, value) => {
+  const set = (keyOrPatch, value) => {
     setConfig((prev) => {
-      const next = { ...prev, [key]: value };
+      const patch = typeof keyOrPatch === 'object' ? keyOrPatch : { [keyOrPatch]: value };
+      const next = { ...prev, ...patch };
       // When switching pets, update pet_xp to the new pet's XP from the map
-      if (key === 'pet') {
+      if (Object.hasOwn(patch, 'pet')) {
         const xpMap = next.pet_xp_map || {};
-        next.pet_xp = (value && value !== 'none' && value in xpMap) ? xpMap[value] : 0;
+        next.pet_xp = (patch.pet && patch.pet !== 'none' && patch.pet in xpMap) ? xpMap[patch.pet] : 0;
       }
       return next;
     });

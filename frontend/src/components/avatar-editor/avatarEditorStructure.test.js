@@ -76,6 +76,18 @@ test('pet studio consumes shared semantics and resets colour overrides atomicall
   assert.doesNotMatch(pet, /const resetPartColors = \(\) => \{[^}]*onChange\(/);
 });
 
+test('both editors normalize legacy body colour and apply body/reset patches atomically', () => {
+  const editor = read('../AvatarEditor.jsx');
+  const pet = read('./PetCustomizer.jsx');
+  assert.match(editor, /useState\(\(\) => normalizeAvatarPetColors\(\{/);
+  assert.match(editor, /const userCfg = normalizeAvatarPetColors\(\{/);
+  assert.match(editor, /typeof keyOrPatch === 'object'/);
+  assert.match(editor, /set\(createPetBodyColorPatch\(v\)\)/);
+  assert.match(editor, /set\(PET_COLOR_RESET_PATCH\)/);
+  assert.equal((pet.match(/onPatch\(createPetBodyColorPatch\(color\)\)/g) || []).length, 1);
+  assert.doesNotMatch(pet, /onChange\('pet_color', color\)/);
+});
+
 test('every pet tab controls a mounted labelled panel', () => {
   const pet = read('./PetCustomizer.jsx');
   for (const section of ['appearance', 'colours', 'position', 'accessory']) {
@@ -85,6 +97,12 @@ test('every pet tab controls a mounted labelled panel', () => {
   assert.match(pet, /id={section\.panelId}/);
   assert.match(pet, /aria-controls={section\.panelId}/);
   assert.match(pet, /aria-labelledby={section\.tabId}/);
-  assert.match(pet, /hidden={activeSection !== section\.id}/);
+  assert.match(pet, /const effectiveSection = hasPet \? activeSection : 'appearance'/);
+  assert.match(pet, /if \(!hasPet && activeSection !== 'appearance'\)/);
+  assert.match(pet, /setActiveSection\('appearance'\)/);
+  assert.match(pet, /\[activeSection, hasPet\]/);
+  assert.match(pet, /const isActive = effectiveSection === section\.id/);
+  assert.match(pet, /hidden={effectiveSection !== section\.id}/);
+  assert.doesNotMatch(pet, /hidden={activeSection !== section\.id}/);
   assert.doesNotMatch(pet, /activeSection === 'appearance' && renderAppearanceControls/);
 });

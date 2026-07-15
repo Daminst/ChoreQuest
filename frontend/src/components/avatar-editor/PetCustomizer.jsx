@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Heart } from 'lucide-react';
 import { buildPetColors, renderPet, renderPetExtras } from '../avatar/pets';
 import { AvatarColorPalette, AvatarOptionCard, AvatarOptionGrid } from './AvatarOptionControls';
@@ -10,6 +10,7 @@ import {
   PET_LEVEL_NAMES,
   PET_OPTIONS,
   PET_POSITION_OPTIONS,
+  createPetBodyColorPatch,
   getPetLevelInfo,
   getPetXpForPet,
 } from './avatarPetCatalog';
@@ -144,7 +145,7 @@ function renderColourControls({ config, onChange, onPatch }) {
   return (
     <>
       <button type="button" className="avatar-pet-colours__reset" onClick={resetPartColors}>Reset all to match</button>
-      <AvatarColorPalette label="Body" colors={PET_COLORS} selected={bodyColor} onSelect={(color) => onChange('pet_color', color)} />
+      <AvatarColorPalette label="Body" colors={PET_COLORS} selected={bodyColor} onSelect={(color) => onPatch(createPetBodyColorPatch(color))} />
       <AvatarColorPalette label="Ears" colors={PET_COLORS} selected={config.pet_color_ears || bodyColor} onSelect={(color) => choosePartColor('pet_color_ears', color)} />
       <AvatarColorPalette label="Tail" colors={PET_COLORS} selected={config.pet_color_tail || bodyColor} onSelect={(color) => choosePartColor('pet_color_tail', color)} />
       <AvatarColorPalette label="Accent" colors={PET_COLORS} selected={config.pet_color_accent || bodyColor} onSelect={(color) => choosePartColor('pet_color_accent', color)} />
@@ -183,13 +184,20 @@ function renderSectionControls(sectionId, controls) {
 export function PetCustomizer({ config, locked, lockedMeta, getUnlockLabel, onChange, onPatch, onPreview, onPreviewEnd }) {
   const [activeSection, setActiveSection] = useState('appearance');
   const hasPet = config.pet && config.pet !== 'none';
+  const effectiveSection = hasPet ? activeSection : 'appearance';
   const controls = { config, locked, lockedMeta, getUnlockLabel, onChange, onPatch, onPreview, onPreviewEnd };
+
+  useEffect(() => {
+    if (!hasPet && activeSection !== 'appearance') {
+      setActiveSection('appearance');
+    }
+  }, [activeSection, hasPet]);
 
   return (
     <div className="avatar-pet-customiser">
       <div className="avatar-pet-tabs" role="tablist" aria-label="Pet customisation">
         {PET_SECTIONS.map((section) => {
-          const isActive = activeSection === section.id;
+          const isActive = effectiveSection === section.id;
           return (
             <button
               key={section.id}
@@ -212,7 +220,7 @@ export function PetCustomizer({ config, locked, lockedMeta, getUnlockLabel, onCh
           id={section.panelId}
           role="tabpanel"
           aria-labelledby={section.tabId}
-          hidden={activeSection !== section.id}
+          hidden={effectiveSection !== section.id}
         >
           {renderSectionControls(section.id, controls)}
         </div>

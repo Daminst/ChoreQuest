@@ -69,3 +69,36 @@ test('pet colour reset is one immutable canonical override patch', async () => {
   assert.equal(Object.hasOwn(PET_COLOR_RESET_PATCH, 'pet_color'), false);
   assert.equal(Object.hasOwn(PET_COLOR_RESET_PATCH, 'pet_color_body'), false);
 });
+
+test('editor-boundary normalization migrates a legacy body override without mutating input', async () => {
+  const { normalizeAvatarPetColors } = await loadCatalog();
+  const legacy = {
+    pet_color: '#111111',
+    pet_color_body: '#abcdef',
+    pet_color_ears: '#222222',
+    untouched: true,
+  };
+
+  assert.deepEqual(normalizeAvatarPetColors(legacy), {
+    pet_color: '#abcdef',
+    pet_color_body: '',
+    pet_color_ears: '#222222',
+    untouched: true,
+  });
+  assert.deepEqual(legacy, {
+    pet_color: '#111111',
+    pet_color_body: '#abcdef',
+    pet_color_ears: '#222222',
+    untouched: true,
+  });
+  const canonical = { pet_color: '#123456', pet_color_body: '', pet_color_tail: '#654321' };
+  assert.equal(normalizeAvatarPetColors(canonical), canonical);
+});
+
+test('body colour selection creates one immutable canonical migration patch', async () => {
+  const { createPetBodyColorPatch } = await loadCatalog();
+  const patch = createPetBodyColorPatch('#fedcba');
+
+  assert.deepEqual(patch, { pet_color: '#fedcba', pet_color_body: '' });
+  assert.equal(Object.isFrozen(patch), true);
+});
