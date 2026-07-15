@@ -39,3 +39,16 @@ test('discard dialog contains keyboard focus for its open lifetime and restores 
   assert.match(dialog, /previousFocus\.focus\(\)/);
   assert.doesNotMatch(dialog, /<motion\.section[^>]*onKeyDown=/s);
 });
+
+test('stage owns live preview and pet placement while pet customiser exposes four sections', () => {
+  const stage = read('./AvatarStage.jsx');
+  const pet = read('./PetCustomizer.jsx');
+  assert.match(stage, /AvatarDisplay/);
+  assert.match(stage, /viewBox="0 0 32 32"/);
+  assert.match(stage, /Tap to place your pet/);
+  for (const label of ['Appearance', 'Colours', 'Position', 'Accessory']) {
+    assert.match(pet, new RegExp(label));
+  }
+  assert.match(pet, /aria-selected=/);
+  assert.doesNotMatch(pet, /tabIndex={isActive/);
+});
