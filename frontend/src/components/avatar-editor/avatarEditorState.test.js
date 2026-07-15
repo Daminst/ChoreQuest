@@ -52,6 +52,15 @@ test('preview and accessory helpers do not mutate the saved session config', () 
   assert.deepEqual(original.accessories, []);
 });
 
+test('one user action stores one undo snapshot even when it updates legacy accessory fields', () => {
+  const original = { accessory: 'none', accessories: [] };
+  const next = toggleAvatarAccessory(original, 'cape');
+  const history = pushAvatarHistory([], original);
+  assert.equal(history.length, 1);
+  assert.deepEqual(next, { accessory: 'cape', accessories: ['cape'] });
+  assert.deepEqual(undoAvatarChange(history, next).config, original);
+});
+
 test('randomise excludes locked choices and preserves pet identity and progression', () => {
   const config = {
     head: 'round', hair: 'short', head_color: '#111111',

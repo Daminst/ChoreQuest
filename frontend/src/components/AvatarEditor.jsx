@@ -1,25 +1,38 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Accessibility,
+  CircleUserRound,
+  Crown,
+  Eye,
+  Image as ImageIcon,
+  Palette,
+  PawPrint,
+  ScanFace,
+  Scissors,
+  Shield,
+  Shirt,
+  Smile,
+  Sparkles,
+} from 'lucide-react';
 import { api } from '../api/client';
 import { useAuth } from '../hooks/useAuth';
-import AvatarDisplay from './AvatarDisplay';
-import { renderPet, renderPetExtras, buildPetColors } from './avatar/pets';
 import { THEMED_AVATAR_OPTIONS } from './avatar/themedAvatarCatalog';
+import { AvatarCategoryRail } from './avatar-editor/AvatarCategoryRail';
+import { AvatarDiscardDialog } from './avatar-editor/AvatarDiscardDialog';
+import { AvatarEditorToolbar } from './avatar-editor/AvatarEditorToolbar';
+import { AvatarOptionsPanel } from './avatar-editor/AvatarOptionsPanel';
+import { AvatarStage } from './avatar-editor/AvatarStage';
+import { PET_OPTIONS, normalizeAvatarPetColors } from './avatar-editor/avatarPetCatalog';
 import {
-  PET_ACCESSORY_OPTIONS,
-  PET_COLORS,
-  PET_COLOR_RESET_PATCH,
-  PET_LEVEL_COLORS,
-  PET_LEVEL_NAMES,
-  PET_OPTIONS,
-  PET_POSITION_OPTIONS,
-  createPetBodyColorPatch,
-  getPetLevelInfo,
-  getPetXpForPet,
-  normalizeAvatarPetColors,
-} from './avatar-editor/avatarPetCatalog';
-import { Save, Loader2, ChevronLeft, ChevronRight, Lock, Heart, Star, Crosshair, ArrowLeft } from 'lucide-react';
+  applyAvatarChange,
+  buildDisplayConfig,
+  configsEqual,
+  pushAvatarHistory,
+  randomiseAvatarConfig,
+  toggleAvatarAccessory,
+  undoAvatarChange,
+} from './avatar-editor/avatarEditorState';
 
 const HEAD_OPTIONS = [
   { id: 'round', label: 'Round' },
@@ -229,683 +242,289 @@ const DEFAULT_CONFIG = {
 };
 
 const CATEGORIES = [
-  { id: 'head', label: 'Head' },
-  { id: 'skin', label: 'Skin' },
-  { id: 'hair', label: 'Hair' },
-  { id: 'eyes', label: 'Eyes' },
-  { id: 'mouth', label: 'Mouth' },
-  { id: 'body', label: 'Body' },
-  { id: 'outfit', label: 'Outfit' },
-  { id: 'pattern', label: 'Pattern' },
-  { id: 'background', label: 'BG' },
-  { id: 'hat', label: 'Hat' },
-  { id: 'face', label: 'Face' },
-  { id: 'accessory', label: 'Gear' },
-  { id: 'pet', label: 'Pet' },
+  { id: 'head', label: 'Head', icon: CircleUserRound },
+  { id: 'skin', label: 'Skin', icon: Palette },
+  { id: 'hair', label: 'Hair', icon: Scissors },
+  { id: 'eyes', label: 'Eyes', icon: Eye },
+  { id: 'mouth', label: 'Mouth', icon: Smile },
+  { id: 'body', label: 'Body', icon: Accessibility },
+  { id: 'outfit', label: 'Outfit', icon: Shirt },
+  { id: 'pattern', label: 'Pattern', icon: Sparkles },
+  { id: 'background', label: 'Background', icon: ImageIcon },
+  { id: 'hat', label: 'Hat', icon: Crown },
+  { id: 'face', label: 'Face', icon: ScanFace },
+  { id: 'accessory', label: 'Equipment', icon: Shield },
+  { id: 'pet', label: 'Pet', icon: PawPrint },
 ];
 
-function ColorSwatch({ colors, selected, onSelect }) {
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {colors.map((c) => (
-        <button
-          key={c}
-          onClick={() => onSelect(c)}
-          className={`w-7 h-7 rounded-full border-2 transition-all ${
-            selected === c ? 'border-accent' : 'border-transparent hover:border-border-light'
-          }`}
-          style={{ backgroundColor: c }}
-          aria-label={c}
-        />
-      ))}
-    </div>
-  );
-}
-
-function ShapeSelector({ options, selected, onSelect, lockedItems, configKey, onPreview, onPreviewEnd }) {
-  return (
-    <div className="flex flex-wrap gap-2">
-      {options.map((opt) => {
-        const isLocked = lockedItems && lockedItems.has(opt.id);
-        return (
-          <button
-            key={opt.id}
-            onClick={() => !isLocked && onSelect(opt.id)}
-            onMouseEnter={() => isLocked && configKey && onPreview?.(configKey, opt.id)}
-            onMouseLeave={() => isLocked && onPreviewEnd?.()}
-            onTouchStart={() => isLocked && configKey && onPreview?.(configKey, opt.id)}
-            onTouchEnd={() => isLocked && onPreviewEnd?.()}
-            onTouchCancel={() => isLocked && onPreviewEnd?.()}
-            className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-all flex items-center gap-1 select-none ${
-              isLocked
-                ? 'border-amber-500/30 text-muted/60 bg-amber-500/5'
-                : selected === opt.id
-                ? 'border-accent bg-accent/10 text-accent'
-                : 'border-border text-muted hover:border-border-light hover:text-cream'
-            }`}
-            style={isLocked ? { WebkitTouchCallout: 'none', touchAction: 'manipulation' } : undefined}
-          >
-            {isLocked && <Lock size={10} className="text-amber-500/60" />}
-            {opt.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function MultiShapeSelector({ options, selected, onToggle, lockedItems, configKey, onPreview, onPreviewEnd }) {
-  // selected is an array of ids
-  const selectedSet = new Set(selected || []);
-  return (
-    <div className="flex flex-wrap gap-2">
-      {options.map((opt) => {
-        const isLocked = lockedItems && lockedItems.has(opt.id);
-        const isActive = selectedSet.has(opt.id);
-        return (
-          <button
-            key={opt.id}
-            onClick={() => !isLocked && onToggle(opt.id)}
-            onMouseEnter={() => isLocked && configKey && onPreview?.(configKey, opt.id)}
-            onMouseLeave={() => isLocked && onPreviewEnd?.()}
-            onTouchStart={() => isLocked && configKey && onPreview?.(configKey, opt.id)}
-            onTouchEnd={() => isLocked && onPreviewEnd?.()}
-            onTouchCancel={() => isLocked && onPreviewEnd?.()}
-            className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-all flex items-center gap-1 select-none ${
-              isLocked
-                ? 'border-amber-500/30 text-muted/60 bg-amber-500/5'
-                : isActive
-                ? 'border-accent bg-accent/10 text-accent'
-                : 'border-border text-muted hover:border-border-light hover:text-cream'
-            }`}
-            style={isLocked ? { WebkitTouchCallout: 'none', touchAction: 'manipulation' } : undefined}
-          >
-            {isLocked && <Lock size={10} className="text-amber-500/60" />}
-            {opt.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-/** Inline SVG preview of a single pet at larger scale */
-function PetPreviewSvg({ petType, colors, level = 1 }) {
-  if (!petType || petType === 'none') return null;
-  const sc = 1 + (level - 1) * 0.04;
-  // Pet center in avatar coords after PET_OFFSETS.right / BIG_PET_OFFSETS.right
-  const isBig = ['dragon', 'phoenix'].includes(petType);
-  const cx = isBig ? 25 : 26;
-  const cy = isBig ? 19 : 20;
-  // Glow from Lv2+ in preview so progression is visible at small size
-  const glowColor = level >= 7 ? '#f59e0b' : level >= 5 ? '#a855f7' : level >= 2 ? '#3b82f6' : null;
-  return (
-    <svg width={48} height={48} viewBox="0 0 12 12" className="rounded-lg" style={{ background: '#111827' }}>
-      <g transform={`translate(6,6) scale(${sc * 1.3}) translate(${-cx},${-cy})`}>
-        {glowColor && <circle cx={cx} cy={cy} r={4} fill={glowColor} opacity={level >= 5 ? 0.25 : 0.18} />}
-        {renderPet(petType, colors, 'right', {})}
-        {renderPetExtras(petType, level, colors, 'right')}
-      </g>
-    </svg>
-  );
-}
-
-/** Tap-to-place overlay for the avatar preview */
-function TapToPlaceOverlay({ config, onPlace }) {
-  const svgRef = useRef(null);
-
-  const handleClick = (e) => {
-    const svg = svgRef.current;
-    if (!svg) return;
-    const rect = svg.getBoundingClientRect();
-    const x = Math.round(((e.clientX - rect.left) / rect.width) * 32);
-    const y = Math.round(((e.clientY - rect.top) / rect.height) * 32);
-    // Clamp to safe bounds
-    onPlace(Math.max(4, Math.min(28, x)), Math.max(4, Math.min(28, y)));
-  };
-
-  const petX = config.pet_x ?? 26;
-  const petY = config.pet_y ?? 20;
-
-  return (
-    <div className="relative cursor-crosshair" onClick={handleClick}>
-      <div className="avatar-idle rounded-md">
-        <AvatarDisplay config={config} size="xl" />
-      </div>
-      {/* Overlay SVG for crosshair indicator */}
-      <svg
-        ref={svgRef}
-        className="absolute inset-0 w-full h-full rounded-md"
-        viewBox="0 0 32 32"
-        style={{ pointerEvents: 'all' }}
-        onClick={(e) => {
-          e.stopPropagation();
-          const svg = e.currentTarget;
-          const rect = svg.getBoundingClientRect();
-          const x = Math.round(((e.clientX - rect.left) / rect.width) * 32);
-          const y = Math.round(((e.clientY - rect.top) / rect.height) * 32);
-          onPlace(Math.max(4, Math.min(28, x)), Math.max(4, Math.min(28, y)));
-        }}
-      >
-        {/* Crosshair at current pet position */}
-        <circle cx={petX} cy={petY} r="1.5" fill="none" stroke="#3b82f6" strokeWidth="0.4" className="pet-place-indicator" />
-        <line x1={petX - 2} y1={petY} x2={petX + 2} y2={petY} stroke="#3b82f6" strokeWidth="0.3" opacity="0.6" />
-        <line x1={petX} y1={petY - 2} x2={petX} y2={petY + 2} stroke="#3b82f6" strokeWidth="0.3" opacity="0.6" />
-      </svg>
-      <p className="text-center text-accent text-[10px] font-medium mt-1.5 flex items-center justify-center gap-1">
-        <Crosshair size={10} /> Tap to place your pet
-      </p>
-    </div>
-  );
-}
-
-/** Full pet customisation section */
-function PetCustomiser({ config, set, locked, previewProps, petStats }) {
-  const hasPet = config.pet && config.pet !== 'none';
-  const petXp = getPetXpForPet(config, config.pet);
-  const levelInfo = getPetLevelInfo(petXp);
-  const petColors = buildPetColors(config);
-  const bodyColor = config.pet_color || '#8b4513';
-
-  // Helper to set a part color, clearing empty strings to inherit
-  const setPartColor = (key, val) => {
-    set(key, val === bodyColor ? '' : val);
-  };
-
-  return (
-    <div className="space-y-4">
-      {/* Companion picker */}
-      <div>
-        <p className="text-muted text-xs font-medium mb-2">Companion</p>
-        <ShapeSelector options={PET_OPTIONS} selected={config.pet} onSelect={(v) => set('pet', v)} lockedItems={locked} configKey="pet" {...previewProps} />
-      </div>
-
-      {hasPet && (
-        <>
-          {/* ── Pet Level & XP Info ── */}
-          <div className="bg-surface-raised/50 rounded-md p-3 border border-border">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Heart size={14} className="fill-current" style={{ color: PET_LEVEL_COLORS[levelInfo.level] }} />
-                <span className="text-cream text-xs font-bold" style={{ color: PET_LEVEL_COLORS[levelInfo.level] }}>
-                  Lv{levelInfo.level} {levelInfo.name}
-                </span>
-              </div>
-              <span className="text-muted text-[10px] font-medium">
-                {levelInfo.nextThreshold
-                  ? `${petXp} / ${levelInfo.nextThreshold} XP`
-                  : `${petXp} XP — MAX`}
-              </span>
-            </div>
-
-            {/* XP Progress bar */}
-            {levelInfo.nextThreshold && (
-              <div className="mb-2">
-                <div className="h-2 bg-navy rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{
-                      width: `${Math.round(levelInfo.progress * 100)}%`,
-                      backgroundColor: PET_LEVEL_COLORS[levelInfo.level],
-                    }}
-                  />
-                </div>
-                <p className="text-muted text-[10px] mt-1">
-                  {levelInfo.nextThreshold - petXp} XP to Level {levelInfo.level + 1} ({levelInfo.nextName})
-                </p>
-              </div>
-            )}
-
-            {/* All Level Previews */}
-            <div className="overflow-x-auto -mx-1 px-1 mt-2">
-              <div className="flex gap-2" style={{ minWidth: 'max-content' }}>
-                {PET_LEVEL_NAMES.slice(1).map((name, i) => {
-                  const lv = i + 1;
-                  const isCurrent = lv === levelInfo.level;
-                  const isPast = lv < levelInfo.level;
-                  const isFuture = lv > levelInfo.level;
-                  return (
-                    <div
-                      key={lv}
-                      className={`text-center flex-shrink-0 rounded-lg p-1 ${
-                        isCurrent ? 'bg-accent/10 ring-1 ring-accent/40' : ''
-                      }`}
-                      style={{ opacity: isFuture ? 0.35 : isPast ? 0.55 : 1 }}
-                    >
-                      <p className="text-[9px] font-medium mb-0.5" style={{ color: PET_LEVEL_COLORS[lv] }}>
-                        {isCurrent ? '▸ ' : ''}Lv{lv}
-                      </p>
-                      <PetPreviewSvg petType={config.pet} colors={petColors} level={lv} />
-                      <p className="text-muted text-[8px] mt-0.5">{name}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* ── Position ── */}
-          <div>
-            <p className="text-muted text-xs font-medium mb-2">Position</p>
-            <ShapeSelector options={PET_POSITION_OPTIONS} selected={config.pet_position || 'right'} onSelect={(v) => set('pet_position', v)} />
-          </div>
-
-          {/* ── Multi-part Colouring ── */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-muted text-xs font-medium">Body Colour</p>
-              <button
-                onClick={() => set(PET_COLOR_RESET_PATCH)}
-                className="text-[10px] text-accent hover:text-accent/80 transition-colors"
-              >
-                Reset all to match
-              </button>
-            </div>
-            <ColorSwatch colors={PET_COLORS} selected={config.pet_color} onSelect={(v) => set(createPetBodyColorPatch(v))} />
-          </div>
-
-          <div>
-            <p className="text-muted text-xs font-medium mb-2">Ears</p>
-            <ColorSwatch
-              colors={PET_COLORS}
-              selected={config.pet_color_ears || config.pet_color || '#8b4513'}
-              onSelect={(v) => setPartColor('pet_color_ears', v)}
-            />
-          </div>
-
-          <div>
-            <p className="text-muted text-xs font-medium mb-2">Tail</p>
-            <ColorSwatch
-              colors={PET_COLORS}
-              selected={config.pet_color_tail || config.pet_color || '#8b4513'}
-              onSelect={(v) => setPartColor('pet_color_tail', v)}
-            />
-          </div>
-
-          <div>
-            <p className="text-muted text-xs font-medium mb-2">Accent</p>
-            <ColorSwatch
-              colors={PET_COLORS}
-              selected={config.pet_color_accent || config.pet_color || '#8b4513'}
-              onSelect={(v) => setPartColor('pet_color_accent', v)}
-            />
-          </div>
-
-          {/* Pet Accessories */}
-          <div>
-            <p className="text-muted text-xs font-medium mb-2">Pet Accessory</p>
-            <ShapeSelector options={PET_ACCESSORY_OPTIONS} selected={config.pet_accessory || 'none'} onSelect={(v) => set('pet_accessory', v)} />
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-function CategoryContent({ category, config, set, lockedByCategory, onPreview, onPreviewEnd }) {
-  const locked = lockedByCategory[category] || new Set();
-  const previewProps = { onPreview, onPreviewEnd };
-  switch (category) {
-    case 'head':
-      return (
-        <div className="space-y-3">
-          <p className="text-muted text-xs font-medium">Shape</p>
-          <ShapeSelector options={HEAD_OPTIONS} selected={config.head} onSelect={(v) => set('head', v)} lockedItems={locked} configKey="head" {...previewProps} />
-        </div>
-      );
-    case 'skin':
-      return (
-        <div className="space-y-3">
-          <p className="text-muted text-xs font-medium">Colour</p>
-          <ColorSwatch colors={SKIN_COLORS} selected={config.head_color} onSelect={(v) => set('head_color', v)} />
-        </div>
-      );
-    case 'hair':
-      return (
-        <div className="space-y-3">
-          <p className="text-muted text-xs font-medium">Style</p>
-          <ShapeSelector options={HAIR_OPTIONS} selected={config.hair} onSelect={(v) => set('hair', v)} lockedItems={locked} configKey="hair" {...previewProps} />
-          <p className="text-muted text-xs font-medium">Colour</p>
-          <ColorSwatch colors={HAIR_COLORS} selected={config.hair_color} onSelect={(v) => set('hair_color', v)} />
-        </div>
-      );
-    case 'eyes':
-      return (
-        <div className="space-y-3">
-          <p className="text-muted text-xs font-medium">Style</p>
-          <ShapeSelector options={EYES_OPTIONS} selected={config.eyes} onSelect={(v) => set('eyes', v)} lockedItems={locked} configKey="eyes" {...previewProps} />
-          <p className="text-muted text-xs font-medium">Colour</p>
-          <ColorSwatch colors={EYE_COLORS} selected={config.eye_color} onSelect={(v) => set('eye_color', v)} />
-        </div>
-      );
-    case 'mouth':
-      return (
-        <div className="space-y-3">
-          <p className="text-muted text-xs font-medium">Style</p>
-          <ShapeSelector options={MOUTH_OPTIONS} selected={config.mouth} onSelect={(v) => set('mouth', v)} lockedItems={locked} configKey="mouth" {...previewProps} />
-          <p className="text-muted text-xs font-medium">Colour</p>
-          <ColorSwatch colors={MOUTH_COLORS} selected={config.mouth_color} onSelect={(v) => set('mouth_color', v)} />
-        </div>
-      );
-    case 'body':
-      return (
-        <div className="space-y-3">
-          <p className="text-muted text-xs font-medium">Shape</p>
-          <ShapeSelector options={BODY_OPTIONS} selected={config.body} onSelect={(v) => set('body', v)} />
-        </div>
-      );
-    case 'outfit':
-      return (
-        <div className="space-y-3">
-          <p className="text-muted text-xs font-medium">Colour</p>
-          <ColorSwatch colors={BODY_COLORS} selected={config.body_color} onSelect={(v) => set('body_color', v)} />
-        </div>
-      );
-    case 'pattern':
-      return (
-        <div className="space-y-3">
-          <p className="text-muted text-xs font-medium">Pattern</p>
-          <ShapeSelector options={OUTFIT_PATTERN_OPTIONS} selected={config.outfit_pattern} onSelect={(v) => set('outfit_pattern', v)} lockedItems={locked} configKey="outfit_pattern" {...previewProps} />
-        </div>
-      );
-    case 'background':
-      return (
-        <div className="space-y-3">
-          <p className="text-muted text-xs font-medium">Colour</p>
-          <ColorSwatch colors={BG_COLORS} selected={config.bg_color} onSelect={(v) => set('bg_color', v)} />
-        </div>
-      );
-    case 'hat':
-      return (
-        <div className="space-y-3">
-          <p className="text-muted text-xs font-medium">Style</p>
-          <ShapeSelector options={HAT_OPTIONS} selected={config.hat} onSelect={(v) => set('hat', v)} lockedItems={locked} configKey="hat" {...previewProps} />
-          <p className="text-muted text-xs font-medium">Colour</p>
-          <ColorSwatch colors={HAT_COLORS} selected={config.hat_color} onSelect={(v) => set('hat_color', v)} />
-        </div>
-      );
-    case 'face':
-      return (
-        <div className="space-y-3">
-          <p className="text-muted text-xs font-medium">Extra</p>
-          <ShapeSelector options={FACE_EXTRA_OPTIONS} selected={config.face_extra} onSelect={(v) => set('face_extra', v)} lockedItems={locked} configKey="face_extra" {...previewProps} />
-        </div>
-      );
-    case 'accessory': {
-      // Multi-accessory: read from accessories array, fall back to legacy single
-      const currentAccessories = Array.isArray(config.accessories) && config.accessories.length > 0
-        ? config.accessories
-        : (config.accessory && config.accessory !== 'none' ? [config.accessory] : []);
-      const toggleAccessory = (id) => {
-        const cur = new Set(currentAccessories);
-        if (cur.has(id)) cur.delete(id); else cur.add(id);
-        const arr = [...cur];
-        // set() uses functional updates internally so sequential calls chain correctly
-        set('accessories', arr);
-        set('accessory', arr.length > 0 ? arr[0] : 'none');
-      };
-      const clearAll = () => {
-        set('accessories', []);
-        set('accessory', 'none');
-      };
-      return (
-        <div className="space-y-3">
-          <p className="text-muted text-xs font-medium">Gear <span className="text-muted/50">(select multiple)</span></p>
-          <MultiShapeSelector options={ACCESSORY_OPTIONS} selected={currentAccessories} onToggle={toggleAccessory} lockedItems={locked} configKey="accessory" {...previewProps} />
-          {currentAccessories.length > 0 && (
-            <button onClick={clearAll} className="text-[10px] text-crimson hover:text-crimson/80 transition-colors">
-              Clear all gear
-            </button>
-          )}
-          <p className="text-muted text-xs font-medium">Colour</p>
-          <ColorSwatch colors={ACCESSORY_COLORS} selected={config.accessory_color} onSelect={(v) => set('accessory_color', v)} />
-        </div>
-      );
-    }
-    case 'pet':
-      return <PetCustomiser config={config} set={set} locked={locked} previewProps={previewProps} />;
-    default:
-      return null;
-  }
-}
-
-const EDITOR_TO_ITEM_CATEGORY = {
-  head: 'head', hair: 'hair', eyes: 'eyes', mouth: 'mouth',
-  hat: 'hat', accessory: 'accessory', face: 'face_extra',
-  pattern: 'outfit_pattern', pet: 'pet',
+const AVATAR_CATALOG = {
+  head: { configKey: 'head', itemCategory: 'head', options: HEAD_OPTIONS },
+  skin: { colourKey: 'head_color', colours: SKIN_COLORS },
+  hair: { configKey: 'hair', itemCategory: 'hair', options: HAIR_OPTIONS, colourKey: 'hair_color', colours: HAIR_COLORS },
+  eyes: { configKey: 'eyes', itemCategory: 'eyes', options: EYES_OPTIONS, colourKey: 'eye_color', colours: EYE_COLORS },
+  mouth: { configKey: 'mouth', itemCategory: 'mouth', options: MOUTH_OPTIONS, colourKey: 'mouth_color', colours: MOUTH_COLORS },
+  body: { configKey: 'body', itemCategory: 'body', options: BODY_OPTIONS },
+  outfit: { colourKey: 'body_color', colours: BODY_COLORS },
+  pattern: { configKey: 'outfit_pattern', itemCategory: 'outfit_pattern', options: OUTFIT_PATTERN_OPTIONS },
+  background: { colourKey: 'bg_color', colours: BG_COLORS },
+  hat: { configKey: 'hat', itemCategory: 'hat', options: HAT_OPTIONS, colourKey: 'hat_color', colours: HAT_COLORS },
+  face: { configKey: 'face_extra', itemCategory: 'face_extra', options: FACE_EXTRA_OPTIONS },
+  accessory: { configKey: 'accessory', itemCategory: 'accessory', options: ACCESSORY_OPTIONS, colourKey: 'accessory_color', colours: ACCESSORY_COLORS, multiple: true },
+  pet: { itemCategory: 'pet', options: PET_OPTIONS },
 };
 
-function CategoryStrip({ openCategory, onSelect }) {
-  const scrollRef = useRef(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-
-  const checkScroll = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    setCanScrollLeft(el.scrollLeft > 4);
-    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
-  }, []);
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    checkScroll();
-    el.addEventListener('scroll', checkScroll, { passive: true });
-    window.addEventListener('resize', checkScroll);
-    return () => {
-      el.removeEventListener('scroll', checkScroll);
-      window.removeEventListener('resize', checkScroll);
-    };
-  }, [checkScroll]);
-
-  const scroll = (dir) => {
-    const el = scrollRef.current;
-    if (!el) return;
-    el.scrollBy({ left: dir * 120, behavior: 'smooth' });
-  };
-
-  return (
-    <div className="flex-shrink-0 border-b border-border bg-surface px-1 py-2 relative">
-      {/* Left arrow */}
-      {canScrollLeft && (
-        <button
-          onClick={() => scroll(-1)}
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 flex items-center justify-center rounded-full bg-surface/90 border border-border text-muted hover:text-cream"
-          aria-label="Scroll left"
-        >
-          <ChevronLeft size={14} />
-        </button>
-      )}
-
-      {/* Scrollable strip */}
-      <div
-        ref={scrollRef}
-        className="flex gap-2 overflow-x-auto pb-0.5 px-2 scrollbar-hide"
-      >
-        {CATEGORIES.map((cat) => (
-          <button
-            key={cat.id}
-            onClick={() => onSelect(cat.id)}
-            className={`flex-shrink-0 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
-              openCategory === cat.id
-                ? 'border-accent bg-accent/15 text-accent'
-                : 'border-border text-muted hover:border-border-light hover:text-cream'
-            }`}
-          >
-            {cat.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Right arrow */}
-      {canScrollRight && (
-        <button
-          onClick={() => scroll(1)}
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 flex items-center justify-center rounded-full bg-surface/90 border border-border text-muted hover:text-cream"
-          aria-label="Scroll right"
-        >
-          <ChevronRight size={14} />
-        </button>
-      )}
-    </div>
-  );
-}
+const RANDOMISE_RECIPE = {
+  optionGroups: [
+    { key: 'head', itemCategory: 'head', options: HEAD_OPTIONS },
+    { key: 'hair', itemCategory: 'hair', options: HAIR_OPTIONS },
+    { key: 'eyes', itemCategory: 'eyes', options: EYES_OPTIONS },
+    { key: 'mouth', itemCategory: 'mouth', options: MOUTH_OPTIONS },
+    { key: 'body', itemCategory: 'body', options: BODY_OPTIONS },
+    { key: 'outfit_pattern', itemCategory: 'outfit_pattern', options: OUTFIT_PATTERN_OPTIONS },
+    { key: 'hat', itemCategory: 'hat', options: HAT_OPTIONS },
+    { key: 'face_extra', itemCategory: 'face_extra', options: FACE_EXTRA_OPTIONS },
+  ],
+  colourGroups: [
+    { key: 'head_color', values: SKIN_COLORS },
+    { key: 'hair_color', values: HAIR_COLORS },
+    { key: 'eye_color', values: EYE_COLORS },
+    { key: 'mouth_color', values: MOUTH_COLORS },
+    { key: 'body_color', values: BODY_COLORS },
+    { key: 'bg_color', values: BG_COLORS },
+    { key: 'hat_color', values: HAT_COLORS },
+    { key: 'accessory_color', values: ACCESSORY_COLORS },
+  ],
+  accessoryGroup: { itemCategory: 'accessory', options: ACCESSORY_OPTIONS, chance: 0.5 },
+};
 
 export default function AvatarEditor() {
   const { user, updateUser } = useAuth();
   const navigate = useNavigate();
+  const initialConfig = useMemo(() => normalizeAvatarPetColors({
+    ...DEFAULT_CONFIG,
+    ...(user?.avatar_config || {}),
+  }), [user?.avatar_config]);
   const [config, setConfig] = useState(() => normalizeAvatarPetColors({
     ...DEFAULT_CONFIG,
     ...(user?.avatar_config || {}),
   }));
+  const [savedConfig, setSavedConfig] = useState(initialConfig);
+  const [history, setHistory] = useState([]);
+  const [preview, setPreview] = useState(null);
+  const [status, setStatus] = useState('');
   const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState('');
   const [openCategory, setOpenCategory] = useState('head');
   const [lockedByCategory, setLockedByCategory] = useState({});
-  const [preview, setPreview] = useState(null);
+  const [lockedItemMeta, setLockedItemMeta] = useState({});
+  const [discardOpen, setDiscardOpen] = useState(false);
+  const allowNextPopRef = useRef(false);
+  const saveNavigationTimerRef = useRef(null);
 
-  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const dirty = !configsEqual(config, savedConfig);
+  const displayConfig = buildDisplayConfig(config, preview);
 
-  // Fetch avatar items to determine locks
+  const commitChange = useCallback((nextConfig) => {
+    if (configsEqual(config, nextConfig)) return;
+    setHistory((items) => pushAvatarHistory(items, config));
+    setConfig(nextConfig);
+    setPreview(null);
+    setStatus('');
+  }, [config]);
+
+  const changeValue = useCallback((key, value) => {
+    commitChange(applyAvatarChange(config, key, value));
+  }, [commitChange, config]);
+
+  const patchConfig = useCallback((patch) => {
+    commitChange(normalizeAvatarPetColors({ ...config, ...patch }));
+  }, [commitChange, config]);
+
+  const toggleAccessory = useCallback((itemId) => {
+    commitChange(toggleAvatarAccessory(config, itemId));
+  }, [commitChange, config]);
+
+  const placePet = useCallback((x, y) => {
+    commitChange({ ...config, pet_x: x, pet_y: y });
+  }, [commitChange, config]);
+
+  const undo = useCallback(() => {
+    const result = undoAvatarChange(history, config);
+    setHistory(result.history);
+    setConfig(result.config);
+    setPreview(null);
+    setStatus('');
+  }, [config, history]);
+
+  useEffect(() => {
+    const userCfg = normalizeAvatarPetColors({ ...initialConfig });
+    setConfig(userCfg);
+    setSavedConfig(userCfg);
+    setHistory([]);
+    setPreview(null);
+  }, [initialConfig]);
+
   const fetchLocks = useCallback(async () => {
     try {
       const items = await api('/api/avatar/items');
       if (!Array.isArray(items)) return;
       const lockMap = {};
+      const metaMap = {};
       for (const item of items) {
+        if (!metaMap[item.category]) metaMap[item.category] = new Map();
+        metaMap[item.category].set(item.item_id, item);
         if (!item.unlocked && !item.is_default) {
           if (!lockMap[item.category]) lockMap[item.category] = new Set();
           lockMap[item.category].add(item.item_id);
         }
       }
       setLockedByCategory(lockMap);
+      setLockedItemMeta(metaMap);
     } catch {
-      // If fetch fails, don't lock anything
+      setLockedByCategory({});
+      setLockedItemMeta({});
     }
   }, []);
 
-  useEffect(() => { fetchLocks(); }, [fetchLocks]);
-
-  // Reset config from user when avatar_config changes
   useEffect(() => {
-    if (user?.avatar_config) {
-      setConfig((prev) => {
-        // Only reset if user config actually changed (e.g. after save from another tab)
-        const userCfg = normalizeAvatarPetColors({ ...DEFAULT_CONFIG, ...(user.avatar_config || {}) });
-        if (JSON.stringify(prev) === JSON.stringify(userCfg)) return prev;
-        return userCfg;
-      });
-    }
-  }, [user?.avatar_config]);
+    fetchLocks();
+  }, [fetchLocks]);
 
-  // Escape key to go back
-  useEffect(() => {
-    const handler = (e) => { if (e.key === 'Escape') goBack(); };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [goBack]);
-
-  // Compute display config (with preview overlay)
-  const displayConfig = preview ? { ...config, [preview.key]: preview.value } : config;
-
-  const editorLocks = {};
-  for (const [editorCat, itemCat] of Object.entries(EDITOR_TO_ITEM_CATEGORY)) {
-    if (lockedByCategory[itemCat]) {
-      editorLocks[editorCat] = lockedByCategory[itemCat];
-    }
-  }
-
-  const set = (keyOrPatch, value) => {
-    setConfig((prev) => {
-      const patch = typeof keyOrPatch === 'object' ? keyOrPatch : { [keyOrPatch]: value };
-      const next = { ...prev, ...patch };
-      // When switching pets, update pet_xp to the new pet's XP from the map
-      if (Object.hasOwn(patch, 'pet')) {
-        const xpMap = next.pet_xp_map || {};
-        next.pet_xp = (patch.pet && patch.pet !== 'none' && patch.pet in xpMap) ? xpMap[patch.pet] : 0;
+  const editorLocks = useMemo(() => {
+    const mapped = {};
+    for (const [editorCategory, entry] of Object.entries(AVATAR_CATALOG)) {
+      if (entry.itemCategory && lockedByCategory[entry.itemCategory]) {
+        mapped[editorCategory] = lockedByCategory[entry.itemCategory];
       }
-      return next;
-    });
-    setMsg('');
-  };
+    }
+    return mapped;
+  }, [lockedByCategory]);
 
-  const handlePreview = useCallback((key, value) => setPreview({ key, value }), []);
-  const handlePreviewEnd = useCallback(() => setPreview(null), []);
+  const randomise = useCallback(() => {
+    commitChange(randomiseAvatarConfig(config, RANDOMISE_RECIPE, lockedByCategory));
+  }, [commitChange, config, lockedByCategory]);
 
-  const save = async () => {
+  const leaveEditor = useCallback(() => {
+    allowNextPopRef.current = true;
+    navigate(-1);
+  }, [navigate]);
+
+  const requestExit = useCallback(() => {
+    if (dirty) setDiscardOpen(true);
+    else leaveEditor();
+  }, [dirty, leaveEditor]);
+
+  const cancelDiscard = useCallback(() => {
+    setDiscardOpen(false);
+  }, []);
+
+  const selectCategory = useCallback((category) => {
+    setOpenCategory(category);
+    setPreview(null);
+  }, []);
+
+  const startPreview = useCallback((key, value) => {
+    setPreview({ key, value });
+  }, []);
+
+  const endPreview = useCallback(() => {
+    setPreview(null);
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape' && !discardOpen) requestExit();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [discardOpen, requestExit]);
+
+  useEffect(() => {
+    const beforeUnload = (event) => {
+      if (!dirty) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', beforeUnload);
+    return () => window.removeEventListener('beforeunload', beforeUnload);
+  }, [dirty]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (allowNextPopRef.current) {
+        allowNextPopRef.current = false;
+        return;
+      }
+      if (dirty) {
+        allowNextPopRef.current = true;
+        navigate(1);
+        setDiscardOpen(true);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [dirty, navigate]);
+
+  useEffect(() => () => {
+    if (saveNavigationTimerRef.current) {
+      window.clearTimeout(saveNavigationTimerRef.current);
+    }
+  }, []);
+
+  const save = useCallback(async () => {
     setSaving(true);
-    setMsg('');
+    setStatus('');
     try {
-      const res = await api('/api/avatar', { method: 'PUT', body: { config } });
-      updateUser({ avatar_config: res.avatar_config || config });
-      setMsg('Saved!');
-      setTimeout(() => goBack(), 600);
-    } catch (err) {
-      setMsg(err.message || 'Failed to save');
+      const response = await api('/api/avatar', { method: 'PUT', body: { config } });
+      const persisted = normalizeAvatarPetColors(response.avatar_config || config);
+      updateUser({ avatar_config: persisted });
+      setConfig(persisted);
+      setSavedConfig(persisted);
+      setHistory([]);
+      setPreview(null);
+      setStatus('Saved!');
+      allowNextPopRef.current = true;
+      saveNavigationTimerRef.current = window.setTimeout(() => navigate(-1), 600);
+    } catch (error) {
+      setStatus(error.message || 'Failed to save');
     } finally {
       setSaving(false);
-      setTimeout(() => setMsg(''), 3000);
     }
-  };
+  }, [config, navigate, updateUser]);
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-surface">
-      {/* ─── Pinned top: back button + avatar preview ─── */}
-      <div className="flex-shrink-0 border-b border-border bg-surface-raised/50 px-4 pt-3 pb-5">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={goBack}
-              className="p-1.5 rounded-lg hover:bg-surface-raised transition-colors text-muted hover:text-cream"
-              aria-label="Back"
-            >
-              <ArrowLeft size={18} />
-            </button>
-            <h2 className="font-heading text-cream text-sm font-semibold">Customise Avatar</h2>
-          </div>
-          <button
-            onClick={save}
-            disabled={saving}
-            className="game-btn game-btn-blue flex items-center gap-1.5 !py-1.5 !px-4 !text-xs"
-          >
-            {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-            {saving ? 'Saving...' : msg || 'Save'}
-          </button>
-        </div>
-        <div className="flex justify-center">
-          {openCategory === 'pet' && config.pet_position === 'custom' && config.pet && config.pet !== 'none' ? (
-            <TapToPlaceOverlay
-              config={displayConfig}
-              onPlace={(x, y) => {
-                setConfig((prev) => ({ ...prev, pet_x: x, pet_y: y }));
-                setMsg('');
-              }}
-            />
-          ) : (
-            <div className={`avatar-idle rounded-md transition-shadow duration-300`}>
-              <AvatarDisplay config={displayConfig} size="xl" />
-            </div>
-          )}
-        </div>
+    <div className="avatar-editor-shell">
+      <AvatarEditorToolbar
+        canUndo={history.length > 0}
+        dirty={dirty}
+        saving={saving}
+        status={status}
+        onBack={requestExit}
+        onRandomise={randomise}
+        onUndo={undo}
+        onSave={save}
+      />
+      <div className="avatar-editor-workspace">
+        <AvatarCategoryRail categories={CATEGORIES} activeCategory={openCategory} onSelect={selectCategory} />
+        <AvatarStage
+          config={displayConfig}
+          placementMode={openCategory === 'pet' && config.pet_position === 'custom' && config.pet !== 'none'}
+          previewMessage={preview ? 'Previewing a locked item' : ''}
+          onPlacePet={placePet}
+        />
+        <AvatarOptionsPanel
+          category={openCategory}
+          config={config}
+          lockedByCategory={editorLocks}
+          lockedItemMeta={lockedItemMeta}
+          catalog={AVATAR_CATALOG}
+          onChange={changeValue}
+          onPatch={patchConfig}
+          onToggleAccessory={toggleAccessory}
+          onPreview={startPreview}
+          onPreviewEnd={endPreview}
+        />
       </div>
-
-      {/* ─── Category strip (pinned, horizontal scroll with arrows) ─── */}
-      <CategoryStrip openCategory={openCategory} onSelect={setOpenCategory} />
-
-      {/* ─── Scrollable options area ─── */}
-      <div className="flex-1 overflow-y-auto overscroll-contain p-4">
-        {openCategory && (
-          <CategoryContent
-            category={openCategory}
-            config={config}
-            set={set}
-            lockedByCategory={editorLocks}
-            onPreview={handlePreview}
-            onPreviewEnd={handlePreviewEnd}
-          />
-        )}
-      </div>
+      <AvatarDiscardDialog open={discardOpen} onCancel={cancelDiscard} onDiscard={leaveEditor} />
     </div>
   );
 }

@@ -3,6 +3,10 @@ import fs from 'node:fs';
 import test from 'node:test';
 
 const read = (name) => fs.readFileSync(new URL(name, import.meta.url), 'utf8');
+const readIfPresent = (name) => {
+  const url = new URL(name, import.meta.url);
+  return fs.existsSync(url) ? fs.readFileSync(url, 'utf8') : '';
+};
 
 test('option cards and colour swatches expose selected state without colour alone', () => {
   const source = read('./AvatarOptionControls.jsx');
@@ -25,6 +29,39 @@ test('category navigation and toolbar expose semantic state and named actions', 
   assert.match(dialog, /role="dialog"/);
   assert.match(dialog, /Keep editing/);
   assert.match(dialog, /Discard/);
+});
+
+test('editor composes the studio instead of the legacy category strip', () => {
+  const editor = read('../AvatarEditor.jsx');
+  assert.match(editor, /AvatarEditorToolbar/);
+  assert.match(editor, /AvatarCategoryRail/);
+  assert.match(editor, /AvatarStage/);
+  assert.match(editor, /AvatarOptionsPanel/);
+  assert.doesNotMatch(editor, /function CategoryStrip/);
+  assert.doesNotMatch(editor, /function ShapeSelector/);
+});
+
+test('pet patches cross the options panel boundary as one atomic editor commit', () => {
+  const editor = read('../AvatarEditor.jsx');
+  const panel = readIfPresent('./AvatarOptionsPanel.jsx');
+  assert.match(panel, /onPatch/);
+  assert.match(panel, /<PetCustomizer[\s\S]*onPatch={onPatch}/);
+  assert.match(editor, /const patchConfig = useCallback/);
+  assert.match(editor, /commitChange\(normalizeAvatarPetColors\(\{ \.\.\.config, \.\.\.patch \}\)\)/);
+  assert.match(editor, /<AvatarOptionsPanel[\s\S]*onPatch={patchConfig}/);
+});
+
+test('the editor and options panel cover all thirteen studio categories explicitly', () => {
+  const editor = read('../AvatarEditor.jsx');
+  const panel = readIfPresent('./AvatarOptionsPanel.jsx');
+  const categories = [
+    'head', 'skin', 'hair', 'eyes', 'mouth', 'body', 'outfit',
+    'pattern', 'background', 'hat', 'face', 'accessory', 'pet',
+  ];
+  for (const category of categories) {
+    assert.match(editor, new RegExp(`id: '${category}'`));
+    assert.match(panel, new RegExp(`category === '${category}'`));
+  }
 });
 
 test('discard dialog contains keyboard focus for its open lifetime and restores it', () => {
@@ -76,14 +113,12 @@ test('pet studio consumes shared semantics and resets colour overrides atomicall
   assert.doesNotMatch(pet, /const resetPartColors = \(\) => \{[^}]*onChange\(/);
 });
 
-test('both editors normalize legacy body colour and apply body/reset patches atomically', () => {
+test('editor boundaries normalize legacy body colour and pet controls emit atomic patches', () => {
   const editor = read('../AvatarEditor.jsx');
   const pet = read('./PetCustomizer.jsx');
   assert.match(editor, /useState\(\(\) => normalizeAvatarPetColors\(\{/);
   assert.match(editor, /const userCfg = normalizeAvatarPetColors\(\{/);
-  assert.match(editor, /typeof keyOrPatch === 'object'/);
-  assert.match(editor, /set\(createPetBodyColorPatch\(v\)\)/);
-  assert.match(editor, /set\(PET_COLOR_RESET_PATCH\)/);
+  assert.match(editor, /const persisted = normalizeAvatarPetColors\(/);
   assert.equal((pet.match(/onPatch\(createPetBodyColorPatch\(color\)\)/g) || []).length, 1);
   assert.doesNotMatch(pet, /onChange\('pet_color', color\)/);
 });
