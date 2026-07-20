@@ -422,6 +422,15 @@
   line-height: 1.5;
 }
 
+.avatar-options-panel__header .avatar-catalog-status {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border: 1px solid rgb(245 158 11 / 0.3);
+  border-radius: 10px;
+  background: rgb(245 158 11 / 0.08);
+  color: #fbbf24;
+}
+
 .avatar-options-panel__content,
 .avatar-pet-customiser,
 .avatar-pet-customiser [role="tabpanel"] {

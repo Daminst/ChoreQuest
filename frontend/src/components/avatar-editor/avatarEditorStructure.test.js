@@ -203,10 +203,27 @@ test('saving disables every toolbar action and makes the editor workspace inert'
   const editor = read('../AvatarEditor.jsx');
   const toolbar = read('./AvatarEditorToolbar.jsx');
   assert.match(toolbar, /aria-label="Back" disabled={saving}/);
-  assert.match(toolbar, /className="avatar-tool-button" disabled={saving} onClick={onRandomise}/);
+  assert.match(toolbar, /className="avatar-tool-button" disabled={saving \|\| randomiseDisabled}[^>]*onClick={onRandomise}/);
   assert.match(toolbar, /disabled={saving \|\| !canUndo}/);
   assert.match(toolbar, /disabled={saving \|\| !dirty}/);
   assert.match(editor, /className="avatar-editor-workspace" aria-busy={saving} inert={saving \? '' : undefined}/);
+});
+
+test('catalog loading policy is wired into randomise and lock-sensitive option controls', () => {
+  const editor = read('../AvatarEditor.jsx');
+  const toolbar = read('./AvatarEditorToolbar.jsx');
+  const panel = read('./AvatarOptionsPanel.jsx');
+  const optionControls = read('./AvatarOptionControls.jsx');
+
+  assert.match(editor, /useState\(AVATAR_CATALOG_STATE\.loading\)/);
+  assert.match(editor, /setCatalogState\(AVATAR_CATALOG_STATE\.ready\)/);
+  assert.match(editor, /setCatalogState\(AVATAR_CATALOG_STATE\.error\)/);
+  assert.match(editor, /if \(!canRandomiseAvatar\(catalogState\)\) return;/);
+  assert.match(editor, /randomiseDisabled={!canRandomiseAvatar\(catalogState\)}/);
+  assert.match(editor, /catalogState={catalogState}/);
+  assert.match(toolbar, /disabled={saving \|\| randomiseDisabled}/);
+  assert.match(panel, /selectionDisabled={catalogState === AVATAR_CATALOG_STATE\.loading}/);
+  assert.match(optionControls, /disabled={disabled}/);
 });
 
 test('save transactions are serialized and stale async completions are ignored', () => {

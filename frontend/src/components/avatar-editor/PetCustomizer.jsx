@@ -88,7 +88,7 @@ function PetLevelRail({ config }) {
   );
 }
 
-function renderPetCards({ options, configKey, config, selected, locked, lockedMeta, getUnlockLabel, onChange, onPreview, onPreviewEnd }) {
+function renderPetCards({ options, configKey, config, selected, locked, lockedMeta, getUnlockLabel, selectionDisabled = false, onChange, onPreview, onPreviewEnd }) {
   return (
     <AvatarOptionGrid>
       {options.map((option) => {
@@ -102,6 +102,7 @@ function renderPetCards({ options, configKey, config, selected, locked, lockedMe
             config={config}
             selected={selected === option.id}
             locked={isLocked}
+            disabled={selectionDisabled}
             lockLabel={lockLabel}
             onSelect={(value) => onChange(configKey, value)}
             onPreview={onPreview}
@@ -113,7 +114,7 @@ function renderPetCards({ options, configKey, config, selected, locked, lockedMe
   );
 }
 
-function renderAppearanceControls({ config, locked, lockedMeta, getUnlockLabel, onChange, onPreview, onPreviewEnd }) {
+function renderAppearanceControls({ config, locked, lockedMeta, getUnlockLabel, selectionDisabled, onChange, onPreview, onPreviewEnd }) {
   const hasPet = config.pet && config.pet !== 'none';
   return (
     <>
@@ -125,6 +126,7 @@ function renderAppearanceControls({ config, locked, lockedMeta, getUnlockLabel, 
         locked,
         lockedMeta,
         getUnlockLabel,
+        selectionDisabled,
         onChange,
         onPreview,
         onPreviewEnd,
@@ -182,12 +184,12 @@ function renderSectionControls(sectionId, controls) {
   return null;
 }
 
-export function PetCustomizer({ config, locked, lockedMeta, getUnlockLabel, onChange, onPatch, onPreview, onPreviewEnd }) {
+export function PetCustomizer({ config, locked, lockedMeta, getUnlockLabel, selectionDisabled = false, onChange, onPatch, onPreview, onPreviewEnd }) {
   const [activeSection, setActiveSection] = useState('appearance');
   const tabRefs = useRef([]);
   const hasPet = config.pet && config.pet !== 'none';
   const effectiveSection = hasPet ? activeSection : 'appearance';
-  const controls = { config, locked, lockedMeta, getUnlockLabel, onChange, onPatch, onPreview, onPreviewEnd };
+  const controls = { config, locked, lockedMeta, getUnlockLabel, selectionDisabled, onChange, onPatch, onPreview, onPreviewEnd };
 
   const handleTabKeyDown = (event, currentIndex) => {
     const enabledTabs = PET_SECTIONS.map((section) => hasPet || section.id === 'appearance');

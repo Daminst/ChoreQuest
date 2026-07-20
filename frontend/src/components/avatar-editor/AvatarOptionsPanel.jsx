@@ -1,5 +1,6 @@
 import { AvatarColorPalette, AvatarOptionCard, AvatarOptionGrid } from './AvatarOptionControls';
 import { PetCustomizer } from './PetCustomizer';
+import { AVATAR_CATALOG_STATE } from './avatarCatalogPolicy';
 
 const CATEGORY_META = {
   head: { title: 'Choose a head shape', description: 'Start with the silhouette of your hero.' },
@@ -37,6 +38,7 @@ function renderCards({
   onSelect,
   onPreview,
   onPreviewEnd,
+  selectionDisabled = false,
   multiple = false,
 }) {
   const selectedSet = new Set(Array.isArray(selected) ? selected : [selected]);
@@ -50,6 +52,7 @@ function renderCards({
           config={config}
           selected={selectedSet.has(option.id)}
           locked={locked?.has(option.id)}
+          disabled={selectionDisabled}
           lockLabel={unlockLabel(lockedMeta?.[itemCategory]?.get(option.id))}
           multiple={multiple}
           onSelect={onSelect}
@@ -72,7 +75,7 @@ function renderPalette(entry, config, label, onChange) {
   );
 }
 
-function renderSingleChoice(entry, config, lockedByCategory, lockedItemMeta, onChange, onPreview, onPreviewEnd) {
+function renderSingleChoice(entry, config, lockedByCategory, lockedItemMeta, onChange, onPreview, onPreviewEnd, selectionDisabled = false) {
   return renderCards({
     ...entry,
     selected: config[entry.configKey],
@@ -82,6 +85,7 @@ function renderSingleChoice(entry, config, lockedByCategory, lockedItemMeta, onC
     onSelect: (value) => onChange(entry.configKey, value),
     onPreview,
     onPreviewEnd,
+    selectionDisabled,
   });
 }
 
@@ -96,10 +100,12 @@ function renderCategoryControls({
   onToggleAccessory,
   onPreview,
   onPreviewEnd,
+  catalogState,
 }) {
+  const selectionDisabled = catalogState === AVATAR_CATALOG_STATE.loading;
   if (category === 'head') {
     const entry = { ...catalog.head, editorCategory: 'head' };
-    return renderSingleChoice(entry, config, lockedByCategory, lockedItemMeta, onChange, onPreview, onPreviewEnd);
+    return renderSingleChoice(entry, config, lockedByCategory, lockedItemMeta, onChange, onPreview, onPreviewEnd, selectionDisabled);
   }
   if (category === 'skin') {
     return renderPalette(catalog.skin, config, 'Skin tone', onChange);
@@ -108,7 +114,7 @@ function renderCategoryControls({
     const entry = { ...catalog.hair, editorCategory: 'hair' };
     return (
       <>
-        {renderSingleChoice(entry, config, lockedByCategory, lockedItemMeta, onChange, onPreview, onPreviewEnd)}
+        {renderSingleChoice(entry, config, lockedByCategory, lockedItemMeta, onChange, onPreview, onPreviewEnd, selectionDisabled)}
         {renderPalette(entry, config, 'Hair colour', onChange)}
       </>
     );
@@ -117,7 +123,7 @@ function renderCategoryControls({
     const entry = { ...catalog.eyes, editorCategory: 'eyes' };
     return (
       <>
-        {renderSingleChoice(entry, config, lockedByCategory, lockedItemMeta, onChange, onPreview, onPreviewEnd)}
+        {renderSingleChoice(entry, config, lockedByCategory, lockedItemMeta, onChange, onPreview, onPreviewEnd, selectionDisabled)}
         {renderPalette(entry, config, 'Eye colour', onChange)}
       </>
     );
@@ -126,7 +132,7 @@ function renderCategoryControls({
     const entry = { ...catalog.mouth, editorCategory: 'mouth' };
     return (
       <>
-        {renderSingleChoice(entry, config, lockedByCategory, lockedItemMeta, onChange, onPreview, onPreviewEnd)}
+        {renderSingleChoice(entry, config, lockedByCategory, lockedItemMeta, onChange, onPreview, onPreviewEnd, selectionDisabled)}
         {renderPalette(entry, config, 'Mouth colour', onChange)}
       </>
     );
@@ -140,7 +146,7 @@ function renderCategoryControls({
   }
   if (category === 'pattern') {
     const entry = { ...catalog.pattern, editorCategory: 'pattern' };
-    return renderSingleChoice(entry, config, lockedByCategory, lockedItemMeta, onChange, onPreview, onPreviewEnd);
+    return renderSingleChoice(entry, config, lockedByCategory, lockedItemMeta, onChange, onPreview, onPreviewEnd, selectionDisabled);
   }
   if (category === 'background') {
     return renderPalette(catalog.background, config, 'Backdrop colour', onChange);
@@ -149,14 +155,14 @@ function renderCategoryControls({
     const entry = { ...catalog.hat, editorCategory: 'hat' };
     return (
       <>
-        {renderSingleChoice(entry, config, lockedByCategory, lockedItemMeta, onChange, onPreview, onPreviewEnd)}
+        {renderSingleChoice(entry, config, lockedByCategory, lockedItemMeta, onChange, onPreview, onPreviewEnd, selectionDisabled)}
         {renderPalette(entry, config, 'Headwear colour', onChange)}
       </>
     );
   }
   if (category === 'face') {
     const entry = { ...catalog.face, editorCategory: 'face' };
-    return renderSingleChoice(entry, config, lockedByCategory, lockedItemMeta, onChange, onPreview, onPreviewEnd);
+    return renderSingleChoice(entry, config, lockedByCategory, lockedItemMeta, onChange, onPreview, onPreviewEnd, selectionDisabled);
   }
   if (category === 'accessory') {
     const entry = catalog.accessory;
@@ -174,6 +180,7 @@ function renderCategoryControls({
           onSelect: onToggleAccessory,
           onPreview,
           onPreviewEnd,
+          selectionDisabled,
           multiple: true,
         })}
         {renderPalette(entry, config, 'Equipment colour', onChange)}
@@ -187,6 +194,7 @@ function renderCategoryControls({
         locked={lockedByCategory.pet || new Set()}
         lockedMeta={lockedItemMeta.pet || new Map()}
         getUnlockLabel={unlockLabel}
+        selectionDisabled={catalogState === AVATAR_CATALOG_STATE.loading}
         onChange={onChange}
         onPatch={onPatch}
         onPreview={onPreview}
@@ -198,6 +206,8 @@ function renderCategoryControls({
 }
 
 export function AvatarOptionsPanel({
+  catalogState,
+  catalogNotice,
   category,
   config,
   lockedByCategory,
@@ -213,10 +223,16 @@ export function AvatarOptionsPanel({
   if (!meta) return null;
 
   return (
-    <aside className="avatar-options-panel" aria-labelledby={`avatar-options-${category}`}>
+    <aside
+      className="avatar-options-panel"
+      aria-labelledby={`avatar-options-${category}`}
+      aria-describedby={catalogNotice ? 'avatar-catalog-status' : undefined}
+      aria-busy={catalogState === AVATAR_CATALOG_STATE.loading}
+    >
       <header className="avatar-options-panel__header">
         <h2 id={`avatar-options-${category}`}>{meta.title}</h2>
         <p>{meta.description}</p>
+        {catalogNotice && <p id="avatar-catalog-status" className="avatar-catalog-status" role="status" aria-live="polite">{catalogNotice}</p>}
       </header>
       <div className="avatar-options-panel__content">
         {renderCategoryControls({
@@ -230,6 +246,7 @@ export function AvatarOptionsPanel({
           onToggleAccessory,
           onPreview,
           onPreviewEnd,
+          catalogState,
         })}
       </div>
     </aside>

@@ -23,6 +23,13 @@ import { AvatarDiscardDialog } from './avatar-editor/AvatarDiscardDialog';
 import { AvatarEditorToolbar } from './avatar-editor/AvatarEditorToolbar';
 import { AvatarOptionsPanel } from './avatar-editor/AvatarOptionsPanel';
 import { AvatarStage } from './avatar-editor/AvatarStage';
+import {
+  AVATAR_CATALOG_STATE,
+  buildAvatarEntitlementMaps,
+  canCommitAvatarCatalogChange,
+  canRandomiseAvatar,
+  getAvatarCatalogNotice,
+} from './avatar-editor/avatarCatalogPolicy';
 import { PET_OPTIONS, normalizeAvatarPetColors } from './avatar-editor/avatarPetCatalog';
 import {
   authorizeAvatarHistoryExit,
@@ -325,6 +332,7 @@ export default function AvatarEditor() {
   const [status, setStatus] = useState('');
   const [saving, setSaving] = useState(false);
   const [openCategory, setOpenCategory] = useState('head');
+  const [catalogState, setCatalogState] = useState(AVATAR_CATALOG_STATE.loading);
   const [lockedByCategory, setLockedByCategory] = useState({});
   const [lockedItemMeta, setLockedItemMeta] = useState({});
   const [discardOpen, setDiscardOpen] = useState(false);
@@ -350,16 +358,19 @@ export default function AvatarEditor() {
   }, [config]);
 
   const changeValue = useCallback((key, value) => {
+    if (!canCommitAvatarCatalogChange(catalogState, key)) return;
     commitChange(applyAvatarChange(config, key, value));
-  }, [commitChange, config]);
+  }, [catalogState, commitChange, config]);
 
   const patchConfig = useCallback((patch) => {
+    if (Object.keys(patch).some((key) => !canCommitAvatarCatalogChange(catalogState, key))) return;
     commitChange(normalizeAvatarPetColors({ ...config, ...patch }));
-  }, [commitChange, config]);
+  }, [catalogState, commitChange, config]);
 
   const toggleAccessory = useCallback((itemId) => {
+    if (!canCommitAvatarCatalogChange(catalogState, 'accessories')) return;
     commitChange(toggleAvatarAccessory(config, itemId));
-  }, [commitChange, config]);
+  }, [catalogState, commitChange, config]);
 
   const placePet = useCallback((x, y) => {
     commitChange({ ...config, pet_x: x, pet_y: y });
@@ -386,22 +397,14 @@ export default function AvatarEditor() {
   const fetchLocks = useCallback(async () => {
     try {
       const items = await api('/api/avatar/items');
-      if (!Array.isArray(items)) return;
-      const lockMap = {};
-      const metaMap = {};
-      for (const item of items) {
-        if (!metaMap[item.category]) metaMap[item.category] = new Map();
-        metaMap[item.category].set(item.item_id, item);
-        if (!item.unlocked && !item.is_default) {
-          if (!lockMap[item.category]) lockMap[item.category] = new Set();
-          lockMap[item.category].add(item.item_id);
-        }
-      }
-      setLockedByCategory(lockMap);
-      setLockedItemMeta(metaMap);
+      const maps = buildAvatarEntitlementMaps(items);
+      setLockedByCategory(maps.lockedByCategory);
+      setLockedItemMeta(maps.itemMetaByCategory);
+      setCatalogState(AVATAR_CATALOG_STATE.ready);
     } catch {
       setLockedByCategory({});
       setLockedItemMeta({});
+      setCatalogState(AVATAR_CATALOG_STATE.error);
     }
   }, []);
 
@@ -421,8 +424,9 @@ export default function AvatarEditor() {
 
   const randomise = useCallback(() => {
     if (savePendingRef.current) return;
+    if (!canRandomiseAvatar(catalogState)) return;
     commitChange(randomiseAvatarConfig(config, RANDOMISE_RECIPE, lockedByCategory));
-  }, [commitChange, config, lockedByCategory]);
+  }, [catalogState, commitChange, config, lockedByCategory]);
 
   const authorizeHistoryExit = useCallback((navigationDelta = -1) => {
     const plan = authorizeAvatarHistoryExit(historyGuardRef.current, navigationDelta);
@@ -551,6 +555,7 @@ export default function AvatarEditor() {
       <AvatarEditorToolbar
         canUndo={history.length > 0}
         dirty={dirty}
+        randomiseDisabled={!canRandomiseAvatar(catalogState)}
         saving={saving}
         status={status}
         onBack={requestExit}
@@ -567,6 +572,8 @@ export default function AvatarEditor() {
           onPlacePet={placePet}
         />
         <AvatarOptionsPanel
+          catalogState={catalogState}
+          catalogNotice={getAvatarCatalogNotice(catalogState)}
           category={openCategory}
           config={config}
           lockedByCategory={editorLocks}

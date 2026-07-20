@@ -2,12 +2,13 @@ import { Check, Lock } from 'lucide-react';
 import AvatarDisplay from '../AvatarDisplay';
 import { buildDisplayConfig } from './avatarEditorState';
 
-export function AvatarOptionCard({ option, configKey, config, selected, locked = false, lockLabel = '', multiple = false, onSelect, onPreview, onPreviewEnd }) {
+export function AvatarOptionCard({ option, configKey, config, selected, locked = false, disabled = false, lockLabel = '', multiple = false, onSelect, onPreview, onPreviewEnd }) {
   const previewConfig = buildDisplayConfig(config, { key: configKey, value: option.id });
   return (
     <button
       type="button"
       className={`avatar-option-card${selected ? ' is-selected' : ''}${locked ? ' is-locked' : ''}`}
+      disabled={disabled}
       aria-pressed={selected}
       aria-label={`${option.label}${locked ? `, locked, ${lockLabel}` : ''}`}
       onClick={() => !locked && onSelect(option.id)}

@@ -102,6 +102,8 @@ function loadMutationObserverCallback(fileUrl) {
 const requiredAvatarStudioTranslations = [
   ['Hero Studio', 'Studio Bohatera'],
   ['Randomise', 'Losuj'],
+  ['Checking avatar unlocks...', 'Sprawdzanie odblokowanych elementów awatara...'],
+  ['Unlock status unavailable. Randomise is disabled.', 'Nie udało się sprawdzić odblokowanych elementów. Losowanie jest wyłączone.'],
   ['Undo', 'Cofnij'],
   ['Unsaved changes', 'Niezapisane zmiany'],
   ['Your hero is ready', 'Twój bohater jest gotowy'],
