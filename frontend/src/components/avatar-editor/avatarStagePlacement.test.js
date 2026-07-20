@@ -59,3 +59,10 @@ test('placement keyboard interaction moves in two dimensions and confirms with E
   assert.deepEqual(resolvePetPlacementKey(16, 16, ' '), { x: 16, y: 16 });
   assert.equal(resolvePetPlacementKey(16, 16, 'Escape'), null);
 });
+
+test('placement mode keeps the shared pet coordinate frame still while normal preview remains animated', async () => {
+  const { getAvatarStageCharacterClassName } = await loadPlacement();
+
+  assert.equal(getAvatarStageCharacterClassName(false), 'avatar-stage__character avatar-idle');
+  assert.equal(getAvatarStageCharacterClassName(true), 'avatar-stage__character');
+});

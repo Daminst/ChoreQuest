@@ -1,9 +1,21 @@
+import { useRef } from 'react';
 import { Check, Lock } from 'lucide-react';
 import AvatarDisplay from '../AvatarDisplay';
 import { buildDisplayConfig } from './avatarEditorState';
+import { transitionLockedPreviewSources } from './lockedPreviewSources';
 
 export function AvatarOptionCard({ option, configKey, config, selected, locked = false, disabled = false, lockLabel = '', multiple = false, onSelect, onPreview, onPreviewEnd }) {
   const previewConfig = buildDisplayConfig(config, { key: configKey, value: option.id });
+  const previewSourcesRef = useRef(new Set());
+
+  const updatePreviewSource = (source, active) => {
+    if (!locked) return;
+    const transition = transitionLockedPreviewSources(previewSourcesRef.current, source, active);
+    previewSourcesRef.current = transition.sources;
+    if (transition.action === 'start') onPreview?.(configKey, option.id);
+    if (transition.action === 'end') onPreviewEnd?.();
+  };
+
   return (
     <button
       type="button"
@@ -12,13 +24,13 @@ export function AvatarOptionCard({ option, configKey, config, selected, locked =
       aria-pressed={selected}
       aria-label={`${option.label}${locked ? `, locked, ${lockLabel}` : ''}`}
       onClick={() => !locked && onSelect(option.id)}
-      onPointerEnter={() => locked && onPreview?.(configKey, option.id)}
-      onPointerLeave={() => locked && onPreviewEnd?.()}
-      onPointerDown={(event) => event.pointerType !== 'mouse' && locked && onPreview?.(configKey, option.id)}
-      onPointerUp={() => locked && onPreviewEnd?.()}
-      onPointerCancel={() => locked && onPreviewEnd?.()}
-      onFocus={() => locked && onPreview?.(configKey, option.id)}
-      onBlur={() => locked && onPreviewEnd?.()}
+      onPointerEnter={() => updatePreviewSource('hover', true)}
+      onPointerLeave={() => updatePreviewSource('hover', false)}
+      onPointerDown={(event) => event.pointerType !== 'mouse' && updatePreviewSource('press', true)}
+      onPointerUp={() => updatePreviewSource('press', false)}
+      onPointerCancel={() => updatePreviewSource('press', false)}
+      onFocus={() => updatePreviewSource('focus', true)}
+      onBlur={() => updatePreviewSource('focus', false)}
     >
       <span className="avatar-option-card__preview"><AvatarDisplay config={previewConfig} size="option" /></span>
       <span className="avatar-option-card__label">{option.label}</span>

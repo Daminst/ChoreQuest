@@ -1,6 +1,10 @@
 import { Crosshair, LockKeyhole } from 'lucide-react';
 import AvatarDisplay from '../AvatarDisplay';
-import { mapPetPointerPosition, resolvePetPlacementKey } from './avatarStagePlacement';
+import {
+  getAvatarStageCharacterClassName,
+  mapPetPointerPosition,
+  resolvePetPlacementKey,
+} from './avatarStagePlacement';
 
 export function AvatarStage({ config, placementMode = false, previewMessage = '', onPlacePet }) {
   const petX = config.pet_x ?? 26;
@@ -22,7 +26,7 @@ export function AvatarStage({ config, placementMode = false, previewMessage = ''
   return (
     <section className="avatar-stage" aria-label="Live avatar preview">
       <div className="avatar-stage__spotlight" aria-hidden="true" />
-      <div className="avatar-stage__character avatar-idle">
+      <div className={getAvatarStageCharacterClassName(placementMode)}>
         <AvatarDisplay config={config} size="studio" />
         {placementMode && (
           <svg

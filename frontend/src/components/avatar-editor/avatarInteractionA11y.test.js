@@ -9,7 +9,7 @@ test('pet placement overlay shares the transformed character coordinate box', ()
 
   assert.match(
     stage,
-    /avatar-stage__character avatar-idle[\s\S]*<AvatarDisplay[\s\S]*avatar-stage__placement[\s\S]*<\/div>/,
+    /getAvatarStageCharacterClassName\(placementMode\)[\s\S]*<AvatarDisplay[\s\S]*avatar-stage__placement[\s\S]*<\/div>/,
   );
   assert.match(stage, /aria-describedby="avatar-stage-placement-instructions"/);
   assert.match(stage, /Arrow keys[\s\S]*Enter or Space/);
@@ -23,9 +23,14 @@ test('pet tabs expose roving focus and standard horizontal keyboard navigation',
   assert.match(pet, /tabRefs\.current\[nextIndex\]\?\.focus\(\)/);
 });
 
-test('locked option previews have pointer and focus parity', () => {
+test('locked option preview events are routed through composed interaction sources', () => {
   const controls = read('./AvatarOptionControls.jsx');
 
-  assert.match(controls, /onFocus={\(\) => locked && onPreview\?\.\(configKey, option\.id\)}/);
-  assert.match(controls, /onBlur={\(\) => locked && onPreviewEnd\?\.\(\)}/);
+  assert.match(controls, /transitionLockedPreviewSources/);
+  assert.match(controls, /updatePreviewSource\('hover', true\)/);
+  assert.match(controls, /updatePreviewSource\('hover', false\)/);
+  assert.match(controls, /updatePreviewSource\('press', true\)/);
+  assert.match(controls, /updatePreviewSource\('press', false\)/);
+  assert.match(controls, /updatePreviewSource\('focus', true\)/);
+  assert.match(controls, /updatePreviewSource\('focus', false\)/);
 });
