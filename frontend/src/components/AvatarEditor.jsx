@@ -24,6 +24,15 @@ import { AvatarEditorToolbar } from './avatar-editor/AvatarEditorToolbar';
 import { AvatarOptionsPanel } from './avatar-editor/AvatarOptionsPanel';
 import { AvatarStage } from './avatar-editor/AvatarStage';
 import { PET_OPTIONS, normalizeAvatarPetColors } from './avatar-editor/avatarPetCatalog';
+import {
+  authorizeAvatarHistoryExit,
+  cancelAvatarHistoryExit,
+  confirmAvatarHistoryExit,
+  createAvatarHistoryGuardSession,
+  planAvatarHistoryPop,
+  queueAvatarHistoryExit,
+  readHistoryIndex,
+} from './avatar-editor/avatarHistoryGuard';
 import { isCurrentAvatarSave } from './avatar-editor/avatarSaveLifecycle';
 import './avatar-editor/avatarEditor.css';
 import {
@@ -319,7 +328,10 @@ export default function AvatarEditor() {
   const [lockedByCategory, setLockedByCategory] = useState({});
   const [lockedItemMeta, setLockedItemMeta] = useState({});
   const [discardOpen, setDiscardOpen] = useState(false);
-  const allowNextPopRef = useRef(false);
+  const historyGuardRef = useRef(null);
+  if (historyGuardRef.current === null) {
+    historyGuardRef.current = createAvatarHistoryGuardSession(readHistoryIndex(window.history.state));
+  }
   const mountedRef = useRef(true);
   const savePendingRef = useRef(false);
   const saveRequestRef = useRef(0);
@@ -412,22 +424,35 @@ export default function AvatarEditor() {
     commitChange(randomiseAvatarConfig(config, RANDOMISE_RECIPE, lockedByCategory));
   }, [commitChange, config, lockedByCategory]);
 
-  const leaveEditor = useCallback(() => {
-    if (savePendingRef.current) return;
-    allowNextPopRef.current = true;
-    navigate(-1);
+  const authorizeHistoryExit = useCallback((navigationDelta = -1) => {
+    const plan = authorizeAvatarHistoryExit(historyGuardRef.current, navigationDelta);
+    historyGuardRef.current = plan.session;
+    if (plan.navigationDelta !== 0) navigate(plan.navigationDelta);
   }, [navigate]);
 
   const requestExit = useCallback(() => {
     if (savePendingRef.current) return;
-    if (dirty) setDiscardOpen(true);
-    else leaveEditor();
-  }, [dirty, leaveEditor]);
+    if (dirty) {
+      historyGuardRef.current = queueAvatarHistoryExit(historyGuardRef.current, -1);
+      setDiscardOpen(true);
+    } else {
+      authorizeHistoryExit(-1);
+    }
+  }, [authorizeHistoryExit, dirty]);
 
   const cancelDiscard = useCallback(() => {
     if (savePendingRef.current) return;
+    historyGuardRef.current = cancelAvatarHistoryExit(historyGuardRef.current);
     setDiscardOpen(false);
   }, []);
+
+  const discardAndLeave = useCallback(() => {
+    if (savePendingRef.current) return;
+    const plan = confirmAvatarHistoryExit(historyGuardRef.current);
+    historyGuardRef.current = plan.session;
+    setDiscardOpen(false);
+    if (plan.navigationDelta !== 0) navigate(plan.navigationDelta);
+  }, [navigate]);
 
   const selectCategory = useCallback((category) => {
     if (savePendingRef.current) return;
@@ -465,21 +490,15 @@ export default function AvatarEditor() {
   }, [dirty]);
 
   useEffect(() => {
-    const handlePopState = () => {
-      if (allowNextPopRef.current) {
-        allowNextPopRef.current = false;
-        return;
-      }
-      if (savePendingRef.current) {
-        allowNextPopRef.current = true;
-        navigate(1);
-        return;
-      }
-      if (dirty) {
-        allowNextPopRef.current = true;
-        navigate(1);
-        setDiscardOpen(true);
-      }
+    const handlePopState = (event) => {
+      const plan = planAvatarHistoryPop(
+        historyGuardRef.current,
+        readHistoryIndex(event.state),
+        { dirty, saving: savePendingRef.current },
+      );
+      historyGuardRef.current = plan.session;
+      if (plan.navigationDelta !== null) navigate(plan.navigationDelta);
+      if (plan.openDiscard) setDiscardOpen(true);
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -504,6 +523,7 @@ export default function AvatarEditor() {
     setStatus('');
     setPreview(null);
     setDiscardOpen(false);
+    historyGuardRef.current = cancelAvatarHistoryExit(historyGuardRef.current);
     try {
       const response = await api('/api/avatar', { method: 'PUT', body: { config } });
       if (!isCurrentAvatarSave(mountedRef.current, saveRequestRef.current, requestToken)) return;
@@ -516,8 +536,7 @@ export default function AvatarEditor() {
       setStatus('Saved!');
       saveNavigationTimerRef.current = window.setTimeout(() => {
         if (!isCurrentAvatarSave(mountedRef.current, saveRequestRef.current, requestToken)) return;
-        allowNextPopRef.current = true;
-        navigate(-1);
+        authorizeHistoryExit(-1);
       }, 600);
     } catch (error) {
       if (!isCurrentAvatarSave(mountedRef.current, saveRequestRef.current, requestToken)) return;
@@ -525,7 +544,7 @@ export default function AvatarEditor() {
       setSaving(false);
       setStatus(error?.message || 'Failed to save');
     }
-  }, [config, dirty, navigate, updateUser]);
+  }, [authorizeHistoryExit, config, dirty, updateUser]);
 
   return (
     <div className="avatar-editor-shell">
@@ -560,7 +579,7 @@ export default function AvatarEditor() {
           onPreviewEnd={endPreview}
         />
       </div>
-      <AvatarDiscardDialog open={discardOpen} onCancel={cancelDiscard} onDiscard={leaveEditor} />
+      <AvatarDiscardDialog open={discardOpen} onCancel={cancelDiscard} onDiscard={discardAndLeave} />
     </div>
   );
 }
