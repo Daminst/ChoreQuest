@@ -1,10 +1,13 @@
 import unittest
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 from fastapi import HTTPException
 from backend.models import AvatarUnlockMethod, UserRole
+from backend.routers.auth import update_me
 from backend.routers.avatar import AvatarConfig, save_avatar
+from backend.schemas import UpdateProfileRequest
 from backend.services.avatar_entitlements import (
     find_newly_selected_locked_avatar_items,
     is_avatar_item_unlocked,
@@ -33,9 +36,20 @@ def item(
 
 def user(role=UserRole.kid, *, xp=0, streak=0):
     return SimpleNamespace(
+        id=1,
+        username="tester",
+        display_name="Tester",
         role=role,
+        points_balance=0,
         total_points_earned=xp,
+        current_streak=0,
         longest_streak=streak,
+        streak_freezes_used=0,
+        streak_freeze_month=None,
+        avatar_config={},
+        is_active=True,
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
     )
 
 
@@ -196,6 +210,24 @@ class AvatarSaveEntitlementTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(db.committed)
         self.assertEqual(response["avatar_config"]["hat"], "crown")
         broadcast.assert_awaited_once()
+
+    async def test_profile_update_cannot_bypass_kid_avatar_entitlements(self):
+        kid = user()
+        kid.id = 9
+        kid.avatar_config = {"hat": "none"}
+        kid.updated_at = None
+        db = FakeDb([item("crown", database_id=1, category="hat")], [])
+
+        with self.assertRaises(HTTPException) as raised:
+            await update_me(
+                UpdateProfileRequest(avatar_config={"hat": "crown"}),
+                db=db,
+                user=kid,
+            )
+
+        self.assertEqual(raised.exception.status_code, 403)
+        self.assertFalse(db.committed)
+        self.assertEqual(kid.avatar_config, {"hat": "none"})
 
 
 if __name__ == "__main__":

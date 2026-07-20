@@ -2,7 +2,9 @@
 
 from collections.abc import Iterable, Mapping
 
-from backend.models import AvatarUnlockMethod, UserRole
+from sqlalchemy import select
+
+from backend.models import AvatarItem, AvatarUnlockMethod, UserAvatarItem, UserRole
 
 
 CATALOG_CONFIG_KEYS = {
@@ -79,3 +81,23 @@ def find_newly_selected_locked_avatar_items(
             if item is not None and not is_avatar_item_unlocked(user, item, owned_item_ids):
                 blocked.append(item)
     return sorted(blocked, key=lambda item: (item.category, item.item_id))
+
+
+async def find_locked_avatar_items_for_save(db, user, proposed_config: Mapping | None) -> list:
+    """Load authoritative entitlements and validate an avatar config update."""
+    if _enum_value(getattr(user, "role", None)) != UserRole.kid.value:
+        return []
+
+    items_result = await db.execute(select(AvatarItem))
+    catalog_items = items_result.scalars().all()
+    owned_result = await db.execute(
+        select(UserAvatarItem.avatar_item_id).where(UserAvatarItem.user_id == user.id)
+    )
+    owned_item_ids = set(owned_result.scalars().all())
+    return find_newly_selected_locked_avatar_items(
+        user,
+        proposed_config,
+        user.avatar_config or {},
+        catalog_items,
+        owned_item_ids,
+    )

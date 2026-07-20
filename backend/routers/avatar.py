@@ -12,7 +12,7 @@ from backend.models import (
     Notification, NotificationType, AvatarAcquiredVia, AvatarUnlockMethod,
 )
 from backend.dependencies import get_current_user
-from backend.services.avatar_entitlements import find_newly_selected_locked_avatar_items
+from backend.services.avatar_entitlements import find_locked_avatar_items_for_save
 from backend.websocket_manager import ws_manager
 
 router = APIRouter(prefix="/api/avatar", tags=["avatar"])
@@ -176,23 +176,10 @@ async def save_avatar(
     """Save avatar configuration for the current user."""
     new_config = dict(body.config)
 
-    if user.role == UserRole.kid:
-        items_result = await db.execute(select(AvatarItem))
-        catalog_items = items_result.scalars().all()
-        owned_result = await db.execute(
-            select(UserAvatarItem.avatar_item_id).where(UserAvatarItem.user_id == user.id)
-        )
-        owned_item_ids = set(owned_result.scalars().all())
-        blocked_items = find_newly_selected_locked_avatar_items(
-            user,
-            new_config,
-            user.avatar_config or {},
-            catalog_items,
-            owned_item_ids,
-        )
-        if blocked_items:
-            names = ", ".join(item.display_name for item in blocked_items)
-            raise HTTPException(status_code=403, detail=f"Locked avatar items cannot be equipped: {names}")
+    blocked_items = await find_locked_avatar_items_for_save(db, user, new_config)
+    if blocked_items:
+        names = ", ".join(item.display_name for item in blocked_items)
+        raise HTTPException(status_code=403, detail=f"Locked avatar items cannot be equipped: {names}")
 
     # Preserve server-managed pet XP data — the frontend may send stale values
     existing = user.avatar_config or {}
