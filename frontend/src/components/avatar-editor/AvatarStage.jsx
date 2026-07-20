@@ -1,6 +1,6 @@
 import { Crosshair, LockKeyhole } from 'lucide-react';
 import AvatarDisplay from '../AvatarDisplay';
-import { mapPetPointerPosition, movePetWithKeyboard } from './avatarStagePlacement';
+import { mapPetPointerPosition, resolvePetPlacementKey } from './avatarStagePlacement';
 
 export function AvatarStage({ config, placementMode = false, previewMessage = '', onPlacePet }) {
   const petX = config.pet_x ?? 26;
@@ -13,7 +13,7 @@ export function AvatarStage({ config, placementMode = false, previewMessage = ''
   };
 
   const moveWithKeyboard = (event) => {
-    const next = movePetWithKeyboard(petX, petY, event.key);
+    const next = resolvePetPlacementKey(petX, petY, event.key);
     if (!next) return;
     event.preventDefault();
     onPlacePet?.(next.x, next.y);
@@ -24,25 +24,34 @@ export function AvatarStage({ config, placementMode = false, previewMessage = ''
       <div className="avatar-stage__spotlight" aria-hidden="true" />
       <div className="avatar-stage__character avatar-idle">
         <AvatarDisplay config={config} size="studio" />
+        {placementMode && (
+          <svg
+            className="avatar-stage__placement"
+            viewBox="0 0 32 32"
+            role="button"
+            aria-label="Place your pet"
+            aria-describedby="avatar-stage-placement-instructions"
+            tabIndex={0}
+            onClick={place}
+            onKeyDown={moveWithKeyboard}
+          >
+            <circle cx={petX} cy={petY} r="1.6" />
+            <path d={`M${petX - 2} ${petY}h4M${petX} ${petY - 2}v4`} />
+          </svg>
+        )}
       </div>
       <div className="avatar-stage__plinth" aria-hidden="true" />
-      {placementMode && (
-        <svg
-          className="avatar-stage__placement"
-          viewBox="0 0 32 32"
-          role="button"
-          aria-label="Tap to place your pet"
-          tabIndex={0}
-          onClick={place}
-          onKeyDown={moveWithKeyboard}
-        >
-          <circle cx={petX} cy={petY} r="1.6" />
-          <path d={`M${petX - 2} ${petY}h4M${petX} ${petY - 2}v4`} />
-        </svg>
-      )}
-      <p className="avatar-stage__hint" aria-live="polite">
+      <p
+        id={placementMode ? 'avatar-stage-placement-instructions' : undefined}
+        className="avatar-stage__hint"
+        aria-live="polite"
+      >
         {placementMode ? (
-          <><Crosshair size={14} aria-hidden="true" />Tap to place your pet</>
+          <>
+            <Crosshair size={14} aria-hidden="true" />
+            Tap to place your pet
+            <span className="sr-only">. Arrow keys move in two dimensions; Enter or Space confirms.</span>
+          </>
         ) : previewMessage ? (
           <><LockKeyhole size={14} aria-hidden="true" />{previewMessage}</>
         ) : (

@@ -22,6 +22,24 @@ test('pointer coordinates map through the 32x32 stage before clamping', async ()
   assert.deepEqual(mapPetPointerPosition(420, 210, rect), { x: 28, y: 28 });
 });
 
+test('pointer coordinates ignore horizontal letterboxing around a square avatar', async () => {
+  const { mapPetPointerPosition } = await loadPlacement();
+  const rect = { left: 100, top: 50, width: 320, height: 160 };
+
+  assert.deepEqual(mapPetPointerPosition(180, 130, rect), { x: 4, y: 16 });
+  assert.deepEqual(mapPetPointerPosition(220, 130, rect), { x: 8, y: 16 });
+  assert.deepEqual(mapPetPointerPosition(340, 130, rect), { x: 28, y: 16 });
+});
+
+test('pointer coordinates ignore vertical letterboxing around a square avatar', async () => {
+  const { mapPetPointerPosition } = await loadPlacement();
+  const rect = { left: 40, top: 20, width: 180, height: 360 };
+
+  assert.deepEqual(mapPetPointerPosition(130, 110, rect), { x: 16, y: 4 });
+  assert.deepEqual(mapPetPointerPosition(130, 155, rect), { x: 16, y: 8 });
+  assert.deepEqual(mapPetPointerPosition(130, 290, rect), { x: 16, y: 28 });
+});
+
 test('arrow movement is clamped and ignores unrelated keys', async () => {
   const { movePetWithKeyboard } = await loadPlacement();
 
@@ -30,4 +48,14 @@ test('arrow movement is clamped and ignores unrelated keys', async () => {
   assert.deepEqual(movePetWithKeyboard(28, 28, 'ArrowRight'), { x: 28, y: 28 });
   assert.deepEqual(movePetWithKeyboard(16, 16, 'ArrowDown'), { x: 16, y: 17 });
   assert.equal(movePetWithKeyboard(16, 16, 'Enter'), null);
+});
+
+test('placement keyboard interaction moves in two dimensions and confirms with Enter or Space', async () => {
+  const { resolvePetPlacementKey } = await loadPlacement();
+
+  assert.deepEqual(resolvePetPlacementKey(16, 16, 'ArrowLeft'), { x: 15, y: 16 });
+  assert.deepEqual(resolvePetPlacementKey(16, 16, 'ArrowDown'), { x: 16, y: 17 });
+  assert.deepEqual(resolvePetPlacementKey(16, 16, 'Enter'), { x: 16, y: 16 });
+  assert.deepEqual(resolvePetPlacementKey(16, 16, ' '), { x: 16, y: 16 });
+  assert.equal(resolvePetPlacementKey(16, 16, 'Escape'), null);
 });

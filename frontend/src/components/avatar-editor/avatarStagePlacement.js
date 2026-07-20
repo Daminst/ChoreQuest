@@ -13,9 +13,20 @@ export function clampPetCoordinate(value) {
   return Math.max(MIN_PET_COORDINATE, Math.min(MAX_PET_COORDINATE, value));
 }
 
+export function getContainedSquareRect(rect) {
+  const size = Math.min(rect.width, rect.height);
+  return {
+    left: rect.left + ((rect.width - size) / 2),
+    top: rect.top + ((rect.height - size) / 2),
+    width: size,
+    height: size,
+  };
+}
+
 export function mapPetPointerPosition(clientX, clientY, rect) {
-  const x = Math.round(((clientX - rect.left) / rect.width) * PET_STAGE_SIZE);
-  const y = Math.round(((clientY - rect.top) / rect.height) * PET_STAGE_SIZE);
+  const coordinateBox = getContainedSquareRect(rect);
+  const x = Math.round(((clientX - coordinateBox.left) / coordinateBox.width) * PET_STAGE_SIZE);
+  const y = Math.round(((clientY - coordinateBox.top) / coordinateBox.height) * PET_STAGE_SIZE);
   return { x: clampPetCoordinate(x), y: clampPetCoordinate(y) };
 }
 
@@ -26,4 +37,9 @@ export function movePetWithKeyboard(x, y, key) {
     x: clampPetCoordinate(x + delta[0]),
     y: clampPetCoordinate(y + delta[1]),
   };
+}
+
+export function resolvePetPlacementKey(x, y, key) {
+  if (key === 'Enter' || key === ' ') return { x, y };
+  return movePetWithKeyboard(x, y, key);
 }

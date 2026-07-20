@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Heart } from 'lucide-react';
 import { buildPetColors, renderPet, renderPetExtras } from '../avatar/pets';
 import { AvatarColorPalette, AvatarOptionCard, AvatarOptionGrid } from './AvatarOptionControls';
@@ -14,6 +14,7 @@ import {
   getPetLevelInfo,
   getPetXpForPet,
 } from './avatarPetCatalog';
+import { getNextPetTabIndex } from './petTabNavigation';
 
 const PET_SECTIONS = [
   { id: 'appearance', label: 'Appearance', tabId: 'avatar-pet-tab-appearance', panelId: 'avatar-pet-panel-appearance' },
@@ -183,9 +184,19 @@ function renderSectionControls(sectionId, controls) {
 
 export function PetCustomizer({ config, locked, lockedMeta, getUnlockLabel, onChange, onPatch, onPreview, onPreviewEnd }) {
   const [activeSection, setActiveSection] = useState('appearance');
+  const tabRefs = useRef([]);
   const hasPet = config.pet && config.pet !== 'none';
   const effectiveSection = hasPet ? activeSection : 'appearance';
   const controls = { config, locked, lockedMeta, getUnlockLabel, onChange, onPatch, onPreview, onPreviewEnd };
+
+  const handleTabKeyDown = (event, currentIndex) => {
+    const enabledTabs = PET_SECTIONS.map((section) => hasPet || section.id === 'appearance');
+    const nextIndex = getNextPetTabIndex(currentIndex, event.key, enabledTabs);
+    if (nextIndex === null) return;
+    event.preventDefault();
+    setActiveSection(PET_SECTIONS[nextIndex].id);
+    tabRefs.current[nextIndex]?.focus();
+  };
 
   useEffect(() => {
     if (!hasPet && activeSection !== 'appearance') {
@@ -195,19 +206,22 @@ export function PetCustomizer({ config, locked, lockedMeta, getUnlockLabel, onCh
 
   return (
     <div className="avatar-pet-customiser">
-      <div className="avatar-pet-tabs" role="tablist" aria-label="Pet customisation">
-        {PET_SECTIONS.map((section) => {
+      <div className="avatar-pet-tabs" role="tablist" aria-label="Pet customisation" aria-orientation="horizontal">
+        {PET_SECTIONS.map((section, index) => {
           const isActive = effectiveSection === section.id;
           return (
             <button
+              ref={(node) => { tabRefs.current[index] = node; }}
               key={section.id}
               id={section.tabId}
               type="button"
               role="tab"
               aria-selected={isActive}
               aria-controls={section.panelId}
+              tabIndex={section.id === effectiveSection ? 0 : -1}
               disabled={!hasPet && section.id !== 'appearance'}
               onClick={() => setActiveSection(section.id)}
+              onKeyDown={(event) => handleTabKeyDown(event, index)}
             >
               {section.label}
             </button>

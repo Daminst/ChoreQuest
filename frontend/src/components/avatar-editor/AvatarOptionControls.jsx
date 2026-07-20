@@ -16,6 +16,8 @@ export function AvatarOptionCard({ option, configKey, config, selected, locked =
       onPointerDown={(event) => event.pointerType !== 'mouse' && locked && onPreview?.(configKey, option.id)}
       onPointerUp={() => locked && onPreviewEnd?.()}
       onPointerCancel={() => locked && onPreviewEnd?.()}
+      onFocus={() => locked && onPreview?.(configKey, option.id)}
+      onBlur={() => locked && onPreviewEnd?.()}
     >
       <span className="avatar-option-card__preview"><AvatarDisplay config={previewConfig} size="option" /></span>
       <span className="avatar-option-card__label">{option.label}</span>
