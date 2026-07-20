@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import { Check, Lock } from 'lucide-react';
 import AvatarDisplay from '../AvatarDisplay';
 import { buildDisplayConfig } from './avatarEditorState';
@@ -6,14 +6,30 @@ import { transitionLockedPreviewSources } from './lockedPreviewSources';
 
 export function AvatarOptionCard({ option, configKey, config, selected, locked = false, disabled = false, lockLabel = '', multiple = false, onSelect, onPreview, onPreviewEnd }) {
   const previewConfig = buildDisplayConfig(config, { key: configKey, value: option.id });
+  const sourceId = useId();
   const previewSourcesRef = useRef(new Set());
+  const previewEndRef = useRef(onPreviewEnd);
+  previewEndRef.current = onPreviewEnd;
+
+  useEffect(() => {
+    if (locked || previewSourcesRef.current.size === 0) return;
+    previewSourcesRef.current = new Set();
+    previewEndRef.current?.(sourceId);
+  }, [locked, sourceId]);
+
+  useEffect(() => () => {
+    if (previewSourcesRef.current.size > 0) {
+      previewSourcesRef.current = new Set();
+      previewEndRef.current?.(sourceId);
+    }
+  }, [sourceId]);
 
   const updatePreviewSource = (source, active) => {
     if (!locked) return;
     const transition = transitionLockedPreviewSources(previewSourcesRef.current, source, active);
     previewSourcesRef.current = transition.sources;
-    if (transition.action === 'start') onPreview?.(configKey, option.id);
-    if (transition.action === 'end') onPreviewEnd?.();
+    if (transition.sourceActivated) onPreview?.(sourceId, configKey, option.id);
+    if (transition.action === 'end') onPreviewEnd?.(sourceId);
   };
 
   return (

@@ -1,5 +1,6 @@
 export function transitionLockedPreviewSources(activeSources, source, active) {
   const wasActive = activeSources.size > 0;
+  const sourceWasActive = activeSources.has(source);
   const sources = new Set(activeSources);
   if (active) sources.add(source);
   else sources.delete(source);
@@ -8,5 +9,5 @@ export function transitionLockedPreviewSources(activeSources, source, active) {
   let action = null;
   if (!wasActive && isActive) action = 'start';
   if (wasActive && !isActive) action = 'end';
-  return { sources, action };
+  return { sources, action, sourceActivated: active && !sourceWasActive };
 }

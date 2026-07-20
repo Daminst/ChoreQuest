@@ -32,6 +32,12 @@ import {
 } from './avatar-editor/avatarCatalogPolicy';
 import { PET_OPTIONS, normalizeAvatarPetColors } from './avatar-editor/avatarPetCatalog';
 import {
+  clearAvatarPreviews,
+  createAvatarPreviewRegistry,
+  endAvatarPreview,
+  startAvatarPreview,
+} from './avatar-editor/avatarPreviewRegistry';
+import {
   getAvatarExitNavigation,
   shouldBlockAvatarNavigation,
 } from './avatar-editor/avatarHistoryGuard';
@@ -337,6 +343,10 @@ export default function AvatarEditor() {
   const savePendingRef = useRef(false);
   const saveRequestRef = useRef(0);
   const saveNavigationTimerRef = useRef(null);
+  const previewRegistryRef = useRef(null);
+  if (previewRegistryRef.current === null) {
+    previewRegistryRef.current = createAvatarPreviewRegistry();
+  }
 
   const dirty = !configsEqual(config, savedConfig);
   const displayConfig = buildDisplayConfig(config, preview);
@@ -351,14 +361,20 @@ export default function AvatarEditor() {
   }, [dirty]);
   const blocker = useBlocker(shouldBlockNavigation);
 
+  const clearPreviews = useCallback(() => {
+    const transition = clearAvatarPreviews(previewRegistryRef.current);
+    previewRegistryRef.current = transition.registry;
+    setPreview(transition.preview);
+  }, []);
+
   const commitChange = useCallback((nextConfig) => {
     if (savePendingRef.current) return;
     if (configsEqual(config, nextConfig)) return;
     setHistory((items) => pushAvatarHistory(items, config));
     setConfig(nextConfig);
-    setPreview(null);
+    clearPreviews();
     setStatus('');
-  }, [config]);
+  }, [clearPreviews, config]);
 
   const changeValue = useCallback((key, value) => {
     if (!canCommitAvatarCatalogChange(catalogState, key)) return;
@@ -384,9 +400,9 @@ export default function AvatarEditor() {
     const result = undoAvatarChange(history, config);
     setHistory(result.history);
     setConfig(result.config);
-    setPreview(null);
+    clearPreviews();
     setStatus('');
-  }, [config, history]);
+  }, [clearPreviews, config, history]);
 
   useEffect(() => {
     if (savePendingRef.current) return;
@@ -394,8 +410,8 @@ export default function AvatarEditor() {
     setConfig(userCfg);
     setSavedConfig(userCfg);
     setHistory([]);
-    setPreview(null);
-  }, [initialConfig]);
+    clearPreviews();
+  }, [clearPreviews, initialConfig]);
 
   const fetchLocks = useCallback(async () => {
     try {
@@ -470,17 +486,21 @@ export default function AvatarEditor() {
   const selectCategory = useCallback((category) => {
     if (savePendingRef.current) return;
     setOpenCategory(category);
-    setPreview(null);
+    clearPreviews();
+  }, [clearPreviews]);
+
+  const startPreview = useCallback((sourceId, key, value) => {
+    if (savePendingRef.current) return;
+    const transition = startAvatarPreview(previewRegistryRef.current, sourceId, key, value);
+    previewRegistryRef.current = transition.registry;
+    setPreview(transition.preview);
   }, []);
 
-  const startPreview = useCallback((key, value) => {
+  const endPreview = useCallback((sourceId) => {
     if (savePendingRef.current) return;
-    setPreview({ key, value });
-  }, []);
-
-  const endPreview = useCallback(() => {
-    if (savePendingRef.current) return;
-    setPreview(null);
+    const transition = endAvatarPreview(previewRegistryRef.current, sourceId);
+    previewRegistryRef.current = transition.registry;
+    setPreview(transition.preview);
   }, []);
 
   useEffect(() => {
@@ -529,7 +549,7 @@ export default function AvatarEditor() {
     const requestToken = ++saveRequestRef.current;
     setSaving(true);
     setStatus('');
-    setPreview(null);
+    clearPreviews();
     setDiscardOpen(false);
     programmaticExitPendingRef.current = false;
     try {
@@ -540,7 +560,7 @@ export default function AvatarEditor() {
       setConfig(persisted);
       setSavedConfig(persisted);
       setHistory([]);
-      setPreview(null);
+      clearPreviews();
       setStatus('Saved!');
       saveNavigationTimerRef.current = window.setTimeout(() => {
         if (!isCurrentAvatarSave(mountedRef.current, saveRequestRef.current, requestToken)) return;
@@ -552,7 +572,7 @@ export default function AvatarEditor() {
       setSaving(false);
       setStatus(error?.message || 'Failed to save');
     }
-  }, [config, dirty, navigateOutOfEditor, updateUser]);
+  }, [clearPreviews, config, dirty, navigateOutOfEditor, updateUser]);
 
   return (
     <div className="avatar-editor-shell">

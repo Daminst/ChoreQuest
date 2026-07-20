@@ -9,11 +9,13 @@ test('locked preview stays active until hover, press, and focus sources all end'
 
   const hovered = transitionLockedPreviewSources(initial, 'hover', true);
   assert.equal(hovered.action, 'start');
+  assert.equal(hovered.sourceActivated, true);
   assert.deepEqual([...hovered.sources], ['hover']);
   assert.deepEqual([...initial], []);
 
   const focused = transitionLockedPreviewSources(hovered.sources, 'focus', true);
   assert.equal(focused.action, null);
+  assert.equal(focused.sourceActivated, true);
   assert.deepEqual([...focused.sources], ['hover', 'focus']);
 
   const pressed = transitionLockedPreviewSources(focused.sources, 'press', true);
@@ -42,5 +44,6 @@ test('redundant source events do not restart or end a locked preview', async () 
   const focused = transitionLockedPreviewSources(new Set(), 'focus', true);
   const repeatedFocus = transitionLockedPreviewSources(focused.sources, 'focus', true);
   assert.equal(repeatedFocus.action, null);
+  assert.equal(repeatedFocus.sourceActivated, false);
   assert.deepEqual([...repeatedFocus.sources], ['focus']);
 });

@@ -26,11 +26,27 @@ test('pet tabs expose roving focus and standard horizontal keyboard navigation',
 test('locked option preview events are routed through composed interaction sources', () => {
   const controls = read('./AvatarOptionControls.jsx');
 
+  assert.match(controls, /useId\(\)/);
   assert.match(controls, /transitionLockedPreviewSources/);
+  assert.match(controls, /transition\.sourceActivated[\s\S]*onPreview\?\.\(sourceId, configKey, option\.id\)/);
+  assert.match(controls, /onPreviewEnd\?\.\(sourceId\)/);
+  assert.match(controls, /useEffect\(\(\) => \(\) => \{[\s\S]*previewSourcesRef\.current\.size > 0[\s\S]*sourceId/);
   assert.match(controls, /updatePreviewSource\('hover', true\)/);
   assert.match(controls, /updatePreviewSource\('hover', false\)/);
   assert.match(controls, /updatePreviewSource\('press', true\)/);
   assert.match(controls, /updatePreviewSource\('press', false\)/);
   assert.match(controls, /updatePreviewSource\('focus', true\)/);
   assert.match(controls, /updatePreviewSource\('focus', false\)/);
+});
+
+test('editor owns the cross-card preview registry and clears it at session boundaries', () => {
+  const editor = read('../AvatarEditor.jsx');
+
+  assert.match(editor, /createAvatarPreviewRegistry/);
+  assert.match(editor, /const startPreview = useCallback\(\(sourceId, key, value\)/);
+  assert.match(editor, /startAvatarPreview\(previewRegistryRef\.current, sourceId, key, value\)/);
+  assert.match(editor, /const endPreview = useCallback\(\(sourceId\)/);
+  assert.match(editor, /endAvatarPreview\(previewRegistryRef\.current, sourceId\)/);
+  assert.match(editor, /const clearPreviews = useCallback/);
+  assert.match(editor, /clearAvatarPreviews\(previewRegistryRef\.current\)/);
 });

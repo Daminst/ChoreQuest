@@ -4,14 +4,17 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 from fastapi import HTTPException
+from backend.achievements import _check_criteria
 from backend.models import AvatarUnlockMethod, UserRole
 from backend.routers.auth import update_me
-from backend.routers.avatar import AvatarConfig, save_avatar
+from backend.routers.avatar import AvatarConfig, get_avatar_items, save_avatar
 from backend.schemas import UpdateProfileRequest
+from backend.services.avatar_config import sanitize_avatar_config_for_save
 from backend.services.avatar_entitlements import (
     find_newly_selected_locked_avatar_items,
     is_avatar_item_unlocked,
 )
+from backend.services.pet_leveling import get_current_pet_xp
 
 
 def item(
@@ -31,6 +34,7 @@ def item(
         is_default=default,
         unlock_method=method,
         unlock_value=value,
+        rarity=SimpleNamespace(value="common"),
     )
 
 
@@ -68,6 +72,7 @@ class FakeDb:
     def __init__(self, *result_sets):
         self.result_sets = list(result_sets)
         self.committed = False
+        self.added = []
 
     async def execute(self, _query):
         return FakeScalarResult(self.result_sets.pop(0))
@@ -77,6 +82,9 @@ class FakeDb:
 
     async def refresh(self, _user):
         return None
+
+    def add(self, value):
+        self.added.append(value)
 
 
 class AvatarEntitlementDecisionTests(unittest.TestCase):
@@ -167,6 +175,34 @@ class AvatarEntitlementDecisionTests(unittest.TestCase):
             [],
         )
 
+    def test_pet_xp_sanitizer_drops_client_injection_without_authoritative_state(self):
+        proposed = {"pet": "cat", "pet_xp": 999, "pet_xp_map": {"cat": 999}}
+
+        sanitized = sanitize_avatar_config_for_save(proposed, {})
+
+        self.assertNotIn("pet_xp", sanitized)
+        self.assertNotIn("pet_xp_map", sanitized)
+        self.assertEqual(get_current_pet_xp(sanitized), 0)
+
+    def test_pet_xp_sanitizer_preserves_authoritative_map_and_syncs_current_pet(self):
+        existing = {"pet": "cat", "pet_xp": 41, "pet_xp_map": {"cat": 41}}
+        proposed = {"pet": "cat", "pet_xp": 999, "pet_xp_map": {"cat": 999}}
+
+        sanitized = sanitize_avatar_config_for_save(proposed, existing)
+
+        self.assertEqual(sanitized["pet_xp_map"], {"cat": 41})
+        self.assertEqual(sanitized["pet_xp"], 41)
+
+    def test_pet_xp_sanitizer_migrates_legacy_xp_before_switching_pets(self):
+        existing = {"pet": "cat", "pet_xp": 41}
+        proposed = {"pet": "dog", "pet_xp": 999, "pet_xp_map": {"dog": 999}}
+
+        sanitized = sanitize_avatar_config_for_save(proposed, existing)
+
+        self.assertEqual(sanitized["pet_xp_map"], {"cat": 41})
+        self.assertEqual(sanitized["pet_xp"], 0)
+        self.assertEqual(get_current_pet_xp({**sanitized, "pet": "cat"}), 41)
+
 
 class AvatarSaveEntitlementTests(unittest.IsolatedAsyncioTestCase):
     async def test_kid_save_rejects_new_locked_items_before_persisting(self):
@@ -202,13 +238,15 @@ class AvatarSaveEntitlementTests(unittest.IsolatedAsyncioTestCase):
         db = FakeDb()
 
         response = await save_avatar(
-            AvatarConfig(config={"hat": "crown", "pet": "dragon"}),
+            AvatarConfig(config={"hat": "crown", "pet": "dragon", "pet_xp": 999, "pet_xp_map": {"dragon": 999}}),
             db=db,
             user=parent,
         )
 
         self.assertTrue(db.committed)
         self.assertEqual(response["avatar_config"]["hat"], "crown")
+        self.assertNotIn("pet_xp", response["avatar_config"])
+        self.assertNotIn("pet_xp_map", response["avatar_config"])
         broadcast.assert_awaited_once()
 
     async def test_profile_update_cannot_bypass_kid_avatar_entitlements(self):
@@ -228,6 +266,75 @@ class AvatarSaveEntitlementTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(raised.exception.status_code, 403)
         self.assertFalse(db.committed)
         self.assertEqual(kid.avatar_config, {"hat": "none"})
+
+    @patch("backend.routers.avatar.ws_manager.broadcast", new_callable=AsyncMock)
+    async def test_avatar_save_cannot_inject_pet_xp_into_empty_state(self, _broadcast):
+        kid = user()
+        kid.avatar_config = {}
+        db = FakeDb([], [])
+
+        response = await save_avatar(
+            AvatarConfig(config={"pet": "legacy_unknown", "pet_xp": 999, "pet_xp_map": {"legacy_unknown": 999}}),
+            db=db,
+            user=kid,
+        )
+
+        self.assertNotIn("pet_xp", response["avatar_config"])
+        self.assertNotIn("pet_xp_map", response["avatar_config"])
+        self.assertEqual(get_current_pet_xp(response["avatar_config"]), 0)
+        self.assertFalse(await _check_criteria(
+            db,
+            kid,
+            {"type": "pet_level_reached", "level": 8},
+        ))
+
+    @patch("backend.routers.avatar.ws_manager.broadcast", new_callable=AsyncMock)
+    async def test_avatar_save_migrates_legacy_pet_xp_without_losing_it_on_switch(self, _broadcast):
+        kid = user()
+        kid.avatar_config = {"pet": "cat", "pet_xp": 41}
+        db = FakeDb([], [])
+
+        response = await save_avatar(
+            AvatarConfig(config={"pet": "dog", "pet_xp": 999, "pet_xp_map": {"dog": 999}}),
+            db=db,
+            user=kid,
+        )
+
+        self.assertEqual(response["avatar_config"]["pet_xp_map"], {"cat": 41})
+        self.assertEqual(response["avatar_config"]["pet_xp"], 0)
+
+    @patch("backend.routers.auth.ws_manager.broadcast", new_callable=AsyncMock)
+    async def test_profile_update_cannot_inject_pet_xp(self, _broadcast):
+        kid = user()
+        kid.avatar_config = {"pet": "cat", "pet_xp_map": {"cat": 41}, "pet_xp": 41}
+        db = FakeDb([], [])
+
+        response = await update_me(
+            UpdateProfileRequest(avatar_config={"pet": "cat", "pet_xp": 999, "pet_xp_map": {"cat": 999}}),
+            db=db,
+            user=kid,
+        )
+
+        self.assertEqual(response.avatar_config["pet_xp_map"], {"cat": 41})
+        self.assertEqual(response.avatar_config["pet_xp"], 41)
+
+    async def test_items_get_uses_shared_policy_for_free_and_zero_thresholds(self):
+        kid = user(xp=0, streak=0)
+        catalog = [
+            item("free_nondefault", database_id=11, method=AvatarUnlockMethod.free, value=None),
+            item("zero_xp", database_id=12, method=AvatarUnlockMethod.xp, value=0),
+            item("zero_streak", database_id=13, method=AvatarUnlockMethod.streak, value=0),
+        ]
+        db = FakeDb(catalog, [])
+
+        result = await get_avatar_items(db=db, user=kid)
+
+        self.assertEqual({entry["item_id"]: entry["unlocked"] for entry in result}, {
+            "free_nondefault": True,
+            "zero_xp": True,
+            "zero_streak": True,
+        })
+        self.assertEqual({owned.avatar_item_id for owned in db.added}, {12, 13})
 
 
 if __name__ == "__main__":
