@@ -240,7 +240,7 @@ test('save transactions are serialized and stale async completions are ignored',
   assert.match(editor, /window\.clearTimeout\(saveNavigationTimerRef\.current\)/);
   assert.doesNotMatch(editor, /finally\s*{/);
   assert.match(editor, /catch \(error\) \{[\s\S]*savePendingRef\.current = false;[\s\S]*setSaving\(false\);/);
-  assert.match(editor, /window\.setTimeout\(\(\) => \{[\s\S]*isCurrentAvatarSave[\s\S]*authorizeHistoryExit\(-1\)/);
+  assert.match(editor, /window\.setTimeout\(\(\) => \{[\s\S]*isCurrentAvatarSave[\s\S]*navigateOutOfEditor\(\)/);
 });
 
 test('pending saves guard mutations, exits, previews, unload, and browser traversal', () => {
@@ -254,17 +254,25 @@ test('pending saves guard mutations, exits, previews, unload, and browser traver
   assert.match(editor, /setDiscardOpen\(false\);/);
   assert.match(editor, /if \(event\.key !== 'Escape' \|\| savePendingRef\.current\) return;/);
   assert.match(editor, /if \(!dirty && !savePendingRef\.current\) return;/);
-  assert.match(editor, /planAvatarHistoryPop\([\s\S]*saving: savePendingRef\.current[\s\S]*\)/);
-  assert.match(editor, /if \(plan\.navigationDelta !== null\) navigate\(plan\.navigationDelta\)/);
+  assert.match(editor, /if \(blocker\.state !== 'blocked'\) return;/);
+  assert.match(editor, /if \(savePendingRef\.current\) \{\s*blocker\.reset\(\);\s*return;/);
 });
 
-test('browser history guard restores and resumes the exact attempted destination', () => {
+test('data router blocker keeps dirty history traversal mounted and resumes its exact target', () => {
   const editor = read('../AvatarEditor.jsx');
-  assert.match(editor, /createAvatarHistoryGuardSession\(readHistoryIndex\(window\.history\.state\)\)/);
-  assert.match(editor, /planAvatarHistoryPop\(\s*historyGuardRef\.current,\s*readHistoryIndex\(event\.state\)/);
-  assert.match(editor, /historyGuardRef\.current = plan\.session/);
-  assert.match(editor, /if \(plan\.openDiscard\) setDiscardOpen\(true\)/);
-  assert.match(editor, /confirmAvatarHistoryExit\(historyGuardRef\.current\)/);
+  const main = read('../../main.jsx');
+
+  assert.match(main, /createBrowserRouter/);
+  assert.match(main, /<RouterProvider router={router} \/>/);
+  assert.match(main, /path:\s*'\*'/);
+  assert.doesNotMatch(main, /\bBrowserRouter\b/);
+  assert.match(editor, /const blocker = useBlocker\(shouldBlockNavigation\)/);
+  assert.match(editor, /blocker\.reset\(\)/);
+  assert.match(editor, /blocker\.proceed\(\)/);
+  assert.match(editor, /getAvatarExitNavigation\(window\.history\.state\)/);
+  assert.match(editor, /bypassNextNavigationRef\.current = false/);
+  assert.doesNotMatch(editor, /addEventListener\('popstate'/);
+  assert.doesNotMatch(editor, /createAvatarHistoryGuardSession/);
   assert.doesNotMatch(editor, /allowNextPopRef/);
 });
 
