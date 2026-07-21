@@ -45,7 +45,13 @@ import {
   getAvatarSaveErrorMessage,
   isCurrentAvatarSave,
 } from './avatar-editor/avatarSaveLifecycle';
-import { reconcileIncomingAvatarConfig } from './avatar-editor/avatarConfigReconciliation';
+import {
+  createAvatarExternalConflictState,
+  getPersistentAvatarStatus,
+  observeIncomingAvatarConfig,
+  settleAvatarSaveConflict,
+  synchronizeAvatarConflictWhenClean,
+} from './avatar-editor/avatarConfigReconciliation';
 import './avatar-editor/avatarEditor.css';
 import {
   applyAvatarChange,
@@ -341,12 +347,16 @@ export default function AvatarEditor() {
   const [lockedByCategory, setLockedByCategory] = useState({});
   const [lockedItemMeta, setLockedItemMeta] = useState({});
   const [discardOpen, setDiscardOpen] = useState(false);
+  const [externalConflictState, setExternalConflictState] = useState(
+    createAvatarExternalConflictState,
+  );
   const bypassNextNavigationRef = useRef(false);
   const programmaticExitPendingRef = useRef(false);
   const mountedRef = useRef(true);
   const savePendingRef = useRef(false);
   const saveRequestRef = useRef(0);
   const saveNavigationTimerRef = useRef(null);
+  const externalConflictStateRef = useRef(externalConflictState);
   const previewRegistryRef = useRef(null);
   if (previewRegistryRef.current === null) {
     previewRegistryRef.current = createAvatarPreviewRegistry();
@@ -369,6 +379,11 @@ export default function AvatarEditor() {
     const transition = clearAvatarPreviews(previewRegistryRef.current);
     previewRegistryRef.current = transition.registry;
     setPreview(transition.preview);
+  }, []);
+
+  const updateExternalConflictState = useCallback((nextState) => {
+    externalConflictStateRef.current = nextState;
+    setExternalConflictState(nextState);
   }, []);
 
   const commitChange = useCallback((nextConfig) => {
@@ -409,25 +424,49 @@ export default function AvatarEditor() {
   }, [clearPreviews, config, history]);
 
   useEffect(() => {
-    if (savePendingRef.current) return;
     const userCfg = normalizeAvatarPetColors({ ...initialConfig });
-    const reconciliation = reconcileIncomingAvatarConfig({
+    const observation = observeIncomingAvatarConfig({
+      state: externalConflictStateRef.current,
       incomingConfig: userCfg,
+      saving: savePendingRef.current,
       config,
       savedConfig,
       history,
     });
-    if (reconciliation.action === 'ignore') return;
-    if (reconciliation.action === 'conflict') {
-      setStatus(reconciliation.status);
-      return;
-    }
+    updateExternalConflictState(observation.state);
+    const { reconciliation } = observation;
+    if (!reconciliation || reconciliation.action === 'ignore') return;
+    if (reconciliation.action === 'conflict') return;
     setConfig(reconciliation.config);
     setSavedConfig(reconciliation.savedConfig);
     setHistory(reconciliation.history);
     setStatus(reconciliation.status);
     clearPreviews();
-  }, [clearPreviews, initialConfig]);
+  }, [clearPreviews, initialConfig, updateExternalConflictState]);
+
+  useEffect(() => {
+    const resolution = synchronizeAvatarConflictWhenClean({
+      state: externalConflictStateRef.current,
+      saving,
+      config,
+      savedConfig,
+      history,
+    });
+    if (!resolution.reconciliation) return;
+    updateExternalConflictState(resolution.state);
+    setConfig(resolution.reconciliation.config);
+    setSavedConfig(resolution.reconciliation.savedConfig);
+    setHistory(resolution.reconciliation.history);
+    setStatus(resolution.reconciliation.status);
+    clearPreviews();
+  }, [
+    clearPreviews,
+    config,
+    history,
+    savedConfig,
+    saving,
+    updateExternalConflictState,
+  ]);
 
   const fetchLocks = useCallback(async () => {
     try {
@@ -572,6 +611,14 @@ export default function AvatarEditor() {
       const response = await api('/api/avatar', { method: 'PUT', body: { config } });
       if (!isCurrentAvatarSave(mountedRef.current, saveRequestRef.current, requestToken)) return;
       const persisted = normalizeAvatarPetColors(response.avatar_config || config);
+      const settledConflict = settleAvatarSaveConflict({
+        state: externalConflictStateRef.current,
+        succeeded: true,
+        config,
+        savedConfig,
+        history,
+      });
+      updateExternalConflictState(settledConflict.state);
       updateUser({ avatar_config: persisted });
       setConfig(persisted);
       setSavedConfig(persisted);
@@ -586,9 +633,32 @@ export default function AvatarEditor() {
       if (!isCurrentAvatarSave(mountedRef.current, saveRequestRef.current, requestToken)) return;
       savePendingRef.current = false;
       setSaving(false);
+      const settledConflict = settleAvatarSaveConflict({
+        state: externalConflictStateRef.current,
+        succeeded: false,
+        config,
+        savedConfig,
+        history,
+      });
+      updateExternalConflictState(settledConflict.state);
+      if (settledConflict.reconciliation?.action === 'synchronize') {
+        setConfig(settledConflict.reconciliation.config);
+        setSavedConfig(settledConflict.reconciliation.savedConfig);
+        setHistory(settledConflict.reconciliation.history);
+        clearPreviews();
+      }
       setStatus(getAvatarSaveErrorMessage(error));
     }
-  }, [clearPreviews, config, dirty, navigateOutOfEditor, updateUser]);
+  }, [
+    clearPreviews,
+    config,
+    dirty,
+    history,
+    navigateOutOfEditor,
+    savedConfig,
+    updateExternalConflictState,
+    updateUser,
+  ]);
 
   return (
     <div className="avatar-editor-shell">
@@ -597,7 +667,7 @@ export default function AvatarEditor() {
         dirty={dirty}
         randomiseDisabled={!canRandomiseAvatar(catalogState)}
         saving={saving}
-        status={status}
+        status={getPersistentAvatarStatus(status, externalConflictState)}
         onBack={requestExit}
         onRandomise={randomise}
         onUndo={undo}
