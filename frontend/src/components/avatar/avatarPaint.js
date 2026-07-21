@@ -33,20 +33,29 @@ export function mixHex(color, target, amount) {
   return `#${channels.join('')}`;
 }
 
-function finish(base) {
+const perceivedLightness = (hex) => {
+  const value = expandHex(hex).slice(1);
+  const [r, g, b] = [0, 2, 4].map((offset) => Number.parseInt(value.slice(offset, offset + 2), 16));
+  return (r * 299 + g * 587 + b * 114) / 1000;
+};
+
+function finish(base, { skin = false } = {}) {
   const normalized = expandHex(base);
+  const outlineTarget = perceivedLightness(normalized) < 54 ? '#334155' : '#1b1020';
   return {
     base: normalized,
     light: mixHex(normalized, '#ffffff', 0.28),
     highlight: mixHex(normalized, '#ffffff', 0.5),
     shadow: mixHex(normalized, '#000000', 0.25),
     deep: mixHex(normalized, '#000000', 0.42),
+    outline: mixHex(normalized, outlineTarget, perceivedLightness(normalized) < 54 ? 0.58 : 0.72),
+    ...(skin ? { cheek: mixHex(normalized, '#e97878', 0.34) } : {}),
   };
 }
 
 export function buildAvatarPalette(config = {}) {
   return {
-    skin: finish(config.head_color || DEFAULT_COLORS.skin),
+    skin: finish(config.head_color || DEFAULT_COLORS.skin, { skin: true }),
     hair: finish(config.hair_color || DEFAULT_COLORS.hair),
     outfit: finish(config.body_color || DEFAULT_COLORS.outfit),
     hat: finish(config.hat_color || DEFAULT_COLORS.hat),

@@ -25,3 +25,13 @@ test('avatar palette preserves base user colours', () => {
   assert.notEqual(palette.skin.light, palette.skin.base);
   assert.notEqual(palette.skin.shadow, palette.skin.base);
 });
+
+test('illustration finishes provide readable outlines for light and dark bases', () => {
+  const light = buildAvatarPalette({ head_color: '#ffffff' }).skin;
+  const dark = buildAvatarPalette({ head_color: '#000000' }).skin;
+  assert.match(light.outline, /^#[0-9a-f]{6}$/);
+  assert.match(dark.outline, /^#[0-9a-f]{6}$/);
+  assert.notEqual(light.outline, light.base);
+  assert.notEqual(dark.outline, dark.base);
+  assert.match(light.cheek, /^#[0-9a-f]{6}$/);
+});
