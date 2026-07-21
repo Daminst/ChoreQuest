@@ -12,7 +12,7 @@ test('pet placement overlay shares the transformed character coordinate box', ()
     /getAvatarStageCharacterClassName\(placementMode\)[\s\S]*<AvatarDisplay[\s\S]*avatar-stage__placement[\s\S]*<\/div>/,
   );
   assert.match(stage, /aria-describedby="avatar-stage-placement-instructions"/);
-  assert.match(stage, /Arrow keys[\s\S]*Enter or Space/);
+  assert.match(stage, /Strzałki przesuwają[\s\S]*Enter lub Spacja/);
 });
 
 test('pet tabs expose roving focus and standard horizontal keyboard navigation', () => {

@@ -24,7 +24,7 @@ export function AvatarStage({ config, placementMode = false, previewMessage = ''
   };
 
   return (
-    <section className="avatar-stage" aria-label="Live avatar preview">
+    <section className="avatar-stage" aria-label="Podgląd awatara na żywo">
       <div className="avatar-stage__spotlight" aria-hidden="true" />
       <div className={getAvatarStageCharacterClassName(placementMode)}>
         <AvatarDisplay config={config} size="studio" />
@@ -33,7 +33,7 @@ export function AvatarStage({ config, placementMode = false, previewMessage = ''
             className="avatar-stage__placement"
             viewBox="0 0 32 32"
             role="button"
-            aria-label="Place your pet"
+            aria-label="Ustaw pupila"
             aria-describedby="avatar-stage-placement-instructions"
             tabIndex={0}
             onClick={place}
@@ -53,13 +53,13 @@ export function AvatarStage({ config, placementMode = false, previewMessage = ''
         {placementMode ? (
           <>
             <Crosshair size={14} aria-hidden="true" />
-            Tap to place your pet
-            <span className="sr-only">. Arrow keys move in two dimensions; Enter or Space confirms.</span>
+            Dotknij, aby ustawić pupila
+            <span className="sr-only">. Strzałki przesuwają w dwóch wymiarach; Enter lub Spacja zatwierdza.</span>
           </>
         ) : previewMessage ? (
           <><LockKeyhole size={14} aria-hidden="true" />{previewMessage}</>
         ) : (
-          'Preview updates instantly'
+          'Podgląd aktualizuje się od razu'
         )}
       </p>
     </section>

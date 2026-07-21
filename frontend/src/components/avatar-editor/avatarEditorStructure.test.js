@@ -141,7 +141,7 @@ test('stage owns live preview and pet placement while pet customiser exposes fou
   assert.match(stage, /AvatarDisplay/);
   assert.match(stage, /avatarStagePlacement/);
   assert.match(stage, /viewBox="0 0 32 32"/);
-  assert.match(stage, /Tap to place your pet/);
+  assert.match(stage, /Dotknij, aby ustawić pupila/);
   for (const label of ['Appearance', 'Colours', 'Position', 'Accessory']) {
     assert.match(pet, new RegExp(label));
   }
@@ -293,4 +293,14 @@ test('every pet tab controls a mounted labelled panel', () => {
   assert.match(pet, /hidden={effectiveSection !== section\.id}/);
   assert.doesNotMatch(pet, /hidden={activeSection !== section\.id}/);
   assert.doesNotMatch(pet, /activeSection === 'appearance' && renderAppearanceControls/);
+});
+
+test('pet placement exposes Polish instructions to assistive technology', () => {
+  const stage = read('./AvatarStage.jsx');
+
+  assert.match(stage, /aria-label="Podgląd awatara na żywo"/);
+  assert.match(stage, /aria-label="Ustaw pupila"/);
+  assert.match(stage, /Dotknij, aby ustawić pupila/);
+  assert.match(stage, /Strzałki przesuwają w dwóch wymiarach; Enter lub Spacja zatwierdza\./);
+  assert.match(stage, /'Podgląd aktualizuje się od razu'/);
 });
