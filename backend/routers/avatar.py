@@ -1,5 +1,4 @@
 import random
-from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -12,6 +11,10 @@ from backend.models import (
     Notification, NotificationType, AvatarAcquiredVia, AvatarUnlockMethod,
 )
 from backend.dependencies import get_current_user
+from backend.services.avatar_persistence import prepare_avatar_config_write
+from backend.services.avatar_entitlements import (
+    is_avatar_item_unlocked,
+)
 from backend.websocket_manager import ws_manager
 
 router = APIRouter(prefix="/api/avatar", tags=["avatar"])
@@ -173,26 +176,7 @@ async def save_avatar(
     user: User = Depends(get_current_user),
 ):
     """Save avatar configuration for the current user."""
-    new_config = body.config
-
-    # Preserve server-managed pet XP data — the frontend may send stale values
-    existing = user.avatar_config or {}
-    if "pet_xp_map" in existing:
-        new_config["pet_xp_map"] = existing["pet_xp_map"]
-    if "pet_xp" in existing:
-        new_config.setdefault("pet_xp", existing["pet_xp"])
-
-    # Keep pet_xp in sync with the current pet from pet_xp_map
-    pet = new_config.get("pet")
-    xp_map = new_config.get("pet_xp_map", {})
-    if pet and pet != "none" and pet in xp_map:
-        new_config["pet_xp"] = xp_map[pet]
-    elif pet and pet != "none" and "pet_xp" in existing:
-        # Switching to a pet that has no map entry yet — legacy migration
-        new_config["pet_xp"] = xp_map.get(pet, 0)
-
-    user.avatar_config = new_config
-    user.updated_at = datetime.now(timezone.utc)
+    user = await prepare_avatar_config_write(db, user, body.config)
     await db.commit()
     await db.refresh(user)
     await ws_manager.broadcast({"type": "data_changed", "data": {"entity": "user"}}, exclude_user=user.id)
@@ -213,8 +197,6 @@ async def get_avatar_items(
     items_result = await db.execute(select(AvatarItem))
     all_items = items_result.scalars().all()
 
-    is_parent_or_admin = user.role in (UserRole.parent, UserRole.admin)
-
     owned_result = await db.execute(
         select(UserAvatarItem.avatar_item_id).where(UserAvatarItem.user_id == user.id)
     )
@@ -222,26 +204,21 @@ async def get_avatar_items(
 
     result = []
     for item in all_items:
-        # Parents/admins: all items unlocked
-        if is_parent_or_admin:
-            unlocked = True
-        else:
-            unlocked = item.is_default or item.id in owned_ids
-            # Auto-unlock milestone items (XP / streak) on read
-            if not unlocked and item.unlock_method == AvatarUnlockMethod.xp and item.unlock_value:
-                if user.total_points_earned >= item.unlock_value:
-                    db.add(UserAvatarItem(
-                        user_id=user.id, avatar_item_id=item.id,
-                        acquired_via=AvatarAcquiredVia.milestone,
-                    ))
-                    unlocked = True
-            if not unlocked and item.unlock_method == AvatarUnlockMethod.streak and item.unlock_value:
-                if user.longest_streak >= item.unlock_value:
-                    db.add(UserAvatarItem(
-                        user_id=user.id, avatar_item_id=item.id,
-                        acquired_via=AvatarAcquiredVia.milestone,
-                    ))
-                    unlocked = True
+        unlocked = is_avatar_item_unlocked(user, item, owned_ids)
+        should_record_milestone = (
+            user.role == UserRole.kid
+            and unlocked
+            and not item.is_default
+            and item.id not in owned_ids
+            and item.unlock_method in (AvatarUnlockMethod.xp, AvatarUnlockMethod.streak)
+            and item.unlock_value is not None
+        )
+        if should_record_milestone:
+            db.add(UserAvatarItem(
+                user_id=user.id,
+                avatar_item_id=item.id,
+                acquired_via=AvatarAcquiredVia.milestone,
+            ))
 
         result.append({
             "id": item.id,

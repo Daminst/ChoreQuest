@@ -21,8 +21,10 @@ const SIZES = {
   xs: 24,
   sm: 32,
   md: 64,
+  option: 76,
   lg: 128,
   xl: 176,
+  studio: 420,
 };
 
 const AVATAR_COLORS = [
@@ -337,7 +339,7 @@ function SvgAvatar({ config, size }) {
 }
 
 export default function AvatarDisplay({ config, size = 'md', name = '', animate = false }) {
-  const px = SIZES[size] || SIZES.md;
+  const px = typeof size === 'number' ? size : (SIZES[size] || SIZES.md);
 
   if (config && typeof config === 'object' && Object.keys(config).length > 0) {
     // Deterministic delay so grouped avatars desync their animations

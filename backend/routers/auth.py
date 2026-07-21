@@ -32,6 +32,7 @@ from backend.auth import (
 from backend.dependencies import get_current_user
 from backend.rate_limit import rate_limiter
 from backend.websocket_manager import ws_manager
+from backend.services.avatar_persistence import prepare_avatar_config_write
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -318,10 +319,10 @@ async def update_me(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    if body.avatar_config is not None:
+        user = await prepare_avatar_config_write(db, user, body.avatar_config)
     if body.display_name is not None:
         user.display_name = body.display_name
-    if body.avatar_config is not None:
-        user.avatar_config = body.avatar_config
 
     user.updated_at = datetime.now(timezone.utc)
     await db.commit()

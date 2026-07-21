@@ -1,36 +1,67 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { api } from '../api/client';
-import { useAuth } from '../hooks/useAuth';
-import AvatarDisplay from './AvatarDisplay';
-import AvatarOptionCard from './avatar/AvatarOptionCard';
-import { renderPet, renderPetExtras, buildPetColors } from './avatar/pets';
-import { THEMED_AVATAR_OPTIONS } from './avatar/themedAvatarCatalog';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useBlocker, useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft,
-  Check,
-  ChevronLeft,
-  ChevronRight,
+  Accessibility,
   CircleUserRound,
-  Crosshair,
   Crown,
   Eye,
-  Heart,
-  Image,
-  Loader2,
+  Image as ImageIcon,
   Palette,
   PawPrint,
-  Save,
+  ScanFace,
   Scissors,
   Shield,
   Shirt,
   Smile,
   Sparkles,
-  Star,
-  SwatchBook,
-  WandSparkles,
 } from 'lucide-react';
+import { api } from '../api/client';
+import { useAuth } from '../hooks/useAuth';
+import { THEMED_AVATAR_OPTIONS } from './avatar/themedAvatarCatalog';
+import { AvatarCategoryRail } from './avatar-editor/AvatarCategoryRail';
+import { AvatarDiscardDialog } from './avatar-editor/AvatarDiscardDialog';
+import { AvatarEditorToolbar } from './avatar-editor/AvatarEditorToolbar';
+import { AvatarOptionsPanel } from './avatar-editor/AvatarOptionsPanel';
+import { AvatarStage } from './avatar-editor/AvatarStage';
+import {
+  AVATAR_CATALOG_STATE,
+  buildAvatarEntitlementMaps,
+  canCommitAvatarCatalogChange,
+  canRandomiseAvatar,
+  getAvatarCatalogNotice,
+} from './avatar-editor/avatarCatalogPolicy';
+import { PET_OPTIONS, normalizeAvatarPetColors } from './avatar-editor/avatarPetCatalog';
+import {
+  clearAvatarPreviews,
+  createAvatarPreviewRegistry,
+  endAvatarPreview,
+  startAvatarPreview,
+} from './avatar-editor/avatarPreviewRegistry';
+import {
+  getAvatarExitNavigation,
+  shouldBlockAvatarNavigation,
+} from './avatar-editor/avatarHistoryGuard';
+import {
+  getAvatarSaveErrorMessage,
+  isCurrentAvatarSave,
+} from './avatar-editor/avatarSaveLifecycle';
+import {
+  createAvatarExternalConflictState,
+  getPersistentAvatarStatus,
+  observeIncomingAvatarConfig,
+  settleAvatarSaveConflict,
+  synchronizeAvatarConflictWhenClean,
+} from './avatar-editor/avatarConfigReconciliation';
+import './avatar-editor/avatarEditor.css';
+import {
+  applyAvatarChange,
+  buildDisplayConfig,
+  configsEqual,
+  pushAvatarHistory,
+  randomiseAvatarConfig,
+  toggleAvatarAccessory,
+  undoAvatarChange,
+} from './avatar-editor/avatarEditorState';
 
 const HEAD_OPTIONS = [
   { id: 'round', label: 'Round' },
@@ -158,33 +189,6 @@ const OUTFIT_PATTERN_OPTIONS = [
   ...THEMED_AVATAR_OPTIONS.outfit_pattern,
 ];
 
-const PET_OPTIONS = [
-  { id: 'none', label: 'None' },
-  { id: 'cat', label: 'Cat' },
-  { id: 'dog', label: 'Dog' },
-  { id: 'dragon', label: 'Dragon' },
-  { id: 'owl', label: 'Owl' },
-  { id: 'bunny', label: 'Bunny' },
-  { id: 'phoenix', label: 'Phoenix' },
-];
-
-const PET_POSITION_OPTIONS = [
-  { id: 'right', label: 'Right' },
-  { id: 'left', label: 'Left' },
-  { id: 'head', label: 'Head' },
-  { id: 'custom', label: 'Custom' },
-];
-
-const PET_ACCESSORY_OPTIONS = [
-  { id: 'none', label: 'None' },
-  { id: 'crown', label: 'Crown' },
-  { id: 'party_hat', label: 'Party Hat' },
-  { id: 'bow', label: 'Bow' },
-  { id: 'bandana', label: 'Bandana' },
-  { id: 'halo', label: 'Halo' },
-  { id: 'flower', label: 'Flower' },
-];
-
 const SKIN_COLORS = [
   '#ffe0bd', '#ffcc99', '#f5d6b8', '#f8d9c0',
   '#e8b88a', '#d4a373', '#c68642', '#a67c52',
@@ -232,12 +236,6 @@ const ACCESSORY_COLORS = [
   '#8b4513', '#1a1a2e', '#ecf0f1', '#06b6d4',
 ];
 
-const PET_COLORS = [
-  '#8b4513', '#4a3728', '#f39c12', '#ef4444',
-  '#10b981', '#a855f7', '#ecf0f1', '#1a1a2e',
-  '#c0c0c0', '#ff6b9d', '#06b6d4', '#f59e0b',
-];
-
 const AVATAR_CONFIG_VERSION = 2;
 
 const DEFAULT_CONFIG = {
@@ -278,772 +276,427 @@ const CATEGORIES = [
   { id: 'hair', label: 'Hair', icon: Scissors },
   { id: 'eyes', label: 'Eyes', icon: Eye },
   { id: 'mouth', label: 'Mouth', icon: Smile },
-  { id: 'body', label: 'Body', icon: Shirt },
-  { id: 'outfit', label: 'Outfit', icon: SwatchBook },
+  { id: 'body', label: 'Body', icon: Accessibility },
+  { id: 'outfit', label: 'Outfit', icon: Shirt },
   { id: 'pattern', label: 'Pattern', icon: Sparkles },
-  { id: 'background', label: 'BG', icon: Image },
+  { id: 'background', label: 'Background', icon: ImageIcon },
   { id: 'hat', label: 'Hat', icon: Crown },
-  { id: 'face', label: 'Face', icon: WandSparkles },
-  { id: 'accessory', label: 'Gear', icon: Shield },
+  { id: 'face', label: 'Face', icon: ScanFace },
+  { id: 'accessory', label: 'Equipment', icon: Shield },
   { id: 'pet', label: 'Pet', icon: PawPrint },
 ];
 
-function ColorSwatch({ colors, selected, onSelect }) {
-  return (
-    <div className="flex flex-wrap gap-2.5">
-      {colors.map((c) => (
-        <button
-          type="button"
-          key={c}
-          onClick={() => onSelect(c)}
-          className={`relative h-10 w-10 rounded-full border-2 shadow-md transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
-            selected === c
-              ? 'scale-110 border-cream shadow-accent/20'
-              : 'border-white/15 hover:scale-105 hover:border-border-light'
-          }`}
-          style={{ backgroundColor: c }}
-          aria-label={`Colour ${c}`}
-          aria-pressed={selected === c}
-          title={c}
-        >
-          {selected === c ? (
-            <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/12">
-              <Check size={15} className="text-white drop-shadow" strokeWidth={3} />
-            </span>
-          ) : null}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function previewConfigFor(config, key, value) {
-  if (!config || !key) return config;
-  return { ...config, [key]: value };
-}
-
-function ShapeSelector({
-  options,
-  selected,
-  onSelect,
-  lockedItems,
-  configKey,
-  config,
-  onPreview,
-  onPreviewEnd,
-}) {
-  if (config && configKey) {
-    return (
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
-        {options.map((option) => {
-          const isLocked = lockedItems?.has(option.id) || false;
-          return (
-            <AvatarOptionCard
-              key={option.id}
-              option={option}
-              previewConfig={previewConfigFor(config, configKey, option.id)}
-              selected={selected === option.id}
-              locked={isLocked}
-              onSelect={() => onSelect(option.id)}
-              onPreview={() => onPreview?.(configKey, option.id)}
-              onPreviewEnd={onPreviewEnd}
-            />
-          );
-        })}
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-wrap gap-2">
-      {options.map((opt) => {
-        return (
-          <button
-            type="button"
-            key={opt.id}
-            onClick={() => onSelect(opt.id)}
-            aria-pressed={selected === opt.id}
-            className={`min-h-10 rounded-lg border px-3 py-2 text-xs font-semibold transition-all ${
-              selected === opt.id
-                ? 'border-accent bg-accent/10 text-accent'
-                : 'border-border text-muted hover:border-border-light hover:text-cream'
-            }`}
-          >
-            {opt.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function MultiShapeSelector({
-  options,
-  selected,
-  onToggle,
-  lockedItems,
-  configKey,
-  config,
-  onPreview,
-  onPreviewEnd,
-}) {
-  const selectedSet = new Set(selected || []);
-  return (
-    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
-      {options.map((option) => {
-        const isLocked = lockedItems?.has(option.id) || false;
-        const isActive = selectedSet.has(option.id);
-        const previewConfig = {
-          ...config,
-          accessories: [option.id],
-          accessory: option.id,
-        };
-        return (
-          <AvatarOptionCard
-            key={option.id}
-            option={option}
-            previewConfig={previewConfig}
-            selected={isActive}
-            locked={isLocked}
-            onSelect={() => onToggle(option.id)}
-            onPreview={() => onPreview?.(configKey, option.id)}
-            onPreviewEnd={onPreviewEnd}
-          />
-        );
-      })}
-    </div>
-  );
-}
-
-// ── Pet level thresholds (mirror backend) ──
-const PET_LEVEL_THRESHOLDS = [0, 50, 150, 350, 700, 1200, 2000, 3500];
-const PET_LEVEL_NAMES = ['', 'Hatchling', 'Youngling', 'Companion', 'Loyal', 'Brave', 'Mighty', 'Majestic', 'Legendary'];
-const PET_LEVEL_COLORS = ['', '#94a3b8', '#10b981', '#3b82f6', '#a855f7', '#f59e0b', '#f97316', '#ef4444', '#d946ef'];
-
-function getPetLevelInfo(petXp) {
-  let level = 1;
-  for (let i = 0; i < PET_LEVEL_THRESHOLDS.length; i++) {
-    if (petXp >= PET_LEVEL_THRESHOLDS[i]) level = i + 1;
-  }
-  const threshold = PET_LEVEL_THRESHOLDS[level - 1] || 0;
-  const nextThreshold = PET_LEVEL_THRESHOLDS[level] || null;
-  const progress = nextThreshold ? (petXp - threshold) / (nextThreshold - threshold) : 1;
-  return { level, name: PET_LEVEL_NAMES[level], nextName: PET_LEVEL_NAMES[level + 1] || null, xp: petXp, threshold, nextThreshold, progress };
-}
-
-/** Inline SVG preview of a single pet at larger scale */
-function PetPreviewSvg({ petType, colors, level = 1 }) {
-  if (!petType || petType === 'none') return null;
-  const sc = 1 + (level - 1) * 0.04;
-  // Pet center in avatar coords after PET_OFFSETS.right / BIG_PET_OFFSETS.right
-  const isBig = ['dragon', 'phoenix'].includes(petType);
-  const cx = isBig ? 25 : 26;
-  const cy = isBig ? 19 : 20;
-  // Glow from Lv2+ in preview so progression is visible at small size
-  const glowColor = level >= 7 ? '#f59e0b' : level >= 5 ? '#a855f7' : level >= 2 ? '#3b82f6' : null;
-  return (
-    <svg width={48} height={48} viewBox="0 0 12 12" className="rounded-lg" style={{ background: '#111827' }}>
-      <g transform={`translate(6,6) scale(${sc * 1.3}) translate(${-cx},${-cy})`}>
-        {glowColor && <circle cx={cx} cy={cy} r={4} fill={glowColor} opacity={level >= 5 ? 0.25 : 0.18} />}
-        {renderPet(petType, colors, 'right', {})}
-        {renderPetExtras(petType, level, colors, 'right')}
-      </g>
-    </svg>
-  );
-}
-
-/** Tap-to-place overlay for the avatar preview */
-function TapToPlaceOverlay({ config, onPlace }) {
-  const svgRef = useRef(null);
-
-  const handleClick = (e) => {
-    const svg = svgRef.current;
-    if (!svg) return;
-    const rect = svg.getBoundingClientRect();
-    const x = Math.round(((e.clientX - rect.left) / rect.width) * 32);
-    const y = Math.round(((e.clientY - rect.top) / rect.height) * 32);
-    // Clamp to safe bounds
-    onPlace(Math.max(4, Math.min(28, x)), Math.max(4, Math.min(28, y)));
-  };
-
-  const petX = config.pet_x ?? 26;
-  const petY = config.pet_y ?? 20;
-
-  return (
-    <div className="relative cursor-crosshair" onClick={handleClick}>
-      <div className="avatar-idle rounded-md">
-        <AvatarDisplay config={config} size="xl" />
-      </div>
-      {/* Overlay SVG for crosshair indicator */}
-      <svg
-        ref={svgRef}
-        className="absolute inset-0 w-full h-full rounded-md"
-        viewBox="0 0 32 32"
-        style={{ pointerEvents: 'all' }}
-        onClick={(e) => {
-          e.stopPropagation();
-          const svg = e.currentTarget;
-          const rect = svg.getBoundingClientRect();
-          const x = Math.round(((e.clientX - rect.left) / rect.width) * 32);
-          const y = Math.round(((e.clientY - rect.top) / rect.height) * 32);
-          onPlace(Math.max(4, Math.min(28, x)), Math.max(4, Math.min(28, y)));
-        }}
-      >
-        {/* Crosshair at current pet position */}
-        <circle cx={petX} cy={petY} r="1.5" fill="none" stroke="#3b82f6" strokeWidth="0.4" className="pet-place-indicator" />
-        <line x1={petX - 2} y1={petY} x2={petX + 2} y2={petY} stroke="#3b82f6" strokeWidth="0.3" opacity="0.6" />
-        <line x1={petX} y1={petY - 2} x2={petX} y2={petY + 2} stroke="#3b82f6" strokeWidth="0.3" opacity="0.6" />
-      </svg>
-      <p className="text-center text-accent text-[10px] font-medium mt-1.5 flex items-center justify-center gap-1">
-        <Crosshair size={10} /> Tap to place your pet
-      </p>
-    </div>
-  );
-}
-
-/** Get XP for a specific pet from per-pet map, falling back to legacy */
-function getPetXpForPet(config, petType) {
-  if (!petType || petType === 'none') return 0;
-  const xpMap = config.pet_xp_map || {};
-  if (petType in xpMap) return xpMap[petType];
-  return config.pet_xp || 0;
-}
-
-/** Full pet customisation section */
-function PetCustomiser({ config, set, locked, previewProps, petStats }) {
-  const hasPet = config.pet && config.pet !== 'none';
-  const petXp = getPetXpForPet(config, config.pet);
-  const levelInfo = getPetLevelInfo(petXp);
-  const petColors = buildPetColors(config);
-  const bodyColor = config.pet_color || '#8b4513';
-
-  // Helper to set a part color, clearing empty strings to inherit
-  const setPartColor = (key, val) => {
-    set(key, val === bodyColor ? '' : val);
-  };
-
-  return (
-    <div className="space-y-4">
-      {/* Companion picker */}
-      <div>
-        <p className="text-muted text-xs font-medium mb-2">Companion</p>
-        <ShapeSelector options={PET_OPTIONS} selected={config.pet} onSelect={(v) => set('pet', v)} lockedItems={locked} configKey="pet" config={config} {...previewProps} />
-      </div>
-
-      {hasPet && (
-        <>
-          {/* ── Pet Level & XP Info ── */}
-          <div className="bg-surface-raised/50 rounded-md p-3 border border-border">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Heart size={14} className="fill-current" style={{ color: PET_LEVEL_COLORS[levelInfo.level] }} />
-                <span className="text-cream text-xs font-bold" style={{ color: PET_LEVEL_COLORS[levelInfo.level] }}>
-                  Lv{levelInfo.level} {levelInfo.name}
-                </span>
-              </div>
-              <span className="text-muted text-[10px] font-medium">
-                {levelInfo.nextThreshold
-                  ? `${petXp} / ${levelInfo.nextThreshold} XP`
-                  : `${petXp} XP — MAX`}
-              </span>
-            </div>
-
-            {/* XP Progress bar */}
-            {levelInfo.nextThreshold && (
-              <div className="mb-2">
-                <div className="h-2 bg-navy rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{
-                      width: `${Math.round(levelInfo.progress * 100)}%`,
-                      backgroundColor: PET_LEVEL_COLORS[levelInfo.level],
-                    }}
-                  />
-                </div>
-                <p className="text-muted text-[10px] mt-1">
-                  {levelInfo.nextThreshold - petXp} XP to Level {levelInfo.level + 1} ({levelInfo.nextName})
-                </p>
-              </div>
-            )}
-
-            {/* All Level Previews */}
-            <div className="overflow-x-auto -mx-1 px-1 mt-2">
-              <div className="flex gap-2" style={{ minWidth: 'max-content' }}>
-                {PET_LEVEL_NAMES.slice(1).map((name, i) => {
-                  const lv = i + 1;
-                  const isCurrent = lv === levelInfo.level;
-                  const isPast = lv < levelInfo.level;
-                  const isFuture = lv > levelInfo.level;
-                  return (
-                    <div
-                      key={lv}
-                      className={`text-center flex-shrink-0 rounded-lg p-1 ${
-                        isCurrent ? 'bg-accent/10 ring-1 ring-accent/40' : ''
-                      }`}
-                      style={{ opacity: isFuture ? 0.35 : isPast ? 0.55 : 1 }}
-                    >
-                      <p className="text-[9px] font-medium mb-0.5" style={{ color: PET_LEVEL_COLORS[lv] }}>
-                        {isCurrent ? '▸ ' : ''}Lv{lv}
-                      </p>
-                      <PetPreviewSvg petType={config.pet} colors={petColors} level={lv} />
-                      <p className="text-muted text-[8px] mt-0.5">{name}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* ── Position ── */}
-          <div>
-            <p className="text-muted text-xs font-medium mb-2">Position</p>
-            <ShapeSelector options={PET_POSITION_OPTIONS} selected={config.pet_position || 'right'} onSelect={(v) => set('pet_position', v)} />
-          </div>
-
-          {/* ── Multi-part Colouring ── */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-muted text-xs font-medium">Body Colour</p>
-              <button
-                onClick={() => {
-                  set('pet_color_body', '');
-                  set('pet_color_ears', '');
-                  set('pet_color_tail', '');
-                  set('pet_color_accent', '');
-                }}
-                className="text-[10px] text-accent hover:text-accent/80 transition-colors"
-              >
-                Reset all to match
-              </button>
-            </div>
-            <ColorSwatch colors={PET_COLORS} selected={config.pet_color} onSelect={(v) => set('pet_color', v)} />
-          </div>
-
-          <div>
-            <p className="text-muted text-xs font-medium mb-2">Ears</p>
-            <ColorSwatch
-              colors={PET_COLORS}
-              selected={config.pet_color_ears || config.pet_color || '#8b4513'}
-              onSelect={(v) => setPartColor('pet_color_ears', v)}
-            />
-          </div>
-
-          <div>
-            <p className="text-muted text-xs font-medium mb-2">Tail</p>
-            <ColorSwatch
-              colors={PET_COLORS}
-              selected={config.pet_color_tail || config.pet_color || '#8b4513'}
-              onSelect={(v) => setPartColor('pet_color_tail', v)}
-            />
-          </div>
-
-          <div>
-            <p className="text-muted text-xs font-medium mb-2">Accent</p>
-            <ColorSwatch
-              colors={PET_COLORS}
-              selected={config.pet_color_accent || config.pet_color || '#8b4513'}
-              onSelect={(v) => setPartColor('pet_color_accent', v)}
-            />
-          </div>
-
-          {/* Pet Accessories */}
-          <div>
-            <p className="text-muted text-xs font-medium mb-2">Pet Accessory</p>
-            <ShapeSelector options={PET_ACCESSORY_OPTIONS} selected={config.pet_accessory || 'none'} onSelect={(v) => set('pet_accessory', v)} configKey="pet_accessory" config={config} {...previewProps} />
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-function CategoryContent({ category, config, set, lockedByCategory, onPreview, onPreviewEnd }) {
-  const locked = lockedByCategory[category] || new Set();
-  const previewProps = { onPreview, onPreviewEnd };
-  switch (category) {
-    case 'head':
-      return (
-        <div className="space-y-3">
-          <p className="text-muted text-xs font-medium">Shape</p>
-          <ShapeSelector options={HEAD_OPTIONS} selected={config.head} onSelect={(v) => set('head', v)} lockedItems={locked} configKey="head" config={config} {...previewProps} />
-        </div>
-      );
-    case 'skin':
-      return (
-        <div className="space-y-3">
-          <p className="text-muted text-xs font-medium">Colour</p>
-          <ColorSwatch colors={SKIN_COLORS} selected={config.head_color} onSelect={(v) => set('head_color', v)} />
-        </div>
-      );
-    case 'hair':
-      return (
-        <div className="space-y-3">
-          <p className="text-muted text-xs font-medium">Style</p>
-          <ShapeSelector options={HAIR_OPTIONS} selected={config.hair} onSelect={(v) => set('hair', v)} lockedItems={locked} configKey="hair" config={config} {...previewProps} />
-          <p className="text-muted text-xs font-medium">Colour</p>
-          <ColorSwatch colors={HAIR_COLORS} selected={config.hair_color} onSelect={(v) => set('hair_color', v)} />
-        </div>
-      );
-    case 'eyes':
-      return (
-        <div className="space-y-3">
-          <p className="text-muted text-xs font-medium">Style</p>
-          <ShapeSelector options={EYES_OPTIONS} selected={config.eyes} onSelect={(v) => set('eyes', v)} lockedItems={locked} configKey="eyes" config={config} {...previewProps} />
-          <p className="text-muted text-xs font-medium">Colour</p>
-          <ColorSwatch colors={EYE_COLORS} selected={config.eye_color} onSelect={(v) => set('eye_color', v)} />
-        </div>
-      );
-    case 'mouth':
-      return (
-        <div className="space-y-3">
-          <p className="text-muted text-xs font-medium">Style</p>
-          <ShapeSelector options={MOUTH_OPTIONS} selected={config.mouth} onSelect={(v) => set('mouth', v)} lockedItems={locked} configKey="mouth" config={config} {...previewProps} />
-          <p className="text-muted text-xs font-medium">Colour</p>
-          <ColorSwatch colors={MOUTH_COLORS} selected={config.mouth_color} onSelect={(v) => set('mouth_color', v)} />
-        </div>
-      );
-    case 'body':
-      return (
-        <div className="space-y-3">
-          <p className="text-muted text-xs font-medium">Shape</p>
-          <ShapeSelector options={BODY_OPTIONS} selected={config.body} onSelect={(v) => set('body', v)} configKey="body" config={config} />
-        </div>
-      );
-    case 'outfit':
-      return (
-        <div className="space-y-3">
-          <p className="text-muted text-xs font-medium">Colour</p>
-          <ColorSwatch colors={BODY_COLORS} selected={config.body_color} onSelect={(v) => set('body_color', v)} />
-        </div>
-      );
-    case 'pattern':
-      return (
-        <div className="space-y-3">
-          <p className="text-muted text-xs font-medium">Pattern</p>
-          <ShapeSelector options={OUTFIT_PATTERN_OPTIONS} selected={config.outfit_pattern} onSelect={(v) => set('outfit_pattern', v)} lockedItems={locked} configKey="outfit_pattern" config={config} {...previewProps} />
-        </div>
-      );
-    case 'background':
-      return (
-        <div className="space-y-3">
-          <p className="text-muted text-xs font-medium">Colour</p>
-          <ColorSwatch colors={BG_COLORS} selected={config.bg_color} onSelect={(v) => set('bg_color', v)} />
-        </div>
-      );
-    case 'hat':
-      return (
-        <div className="space-y-3">
-          <p className="text-muted text-xs font-medium">Style</p>
-          <ShapeSelector options={HAT_OPTIONS} selected={config.hat} onSelect={(v) => set('hat', v)} lockedItems={locked} configKey="hat" config={config} {...previewProps} />
-          <p className="text-muted text-xs font-medium">Colour</p>
-          <ColorSwatch colors={HAT_COLORS} selected={config.hat_color} onSelect={(v) => set('hat_color', v)} />
-        </div>
-      );
-    case 'face':
-      return (
-        <div className="space-y-3">
-          <p className="text-muted text-xs font-medium">Extra</p>
-          <ShapeSelector options={FACE_EXTRA_OPTIONS} selected={config.face_extra} onSelect={(v) => set('face_extra', v)} lockedItems={locked} configKey="face_extra" config={config} {...previewProps} />
-        </div>
-      );
-    case 'accessory': {
-      // Multi-accessory: read from accessories array, fall back to legacy single
-      const currentAccessories = Array.isArray(config.accessories) && config.accessories.length > 0
-        ? config.accessories
-        : (config.accessory && config.accessory !== 'none' ? [config.accessory] : []);
-      const toggleAccessory = (id) => {
-        const cur = new Set(currentAccessories);
-        if (cur.has(id)) cur.delete(id); else cur.add(id);
-        const arr = [...cur];
-        // set() uses functional updates internally so sequential calls chain correctly
-        set('accessories', arr);
-        set('accessory', arr.length > 0 ? arr[0] : 'none');
-      };
-      const clearAll = () => {
-        set('accessories', []);
-        set('accessory', 'none');
-      };
-      return (
-        <div className="space-y-3">
-          <p className="text-muted text-xs font-medium">Gear <span className="text-muted/50">(select multiple)</span></p>
-          <MultiShapeSelector options={ACCESSORY_OPTIONS} selected={currentAccessories} onToggle={toggleAccessory} lockedItems={locked} configKey="accessory" config={config} {...previewProps} />
-          {currentAccessories.length > 0 && (
-            <button onClick={clearAll} className="text-[10px] text-crimson hover:text-crimson/80 transition-colors">
-              Clear all gear
-            </button>
-          )}
-          <p className="text-muted text-xs font-medium">Colour</p>
-          <ColorSwatch colors={ACCESSORY_COLORS} selected={config.accessory_color} onSelect={(v) => set('accessory_color', v)} />
-        </div>
-      );
-    }
-    case 'pet':
-      return <PetCustomiser config={config} set={set} locked={locked} previewProps={previewProps} />;
-    default:
-      return null;
-  }
-}
-
-const EDITOR_TO_ITEM_CATEGORY = {
-  head: 'head', hair: 'hair', eyes: 'eyes', mouth: 'mouth',
-  hat: 'hat', accessory: 'accessory', face: 'face_extra',
-  pattern: 'outfit_pattern', pet: 'pet',
+const AVATAR_CATALOG = {
+  head: { configKey: 'head', itemCategory: 'head', options: HEAD_OPTIONS },
+  skin: { colourKey: 'head_color', colours: SKIN_COLORS },
+  hair: { configKey: 'hair', itemCategory: 'hair', options: HAIR_OPTIONS, colourKey: 'hair_color', colours: HAIR_COLORS },
+  eyes: { configKey: 'eyes', itemCategory: 'eyes', options: EYES_OPTIONS, colourKey: 'eye_color', colours: EYE_COLORS },
+  mouth: { configKey: 'mouth', itemCategory: 'mouth', options: MOUTH_OPTIONS, colourKey: 'mouth_color', colours: MOUTH_COLORS },
+  body: { configKey: 'body', itemCategory: 'body', options: BODY_OPTIONS },
+  outfit: { colourKey: 'body_color', colours: BODY_COLORS },
+  pattern: { configKey: 'outfit_pattern', itemCategory: 'outfit_pattern', options: OUTFIT_PATTERN_OPTIONS },
+  background: { colourKey: 'bg_color', colours: BG_COLORS },
+  hat: { configKey: 'hat', itemCategory: 'hat', options: HAT_OPTIONS, colourKey: 'hat_color', colours: HAT_COLORS },
+  face: { configKey: 'face_extra', itemCategory: 'face_extra', options: FACE_EXTRA_OPTIONS },
+  accessory: { configKey: 'accessory', itemCategory: 'accessory', options: ACCESSORY_OPTIONS, colourKey: 'accessory_color', colours: ACCESSORY_COLORS, multiple: true },
+  pet: { itemCategory: 'pet', options: PET_OPTIONS },
 };
 
-function CategoryStrip({ openCategory, onSelect }) {
-  const scrollRef = useRef(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-
-  const checkScroll = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    setCanScrollLeft(el.scrollLeft > 4);
-    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
-  }, []);
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    checkScroll();
-    el.addEventListener('scroll', checkScroll, { passive: true });
-    window.addEventListener('resize', checkScroll);
-    return () => {
-      el.removeEventListener('scroll', checkScroll);
-      window.removeEventListener('resize', checkScroll);
-    };
-  }, [checkScroll]);
-
-  const scroll = (dir) => {
-    const el = scrollRef.current;
-    if (!el) return;
-    el.scrollBy({ left: dir * 120, behavior: 'smooth' });
-  };
-
-  return (
-    <div className="relative flex-shrink-0 border-b border-border bg-surface/95 px-1 py-2 backdrop-blur md:ml-[320px] md:px-3 md:py-3">
-      {/* Left arrow */}
-      {canScrollLeft && (
-        <button
-          onClick={() => scroll(-1)}
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 flex items-center justify-center rounded-full bg-surface/90 border border-border text-muted hover:text-cream"
-          aria-label="Scroll left"
-        >
-          <ChevronLeft size={14} />
-        </button>
-      )}
-
-      {/* Scrollable strip */}
-      <div
-        ref={scrollRef}
-        className="flex gap-2 overflow-x-auto pb-0.5 px-2 scrollbar-hide"
-      >
-        {CATEGORIES.map((cat) => {
-          const Icon = cat.icon;
-          return (
-            <button
-              type="button"
-              key={cat.id}
-              onClick={() => onSelect(cat.id)}
-              aria-pressed={openCategory === cat.id}
-              className={`flex min-h-11 flex-shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition-all ${
-                openCategory === cat.id
-                  ? 'border-accent bg-accent/15 text-accent shadow-sm shadow-accent/10'
-                  : 'border-border text-muted hover:border-border-light hover:bg-surface-raised/50 hover:text-cream'
-              }`}
-            >
-              <Icon size={15} aria-hidden="true" />
-              {cat.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Right arrow */}
-      {canScrollRight && (
-        <button
-          onClick={() => scroll(1)}
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 flex items-center justify-center rounded-full bg-surface/90 border border-border text-muted hover:text-cream"
-          aria-label="Scroll right"
-        >
-          <ChevronRight size={14} />
-        </button>
-      )}
-    </div>
-  );
-}
+const RANDOMISE_RECIPE = {
+  optionGroups: [
+    { key: 'head', itemCategory: 'head', options: HEAD_OPTIONS },
+    { key: 'hair', itemCategory: 'hair', options: HAIR_OPTIONS },
+    { key: 'eyes', itemCategory: 'eyes', options: EYES_OPTIONS },
+    { key: 'mouth', itemCategory: 'mouth', options: MOUTH_OPTIONS },
+    { key: 'body', itemCategory: 'body', options: BODY_OPTIONS },
+    { key: 'outfit_pattern', itemCategory: 'outfit_pattern', options: OUTFIT_PATTERN_OPTIONS },
+    { key: 'hat', itemCategory: 'hat', options: HAT_OPTIONS },
+    { key: 'face_extra', itemCategory: 'face_extra', options: FACE_EXTRA_OPTIONS },
+  ],
+  colourGroups: [
+    { key: 'head_color', values: SKIN_COLORS },
+    { key: 'hair_color', values: HAIR_COLORS },
+    { key: 'eye_color', values: EYE_COLORS },
+    { key: 'mouth_color', values: MOUTH_COLORS },
+    { key: 'body_color', values: BODY_COLORS },
+    { key: 'bg_color', values: BG_COLORS },
+    { key: 'hat_color', values: HAT_COLORS },
+    { key: 'accessory_color', values: ACCESSORY_COLORS },
+  ],
+  accessoryGroup: { itemCategory: 'accessory', options: ACCESSORY_OPTIONS, chance: 0.5 },
+};
 
 export default function AvatarEditor() {
   const { user, updateUser } = useAuth();
   const navigate = useNavigate();
-  const [config, setConfig] = useState(() => ({
+  const initialConfig = useMemo(() => normalizeAvatarPetColors({
+    ...DEFAULT_CONFIG,
+    ...(user?.avatar_config || {}),
+  }), [user?.avatar_config]);
+  const [config, setConfig] = useState(() => normalizeAvatarPetColors({
     ...DEFAULT_CONFIG,
     ...(user?.avatar_config || {}),
   }));
-  const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState('');
-  const [openCategory, setOpenCategory] = useState('head');
-  const [lockedByCategory, setLockedByCategory] = useState({});
+  const [savedConfig, setSavedConfig] = useState(initialConfig);
+  const [history, setHistory] = useState([]);
   const [preview, setPreview] = useState(null);
+  const [status, setStatus] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [openCategory, setOpenCategory] = useState('head');
+  const [catalogState, setCatalogState] = useState(AVATAR_CATALOG_STATE.loading);
+  const [lockedByCategory, setLockedByCategory] = useState({});
+  const [lockedItemMeta, setLockedItemMeta] = useState({});
+  const [discardOpen, setDiscardOpen] = useState(false);
+  const [externalConflictState, setExternalConflictState] = useState(
+    createAvatarExternalConflictState,
+  );
+  const bypassNextNavigationRef = useRef(false);
+  const programmaticExitPendingRef = useRef(false);
+  const mountedRef = useRef(true);
+  const savePendingRef = useRef(false);
+  const saveRequestRef = useRef(0);
+  const saveNavigationTimerRef = useRef(null);
+  const externalConflictStateRef = useRef(externalConflictState);
+  const previewRegistryRef = useRef(null);
+  if (previewRegistryRef.current === null) {
+    previewRegistryRef.current = createAvatarPreviewRegistry();
+  }
 
-  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const dirty = !configsEqual(config, savedConfig);
+  const displayConfig = buildDisplayConfig(config, preview);
+  const shouldBlockNavigation = useCallback(() => {
+    const bypass = bypassNextNavigationRef.current;
+    if (bypass) bypassNextNavigationRef.current = false;
+    return shouldBlockAvatarNavigation({
+      dirty,
+      saving: savePendingRef.current,
+      bypass,
+    });
+  }, [dirty]);
+  const blocker = useBlocker(shouldBlockNavigation);
 
-  // Fetch avatar items to determine locks
+  const clearPreviews = useCallback(() => {
+    const transition = clearAvatarPreviews(previewRegistryRef.current);
+    previewRegistryRef.current = transition.registry;
+    setPreview(transition.preview);
+  }, []);
+
+  const updateExternalConflictState = useCallback((nextState) => {
+    externalConflictStateRef.current = nextState;
+    setExternalConflictState(nextState);
+  }, []);
+
+  const commitChange = useCallback((nextConfig) => {
+    if (savePendingRef.current) return;
+    if (configsEqual(config, nextConfig)) return;
+    setHistory((items) => pushAvatarHistory(items, config));
+    setConfig(nextConfig);
+    clearPreviews();
+    setStatus('');
+  }, [clearPreviews, config]);
+
+  const changeValue = useCallback((key, value) => {
+    if (!canCommitAvatarCatalogChange(catalogState, key)) return;
+    commitChange(applyAvatarChange(config, key, value));
+  }, [catalogState, commitChange, config]);
+
+  const patchConfig = useCallback((patch) => {
+    if (Object.keys(patch).some((key) => !canCommitAvatarCatalogChange(catalogState, key))) return;
+    commitChange(normalizeAvatarPetColors({ ...config, ...patch }));
+  }, [catalogState, commitChange, config]);
+
+  const toggleAccessory = useCallback((itemId) => {
+    if (!canCommitAvatarCatalogChange(catalogState, 'accessories')) return;
+    commitChange(toggleAvatarAccessory(config, itemId));
+  }, [catalogState, commitChange, config]);
+
+  const placePet = useCallback((x, y) => {
+    commitChange({ ...config, pet_x: x, pet_y: y });
+  }, [commitChange, config]);
+
+  const undo = useCallback(() => {
+    if (savePendingRef.current) return;
+    const result = undoAvatarChange(history, config);
+    setHistory(result.history);
+    setConfig(result.config);
+    clearPreviews();
+    setStatus('');
+  }, [clearPreviews, config, history]);
+
+  useEffect(() => {
+    const userCfg = normalizeAvatarPetColors({ ...initialConfig });
+    const observation = observeIncomingAvatarConfig({
+      state: externalConflictStateRef.current,
+      incomingConfig: userCfg,
+      saving: savePendingRef.current,
+      config,
+      savedConfig,
+      history,
+    });
+    updateExternalConflictState(observation.state);
+    const { reconciliation } = observation;
+    if (!reconciliation || reconciliation.action === 'ignore') return;
+    if (reconciliation.action === 'conflict') return;
+    setConfig(reconciliation.config);
+    setSavedConfig(reconciliation.savedConfig);
+    setHistory(reconciliation.history);
+    setStatus(reconciliation.status);
+    clearPreviews();
+  }, [clearPreviews, initialConfig, updateExternalConflictState]);
+
+  useEffect(() => {
+    const resolution = synchronizeAvatarConflictWhenClean({
+      state: externalConflictStateRef.current,
+      saving,
+      config,
+      savedConfig,
+      history,
+    });
+    if (!resolution.reconciliation) return;
+    updateExternalConflictState(resolution.state);
+    setConfig(resolution.reconciliation.config);
+    setSavedConfig(resolution.reconciliation.savedConfig);
+    setHistory(resolution.reconciliation.history);
+    setStatus(resolution.reconciliation.status);
+    clearPreviews();
+  }, [
+    clearPreviews,
+    config,
+    history,
+    savedConfig,
+    saving,
+    updateExternalConflictState,
+  ]);
+
   const fetchLocks = useCallback(async () => {
     try {
       const items = await api('/api/avatar/items');
-      if (!Array.isArray(items)) return;
-      const lockMap = {};
-      for (const item of items) {
-        if (!item.unlocked && !item.is_default) {
-          if (!lockMap[item.category]) lockMap[item.category] = new Set();
-          lockMap[item.category].add(item.item_id);
-        }
-      }
-      setLockedByCategory(lockMap);
+      const maps = buildAvatarEntitlementMaps(items);
+      setLockedByCategory(maps.lockedByCategory);
+      setLockedItemMeta(maps.itemMetaByCategory);
+      setCatalogState(AVATAR_CATALOG_STATE.ready);
     } catch {
-      // If fetch fails, don't lock anything
+      setLockedByCategory({});
+      setLockedItemMeta({});
+      setCatalogState(AVATAR_CATALOG_STATE.error);
     }
   }, []);
 
-  useEffect(() => { fetchLocks(); }, [fetchLocks]);
-
-  // Reset config from user when avatar_config changes
   useEffect(() => {
-    if (user?.avatar_config) {
-      setConfig((prev) => {
-        // Only reset if user config actually changed (e.g. after save from another tab)
-        const userCfg = { ...DEFAULT_CONFIG, ...(user.avatar_config || {}) };
-        if (JSON.stringify(prev) === JSON.stringify(userCfg)) return prev;
-        return userCfg;
-      });
-    }
-  }, [user?.avatar_config]);
+    fetchLocks();
+  }, [fetchLocks]);
 
-  // Escape key to go back
-  useEffect(() => {
-    const handler = (e) => { if (e.key === 'Escape') goBack(); };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [goBack]);
-
-  // Compute display config (with preview overlay)
-  const displayConfig = preview ? { ...config, [preview.key]: preview.value } : config;
-
-  const editorLocks = {};
-  for (const [editorCat, itemCat] of Object.entries(EDITOR_TO_ITEM_CATEGORY)) {
-    if (lockedByCategory[itemCat]) {
-      editorLocks[editorCat] = lockedByCategory[itemCat];
-    }
-  }
-
-  const set = (key, value) => {
-    setConfig((prev) => {
-      const next = { ...prev, [key]: value };
-      // When switching pets, update pet_xp to the new pet's XP from the map
-      if (key === 'pet') {
-        const xpMap = next.pet_xp_map || {};
-        next.pet_xp = (value && value !== 'none' && value in xpMap) ? xpMap[value] : 0;
+  const editorLocks = useMemo(() => {
+    const mapped = {};
+    for (const [editorCategory, entry] of Object.entries(AVATAR_CATALOG)) {
+      if (entry.itemCategory && lockedByCategory[entry.itemCategory]) {
+        mapped[editorCategory] = lockedByCategory[entry.itemCategory];
       }
-      return next;
-    });
-    setMsg('');
-  };
-
-  const handlePreview = useCallback((key, value) => setPreview({ key, value }), []);
-  const handlePreviewEnd = useCallback(() => setPreview(null), []);
-
-  const save = async () => {
-    setSaving(true);
-    setMsg('');
-    try {
-      const res = await api('/api/avatar', { method: 'PUT', body: { config } });
-      updateUser({ avatar_config: res.avatar_config || config });
-      setMsg('Saved!');
-      setTimeout(() => goBack(), 600);
-    } catch (err) {
-      setMsg(err.message || 'Failed to save');
-    } finally {
-      setSaving(false);
-      setTimeout(() => setMsg(''), 3000);
     }
-  };
+    return mapped;
+  }, [lockedByCategory]);
 
-  const savedConfig = { ...DEFAULT_CONFIG, ...(user?.avatar_config || {}) };
-  const isDirty = JSON.stringify(config) !== JSON.stringify(savedConfig);
+  const randomise = useCallback(() => {
+    if (savePendingRef.current) return;
+    if (!canRandomiseAvatar(catalogState)) return;
+    commitChange(randomiseAvatarConfig(config, RANDOMISE_RECIPE, lockedByCategory));
+  }, [catalogState, commitChange, config, lockedByCategory]);
+
+  const navigateOutOfEditor = useCallback(() => {
+    const exit = getAvatarExitNavigation(window.history.state);
+    bypassNextNavigationRef.current = true;
+    navigate(exit.to, exit.options);
+  }, [navigate]);
+
+  const requestExit = useCallback(() => {
+    if (savePendingRef.current) return;
+    if (dirty) {
+      programmaticExitPendingRef.current = true;
+      setDiscardOpen(true);
+    } else {
+      navigateOutOfEditor();
+    }
+  }, [dirty, navigateOutOfEditor]);
+
+  const cancelDiscard = useCallback(() => {
+    if (savePendingRef.current) return;
+    programmaticExitPendingRef.current = false;
+    if (blocker.state === 'blocked') blocker.reset();
+    setDiscardOpen(false);
+  }, [blocker]);
+
+  const discardAndLeave = useCallback(() => {
+    if (savePendingRef.current) return;
+    setDiscardOpen(false);
+    if (blocker.state === 'blocked') {
+      blocker.proceed();
+      return;
+    }
+    if (programmaticExitPendingRef.current) {
+      programmaticExitPendingRef.current = false;
+      navigateOutOfEditor();
+    }
+  }, [blocker, navigateOutOfEditor]);
+
+  const selectCategory = useCallback((category) => {
+    if (savePendingRef.current) return;
+    setOpenCategory(category);
+    clearPreviews();
+  }, [clearPreviews]);
+
+  const startPreview = useCallback((sourceId, key, value) => {
+    if (savePendingRef.current) return;
+    const transition = startAvatarPreview(previewRegistryRef.current, sourceId, key, value);
+    previewRegistryRef.current = transition.registry;
+    setPreview(transition.preview);
+  }, []);
+
+  const endPreview = useCallback((sourceId) => {
+    if (savePendingRef.current) return;
+    const transition = endAvatarPreview(previewRegistryRef.current, sourceId);
+    previewRegistryRef.current = transition.registry;
+    setPreview(transition.preview);
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key !== 'Escape' || savePendingRef.current) return;
+      if (!discardOpen) requestExit();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [discardOpen, requestExit]);
+
+  useEffect(() => {
+    const beforeUnload = (event) => {
+      if (!dirty && !savePendingRef.current) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', beforeUnload);
+    return () => window.removeEventListener('beforeunload', beforeUnload);
+  }, [dirty]);
+
+  useEffect(() => {
+    if (blocker.state !== 'blocked') return;
+    if (savePendingRef.current) {
+      blocker.reset();
+      return;
+    }
+    programmaticExitPendingRef.current = false;
+    setDiscardOpen(true);
+  }, [blocker]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      saveRequestRef.current += 1;
+      if (saveNavigationTimerRef.current) {
+        window.clearTimeout(saveNavigationTimerRef.current);
+      }
+    };
+  }, []);
+
+  const save = useCallback(async () => {
+    if (savePendingRef.current || !dirty) return;
+    savePendingRef.current = true;
+    const requestToken = ++saveRequestRef.current;
+    setSaving(true);
+    setStatus('');
+    clearPreviews();
+    setDiscardOpen(false);
+    programmaticExitPendingRef.current = false;
+    try {
+      const response = await api('/api/avatar', { method: 'PUT', body: { config } });
+      if (!isCurrentAvatarSave(mountedRef.current, saveRequestRef.current, requestToken)) return;
+      const persisted = normalizeAvatarPetColors(response.avatar_config || config);
+      const settledConflict = settleAvatarSaveConflict({
+        state: externalConflictStateRef.current,
+        succeeded: true,
+        config,
+        savedConfig,
+        history,
+      });
+      updateExternalConflictState(settledConflict.state);
+      updateUser({ avatar_config: persisted });
+      setConfig(persisted);
+      setSavedConfig(persisted);
+      setHistory([]);
+      clearPreviews();
+      setStatus('Saved!');
+      saveNavigationTimerRef.current = window.setTimeout(() => {
+        if (!isCurrentAvatarSave(mountedRef.current, saveRequestRef.current, requestToken)) return;
+        navigateOutOfEditor();
+      }, 600);
+    } catch (error) {
+      if (!isCurrentAvatarSave(mountedRef.current, saveRequestRef.current, requestToken)) return;
+      savePendingRef.current = false;
+      setSaving(false);
+      const settledConflict = settleAvatarSaveConflict({
+        state: externalConflictStateRef.current,
+        succeeded: false,
+        config,
+        savedConfig,
+        history,
+      });
+      updateExternalConflictState(settledConflict.state);
+      if (settledConflict.reconciliation?.action === 'synchronize') {
+        setConfig(settledConflict.reconciliation.config);
+        setSavedConfig(settledConflict.reconciliation.savedConfig);
+        setHistory(settledConflict.reconciliation.history);
+        clearPreviews();
+      }
+      setStatus(getAvatarSaveErrorMessage(error));
+    }
+  }, [
+    clearPreviews,
+    config,
+    dirty,
+    history,
+    navigateOutOfEditor,
+    savedConfig,
+    updateExternalConflictState,
+    updateUser,
+  ]);
 
   return (
-    <div className="avatar-editor-shell fixed inset-0 z-50 flex flex-col bg-surface">
-      {/* ─── Pinned top: back button + avatar preview ─── */}
-      <div className="avatar-preview-stage relative flex-shrink-0 overflow-hidden border-b border-border bg-surface-raised/50 px-4 pb-5 pt-3 md:absolute md:inset-y-0 md:left-0 md:flex md:w-[320px] md:flex-col md:border-b-0 md:border-r md:px-6 md:py-5">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={goBack}
-              className="p-1.5 rounded-lg hover:bg-surface-raised transition-colors text-muted hover:text-cream"
-              aria-label="Back"
-            >
-              <ArrowLeft size={18} />
-            </button>
-            <div>
-              <h2 className="font-heading text-base font-semibold text-cream">Customise Avatar</h2>
-              <p className="hidden text-[11px] text-muted md:block">Build a hero that feels completely yours.</p>
-            </div>
-          </div>
-          <button
-            onClick={save}
-            disabled={saving || !isDirty}
-            className="game-btn game-btn-blue flex min-h-10 items-center gap-1.5 !rounded-xl !px-4 !py-2 !text-xs shadow-lg shadow-accent/10"
-          >
-            {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-            {saving ? 'Saving...' : msg || 'Save avatar'}
-          </button>
-        </div>
-        <div className="relative flex flex-1 items-center justify-center py-1 md:py-6">
-          <div className="avatar-stage-halo absolute h-52 w-52 rounded-full" />
-          <span className="absolute left-3 top-1 text-2xl text-accent/30">✦</span>
-          <span className="absolute bottom-2 right-4 text-xl text-gold/35">✧</span>
-          <div className="relative z-10 rounded-[28px] border border-white/10 bg-surface-raised/35 p-3 shadow-2xl backdrop-blur-sm">
-          {openCategory === 'pet' && config.pet_position === 'custom' && config.pet && config.pet !== 'none' ? (
-            <TapToPlaceOverlay
-              config={displayConfig}
-              onPlace={(x, y) => {
-                setConfig((prev) => ({ ...prev, pet_x: x, pet_y: y }));
-                setMsg('');
-              }}
-            />
-          ) : (
-            <div className="avatar-idle rounded-full transition-shadow duration-300">
-              <AvatarDisplay config={displayConfig} size="xl" />
-            </div>
-          )}
-          </div>
-        </div>
-        {isDirty ? (
-          <p className="hidden items-center justify-center gap-1.5 text-[11px] font-medium text-amber-300 md:flex">
-            <span className="h-1.5 w-1.5 rounded-full bg-amber-300" /> Unsaved changes
-          </p>
-        ) : (
-          <p className="hidden text-center text-[11px] text-muted md:block">Your avatar is saved</p>
-        )}
+    <div className="avatar-editor-shell">
+      <AvatarEditorToolbar
+        canUndo={history.length > 0}
+        dirty={dirty}
+        randomiseDisabled={!canRandomiseAvatar(catalogState)}
+        saving={saving}
+        status={getPersistentAvatarStatus(status, externalConflictState)}
+        onBack={requestExit}
+        onRandomise={randomise}
+        onUndo={undo}
+        onSave={save}
+      />
+      <div className="avatar-editor-workspace" aria-busy={saving} inert={saving ? '' : undefined}>
+        <AvatarCategoryRail categories={CATEGORIES} activeCategory={openCategory} onSelect={selectCategory} />
+        <AvatarStage
+          config={displayConfig}
+          placementMode={openCategory === 'pet' && config.pet_position === 'custom' && config.pet !== 'none'}
+          previewMessage={preview ? 'Previewing a locked item' : ''}
+          onPlacePet={placePet}
+        />
+        <AvatarOptionsPanel
+          catalogState={catalogState}
+          catalogNotice={getAvatarCatalogNotice(catalogState)}
+          category={openCategory}
+          config={config}
+          lockedByCategory={editorLocks}
+          lockedItemMeta={lockedItemMeta}
+          catalog={AVATAR_CATALOG}
+          onChange={changeValue}
+          onPatch={patchConfig}
+          onToggleAccessory={toggleAccessory}
+          onPreview={startPreview}
+          onPreviewEnd={endPreview}
+        />
       </div>
-
-      {/* ─── Category strip (pinned, horizontal scroll with arrows) ─── */}
-      <CategoryStrip openCategory={openCategory} onSelect={setOpenCategory} />
-
-      {/* ─── Scrollable options area ─── */}
-      <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5 md:ml-[320px] md:p-6">
-        {openCategory ? (
-          <CategoryContent
-            category={openCategory}
-            config={config}
-            set={set}
-            lockedByCategory={editorLocks}
-            onPreview={handlePreview}
-            onPreviewEnd={handlePreviewEnd}
-          />
-        ) : null}
-      </div>
+      <AvatarDiscardDialog open={discardOpen} onCancel={cancelDiscard} onDiscard={discardAndLeave} />
     </div>
   );
 }

@@ -27,7 +27,11 @@ test('every avatar artwork family contains visible finish details', () => {
 });
 
 test('legacy avatar option identifiers remain available', () => {
-  const editor = readFileSync(new URL('../AvatarEditor.jsx', import.meta.url), 'utf8');
+  const optionSources = [
+    '../AvatarEditor.jsx',
+    '../avatar-editor/avatarPetCatalog.js',
+  ].map((file) => readFileSync(new URL(file, import.meta.url), 'utf8')).join('\n');
+
   for (const id of [
     'round', 'oval', 'square', 'diamond', 'heart', 'long', 'triangle', 'pear', 'wide',
     'short', 'long', 'spiky', 'curly', 'mohawk', 'buzz', 'ponytail', 'bun',
@@ -36,6 +40,6 @@ test('legacy avatar option identifiers remain available', () => {
     'crown', 'wizard', 'beanie', 'cap', 'pirate', 'headphones', 'tiara', 'horns',
     'cat', 'dog', 'dragon', 'owl', 'bunny', 'phoenix',
   ]) {
-    assert.match(editor, new RegExp(`id: '${id}'`), `missing legacy avatar id ${id}`);
+    assert.match(optionSources, new RegExp(`id: '${id}'`), `missing legacy avatar id ${id}`);
   }
 });

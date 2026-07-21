@@ -8,6 +8,7 @@
     // Shell and navigation
     'Loading...': 'Ładowanie...',
     'Error': 'Błąd',
+    'Request failed': 'Żądanie nie powiodło się',
     'Not Found': 'Nie znaleziono',
     'Awaiting Approval': 'Oczekuje na zatwierdzenie',
     'Skipped': 'Pominięte',
@@ -700,6 +701,73 @@
     'Loading avatar items...': 'Ładowanie elementów awatara...',
     'Customise avatar': 'Dostosuj awatar',
     'Customise Avatar': 'Dostosuj awatar',
+    'Hero Studio': 'Studio Bohatera',
+    'Randomise': 'Losuj',
+    'Checking avatar unlocks...': 'Sprawdzanie odblokowanych elementów awatara...',
+    'Unlock status unavailable. Randomise is disabled.': 'Nie udało się sprawdzić odblokowanych elementów. Losowanie jest wyłączone.',
+    'Undo': 'Cofnij',
+    'Unsaved changes': 'Niezapisane zmiany',
+    'Your hero is ready': 'Twój bohater jest gotowy',
+    'Discard changes?': 'Odrzucić zmiany?',
+    'Your hero has unsaved changes. Leave without saving?': 'Twój bohater ma niezapisane zmiany. Wyjść bez zapisywania?',
+    'Keep editing': 'Kontynuuj edycję',
+    'Discard': 'Odrzuć',
+    'Preview updates instantly': 'Podgląd aktualizuje się od razu',
+    'Previewing a locked item': 'Podgląd zablokowanego elementu',
+    'Colours': 'Kolory',
+    'Accessory': 'Akcesorium',
+    'Equipment': 'Ekwipunek',
+    'Background': 'Tło',
+    'Avatar categories': 'Kategorie awatara',
+    'Live avatar preview': 'Podgląd awatara na żywo',
+    'Pet customisation': 'Edycja pupila',
+    'Multiple selection': 'Wybór wielokrotny',
+    'Choose a head shape': 'Wybierz kształt głowy',
+    'Start with the silhouette of your hero.': 'Zacznij od sylwetki swojego bohatera.',
+    'Choose a skin tone': 'Wybierz odcień skóry',
+    'Pick the tone that feels right.': 'Wybierz odpowiedni odcień.',
+    'Style the hair': 'Ułóż włosy',
+    'Choose a cut, then finish it with colour.': 'Wybierz fryzurę, a potem jej kolor.',
+    'Choose the eyes': 'Wybierz oczy',
+    'Give your hero their expression.': 'Nadaj bohaterowi charakter.',
+    'Choose the smile': 'Wybierz uśmiech',
+    'Finish the expression.': 'Dopełnij wyraz twarzy.',
+    'Choose a build': 'Wybierz sylwetkę',
+    'Set the hero silhouette.': 'Ustal sylwetkę bohatera.',
+    'Choose outfit colour': 'Wybierz kolor stroju',
+    'Set the main outfit colour.': 'Ustal główny kolor stroju.',
+    'Choose a pattern': 'Wybierz wzór',
+    'Add a final outfit detail.': 'Dodaj ostatni detal stroju.',
+    'Choose a backdrop': 'Wybierz tło',
+    'Frame your hero.': 'Nadaj bohaterowi oprawę.',
+    'Choose headwear': 'Wybierz nakrycie głowy',
+    'Add a signature finishing touch.': 'Dodaj charakterystyczne wykończenie.',
+    'Choose face details': 'Wybierz detale twarzy',
+    'Add freckles, paint, or stickers.': 'Dodaj piegi, malunek lub naklejki.',
+    'Choose equipment': 'Wybierz ekwipunek',
+    'Equip more than one item.': 'Możesz założyć więcej niż jeden przedmiot.',
+    'Customise your companion': 'Dostosuj pupila',
+    'Style and place your loyal companion.': 'Dostosuj wygląd i pozycję wiernego pupila.',
+    'Back': 'Wstecz',
+    'Locked': 'Zablokowane',
+    'Find in quests': 'Znajdź w misjach',
+    'Skin tone': 'Odcień skóry',
+    'Hair colour': 'Kolor włosów',
+    'Eye colour': 'Kolor oczu',
+    'Mouth colour': 'Kolor ust',
+    'Outfit colour': 'Kolor stroju',
+    'Backdrop colour': 'Kolor tła',
+    'Headwear colour': 'Kolor nakrycia głowy',
+    'Equipment colour': 'Kolor ekwipunku',
+    'Pet level progression': 'Postęp rozwoju pupila',
+    'Eight pet levels': 'Osiem poziomów pupila',
+    'Choose a companion to unlock colours, placement, and accessories.': 'Wybierz pupila, aby odblokować kolory, ustawienie i akcesoria.',
+    'Level': 'Poziom',
+    'XP to Level': 'XP do poziomu',
+    'Build a hero that feels completely yours.': 'Stwórz bohatera, który będzie naprawdę Twój.',
+    'Save avatar': 'Zapisz awatar',
+    'Your avatar is saved': 'Twój awatar jest zapisany',
+    'Changes appear here instantly': 'Zmiany pojawiają się tutaj od razu',
     'Saved!': 'Zapisano!',
     'Failed to save': 'Nie udało się zapisać',
     'Your display name': 'Twoja nazwa wyświetlana',
@@ -717,7 +785,7 @@
     'Gear': 'Ekwipunek',
     '(select multiple)': '(wybierz kilka)',
     'Clear all gear': 'Wyczyść ekwipunek',
-    'Reset all to match': 'Zresetuj wszystko do zgodności',
+    'Reset all to match': 'Ujednolić wszystkie kolory',
     'Tap to place your pet': 'Dotknij, aby ustawić pupila',
     'Scroll left': 'Przewiń w lewo',
     'Scroll right': 'Przewiń w prawo',
@@ -1081,6 +1149,16 @@
   }));
 
   const PATTERNS = [
+    [/^(.+), locked, (.+)$/, (_whole, option, requirement) => {
+      const translatedOption = translateKnownTerm(option);
+      if (requirement === 'Locked') return `${translatedOption}, opcja zablokowana`;
+      return `${translatedOption}, opcja zablokowana, ${translateClean(requirement) || translateKnownTerm(requirement)}`;
+    }],
+    [/^(.+): (#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8}))$/, (whole, label, colour) => {
+      const translatedLabel = translateKnownTerm(label);
+      return translatedLabel === label ? whole : `${translatedLabel}: ${colour}`;
+    }],
+    [/^(\d+)% to level (\d+)$/, '$1% do poziomu $2'],
     [/^(\d+)m ago$/, '$1 min temu'],
     [/^(\d+)h ago$/, '$1 godz. temu'],
     [/^(\d+)d ago$/, '$1 dni temu'],
@@ -1255,7 +1333,7 @@
     const original = node.nodeValue;
     const clean = normalize(original);
 
-    if (node.parentElement?.closest('.fixed.inset-0')) {
+    if (node.parentElement?.closest('.avatar-editor-shell, .fixed.inset-0')) {
       if (clean === 'Pet') {
         node.nodeValue = withOriginalWhitespace(original, 'Pupil');
         return;
@@ -1312,7 +1390,10 @@
       if (!element.hasAttribute(attr)) continue;
       const original = element.getAttribute(attr);
       const clean = normalize(original);
-      const translated = translateClean(clean);
+      const avatarTranslation = element.closest?.('.avatar-editor-shell, .fixed.inset-0')
+        ? { Pet: 'Pupil', Custom: 'Własna' }[clean]
+        : null;
+      const translated = avatarTranslation || translateClean(clean);
       if (translated && translated !== clean) {
         element.setAttribute(attr, translated);
       }
@@ -1390,7 +1471,11 @@
           translateTextNode(mutation.target);
           continue;
         }
-        schedule();
+        if (mutation.addedNodes?.length) {
+          for (const node of mutation.addedNodes) walk(node);
+          continue;
+        }
+        schedule(mutation.target);
       }
     });
 
