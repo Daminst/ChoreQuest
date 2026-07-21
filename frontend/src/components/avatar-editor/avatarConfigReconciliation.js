@@ -12,6 +12,16 @@ export function reconcileIncomingAvatarConfig({ incomingConfig, config, savedCon
     return { action: 'ignore', config, savedConfig, history, status: null };
   }
 
+  if (configsEqual(incomingConfig, config)) {
+    return {
+      action: 'synchronize',
+      config,
+      savedConfig: incomingConfig,
+      history: [],
+      status: AVATAR_EXTERNAL_SYNC_STATUS,
+    };
+  }
+
   if (!configsEqual(config, savedConfig)) {
     return {
       action: 'conflict',
@@ -40,7 +50,11 @@ export function observeIncomingAvatarConfig({
   history,
 }) {
   if (saving) {
-    if (configsEqual(incomingConfig, savedConfig)) {
+    if (
+      configsEqual(incomingConfig, savedConfig)
+      && !state.conflictConfig
+      && !state.queuedIncomingConfig
+    ) {
       return { state, reconciliation: null };
     }
     return {
@@ -61,13 +75,10 @@ export function observeIncomingAvatarConfig({
       reconciliation,
     };
   }
-  if (reconciliation.action === 'synchronize') {
+  if (reconciliation.action === 'synchronize' || reconciliation.action === 'ignore') {
     return { state: createAvatarExternalConflictState(), reconciliation };
   }
-  return {
-    state: { ...state, queuedIncomingConfig: null },
-    reconciliation,
-  };
+  return { state, reconciliation };
 }
 
 export function settleAvatarSaveConflict({

@@ -315,6 +315,20 @@ test('every pet tab controls a mounted labelled panel', () => {
   assert.doesNotMatch(pet, /activeSection === 'appearance' && renderAppearanceControls/);
 });
 
+test('only the effective pet tab instantiates its option controls', () => {
+  const pet = read('./PetCustomizer.jsx');
+
+  assert.match(pet, /hidden={effectiveSection !== section\.id}/);
+  assert.match(
+    pet,
+    /effectiveSection === section\.id\s*\?\s*renderSectionControls\(section\.id, controls\)\s*:\s*null/,
+  );
+  assert.doesNotMatch(
+    pet,
+    /hidden={effectiveSection !== section\.id}[\s\S]*?>\s*\{renderSectionControls\(section\.id, controls\)\}/,
+  );
+});
+
 test('pet placement exposes Polish instructions to assistive technology', () => {
   const stage = read('./AvatarStage.jsx');
 

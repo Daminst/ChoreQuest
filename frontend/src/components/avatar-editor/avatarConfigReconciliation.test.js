@@ -147,3 +147,104 @@ test('undoing back to a clean draft synchronizes and resolves the stored conflic
   assert.deepEqual(result.reconciliation.config, { head: 'square' });
   assert.deepEqual(result.state, createAvatarExternalConflictState());
 });
+
+test('latest baseline refresh clears an older conflict without touching the dirty draft', () => {
+  const config = { head: 'oval' };
+  const savedConfig = { head: 'round' };
+  const history = [{ head: 'round' }];
+  const result = observeIncomingAvatarConfig({
+    state: {
+      conflictConfig: { head: 'square' },
+      queuedIncomingConfig: { head: 'diamond' },
+    },
+    incomingConfig: { head: 'round' },
+    saving: false,
+    config,
+    savedConfig,
+    history,
+  });
+
+  assert.equal(result.reconciliation.action, 'ignore');
+  assert.equal(result.reconciliation.config, config);
+  assert.equal(result.reconciliation.savedConfig, savedConfig);
+  assert.equal(result.reconciliation.history, history);
+  assert.deepEqual(result.state, createAvatarExternalConflictState());
+  assert.equal(getPersistentAvatarStatus('', result.state), '');
+  assert.equal(synchronizeAvatarConflictWhenClean({
+    state: result.state,
+    saving: false,
+    config: savedConfig,
+    savedConfig,
+    history: [],
+  }).reconciliation, null);
+});
+
+test('latest refresh matching the dirty draft adopts it as the clean baseline', () => {
+  const config = { head: 'oval' };
+  const result = observeIncomingAvatarConfig({
+    state: {
+      conflictConfig: { head: 'square' },
+      queuedIncomingConfig: null,
+    },
+    incomingConfig: { head: 'oval' },
+    saving: false,
+    config,
+    savedConfig: { head: 'round' },
+    history: [{ head: 'round' }],
+  });
+
+  assert.equal(result.reconciliation.action, 'synchronize');
+  assert.equal(result.reconciliation.config, config);
+  assert.deepEqual(result.reconciliation.savedConfig, { head: 'oval' });
+  assert.deepEqual(result.reconciliation.history, []);
+  assert.deepEqual(result.state, createAvatarExternalConflictState());
+});
+
+test('failed save processes queued baseline and current-draft equivalents as resolutions', () => {
+  const savedConfig = { head: 'round' };
+  const config = { head: 'oval' };
+  const history = [{ head: 'round' }];
+  const staleConflict = {
+    conflictConfig: { head: 'square' },
+    queuedIncomingConfig: null,
+  };
+
+  const queuedBaseline = observeIncomingAvatarConfig({
+    state: staleConflict,
+    incomingConfig: { head: 'round' },
+    saving: true,
+    config,
+    savedConfig,
+    history,
+  });
+  assert.deepEqual(queuedBaseline.state.queuedIncomingConfig, { head: 'round' });
+  const baselineFailure = settleAvatarSaveConflict({
+    state: queuedBaseline.state,
+    succeeded: false,
+    config,
+    savedConfig,
+    history,
+  });
+  assert.equal(baselineFailure.reconciliation.action, 'ignore');
+  assert.deepEqual(baselineFailure.state, createAvatarExternalConflictState());
+
+  const queuedDraft = observeIncomingAvatarConfig({
+    state: staleConflict,
+    incomingConfig: { head: 'oval' },
+    saving: true,
+    config,
+    savedConfig,
+    history,
+  });
+  const draftFailure = settleAvatarSaveConflict({
+    state: queuedDraft.state,
+    succeeded: false,
+    config,
+    savedConfig,
+    history,
+  });
+  assert.equal(draftFailure.reconciliation.action, 'synchronize');
+  assert.deepEqual(draftFailure.reconciliation.savedConfig, { head: 'oval' });
+  assert.deepEqual(draftFailure.reconciliation.history, []);
+  assert.deepEqual(draftFailure.state, createAvatarExternalConflictState());
+});

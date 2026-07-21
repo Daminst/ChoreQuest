@@ -238,7 +238,9 @@ export function PetCustomizer({ config, locked, lockedMeta, getUnlockLabel, sele
           aria-labelledby={section.tabId}
           hidden={effectiveSection !== section.id}
         >
-          {renderSectionControls(section.id, controls)}
+          {effectiveSection === section.id
+            ? renderSectionControls(section.id, controls)
+            : null}
         </div>
       ))}
     </div>
