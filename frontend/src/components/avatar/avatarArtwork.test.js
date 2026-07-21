@@ -28,7 +28,7 @@ test('every avatar artwork family contains visible finish details', () => {
 
 test('legacy avatar option identifiers remain available', () => {
   const optionSources = [
-    '../AvatarEditor.jsx',
+    '../avatar-editor/avatarCatalog.js',
     '../avatar-editor/avatarPetCatalog.js',
   ].map((file) => readFileSync(new URL(file, import.meta.url), 'utf8')).join('\n');
 
