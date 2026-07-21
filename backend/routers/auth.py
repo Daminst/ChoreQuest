@@ -32,8 +32,7 @@ from backend.auth import (
 from backend.dependencies import get_current_user
 from backend.rate_limit import rate_limiter
 from backend.websocket_manager import ws_manager
-from backend.services.avatar_config import sanitize_avatar_config_for_save
-from backend.services.avatar_entitlements import find_locked_avatar_items_for_save
+from backend.services.avatar_persistence import prepare_avatar_config_write
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -320,15 +319,10 @@ async def update_me(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    if body.avatar_config is not None:
+        user = await prepare_avatar_config_write(db, user, body.avatar_config)
     if body.display_name is not None:
         user.display_name = body.display_name
-    if body.avatar_config is not None:
-        new_config = sanitize_avatar_config_for_save(body.avatar_config, user.avatar_config)
-        blocked_items = await find_locked_avatar_items_for_save(db, user, new_config)
-        if blocked_items:
-            names = ", ".join(item.display_name for item in blocked_items)
-            raise HTTPException(status_code=403, detail=f"Locked avatar items cannot be equipped: {names}")
-        user.avatar_config = new_config
 
     user.updated_at = datetime.now(timezone.utc)
     await db.commit()

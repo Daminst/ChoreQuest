@@ -41,7 +41,11 @@ import {
   getAvatarExitNavigation,
   shouldBlockAvatarNavigation,
 } from './avatar-editor/avatarHistoryGuard';
-import { isCurrentAvatarSave } from './avatar-editor/avatarSaveLifecycle';
+import {
+  getAvatarSaveErrorMessage,
+  isCurrentAvatarSave,
+} from './avatar-editor/avatarSaveLifecycle';
+import { reconcileIncomingAvatarConfig } from './avatar-editor/avatarConfigReconciliation';
 import './avatar-editor/avatarEditor.css';
 import {
   applyAvatarChange,
@@ -407,9 +411,21 @@ export default function AvatarEditor() {
   useEffect(() => {
     if (savePendingRef.current) return;
     const userCfg = normalizeAvatarPetColors({ ...initialConfig });
-    setConfig(userCfg);
-    setSavedConfig(userCfg);
-    setHistory([]);
+    const reconciliation = reconcileIncomingAvatarConfig({
+      incomingConfig: userCfg,
+      config,
+      savedConfig,
+      history,
+    });
+    if (reconciliation.action === 'ignore') return;
+    if (reconciliation.action === 'conflict') {
+      setStatus(reconciliation.status);
+      return;
+    }
+    setConfig(reconciliation.config);
+    setSavedConfig(reconciliation.savedConfig);
+    setHistory(reconciliation.history);
+    setStatus(reconciliation.status);
     clearPreviews();
   }, [clearPreviews, initialConfig]);
 
@@ -570,7 +586,7 @@ export default function AvatarEditor() {
       if (!isCurrentAvatarSave(mountedRef.current, saveRequestRef.current, requestToken)) return;
       savePendingRef.current = false;
       setSaving(false);
-      setStatus(error?.message || 'Failed to save');
+      setStatus(getAvatarSaveErrorMessage(error));
     }
   }, [clearPreviews, config, dirty, navigateOutOfEditor, updateUser]);
 

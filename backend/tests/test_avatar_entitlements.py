@@ -226,6 +226,7 @@ class AvatarSaveEntitlementTests(unittest.IsolatedAsyncioTestCase):
             )
 
         self.assertEqual(raised.exception.status_code, 403)
+        self.assertEqual(raised.exception.detail, {"code": "avatar_items_locked"})
         self.assertFalse(db.committed)
         self.assertEqual(kid.avatar_config, {"hat": "none", "accessories": []})
 
@@ -264,6 +265,7 @@ class AvatarSaveEntitlementTests(unittest.IsolatedAsyncioTestCase):
             )
 
         self.assertEqual(raised.exception.status_code, 403)
+        self.assertEqual(raised.exception.detail, {"code": "avatar_items_locked"})
         self.assertFalse(db.committed)
         self.assertEqual(kid.avatar_config, {"hat": "none"})
 

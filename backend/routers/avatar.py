@@ -1,5 +1,4 @@
 import random
-from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -12,9 +11,8 @@ from backend.models import (
     Notification, NotificationType, AvatarAcquiredVia, AvatarUnlockMethod,
 )
 from backend.dependencies import get_current_user
-from backend.services.avatar_config import sanitize_avatar_config_for_save
+from backend.services.avatar_persistence import prepare_avatar_config_write
 from backend.services.avatar_entitlements import (
-    find_locked_avatar_items_for_save,
     is_avatar_item_unlocked,
 )
 from backend.websocket_manager import ws_manager
@@ -178,15 +176,7 @@ async def save_avatar(
     user: User = Depends(get_current_user),
 ):
     """Save avatar configuration for the current user."""
-    new_config = sanitize_avatar_config_for_save(body.config, user.avatar_config)
-
-    blocked_items = await find_locked_avatar_items_for_save(db, user, new_config)
-    if blocked_items:
-        names = ", ".join(item.display_name for item in blocked_items)
-        raise HTTPException(status_code=403, detail=f"Locked avatar items cannot be equipped: {names}")
-
-    user.avatar_config = new_config
-    user.updated_at = datetime.now(timezone.utc)
+    user = await prepare_avatar_config_write(db, user, body.config)
     await db.commit()
     await db.refresh(user)
     await ws_manager.broadcast({"type": "data_changed", "data": {"entity": "user"}}, exclude_user=user.id)

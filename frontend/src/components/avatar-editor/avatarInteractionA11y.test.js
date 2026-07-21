@@ -50,3 +50,16 @@ test('editor owns the cross-card preview registry and clears it at session bound
   assert.match(editor, /const clearPreviews = useCallback/);
   assert.match(editor, /clearAvatarPreviews\(previewRegistryRef\.current\)/);
 });
+
+test('selected swatch check uses the same contrast badge on light and dark colours', () => {
+  const controls = read('./AvatarOptionControls.jsx');
+  const css = read('./avatarEditor.css');
+  const rule = css.match(/\.avatar-colour-swatch\[aria-pressed="true"\]\s+svg\s*\{([^}]*)\}/)?.[1] || '';
+
+  assert.match(controls, /aria-pressed={selected === color}/);
+  assert.match(controls, /style=\{\{ '--swatch': color \}\}/);
+  assert.match(rule, /color:\s*white/);
+  assert.match(rule, /background:\s*#0b1117/);
+  assert.match(rule, /border-radius:\s*50%/);
+  assert.doesNotMatch(rule, /--swatch|color-mix/);
+});

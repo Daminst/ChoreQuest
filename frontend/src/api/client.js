@@ -84,14 +84,23 @@ export async function api(path, options = {}) {
 
   if (!res.ok) {
     const text = await res.text();
-    let detail = 'Request failed';
+    let message = 'Request failed';
+    let code;
     try {
       const data = JSON.parse(text);
-      detail = data.detail || detail;
+      if (typeof data.detail === 'string') {
+        message = data.detail;
+      } else if (data.detail && typeof data.detail === 'object') {
+        code = data.detail.code;
+        if (typeof data.detail.message === 'string') message = data.detail.message;
+      }
     } catch {
       // Response wasn't JSON (server error page, etc.)
     }
-    throw new Error(detail);
+    const error = new Error(message);
+    error.status = res.status;
+    if (code) error.code = code;
+    throw error;
   }
 
   const text = await res.text();

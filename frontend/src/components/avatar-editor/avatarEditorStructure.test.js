@@ -167,6 +167,26 @@ test('studio stage keeps the hero prominent and the clean save action legible', 
   assert.match(mobile, /\.avatar-stage__character\s*\{[^}]*transform:\s*translate\(-50%,\s*-50%\)\s*scale\(0\.56\)/s);
 });
 
+test('medium workspace scales the shared character and placement box to the stage column', () => {
+  const css = read('./avatarEditor.css');
+  const medium = extractCssBlock(css, '@media (min-width: 721px) and (max-width: 900px)');
+  const mediumCharacter = extractCssBlock(medium, '.avatar-stage__character');
+  const placement = extractCssBlock(css, '.avatar-stage__placement');
+
+  assert.match(mediumCharacter, /width:\s*min\(420px,\s*100%\)/);
+  assert.match(mediumCharacter, /height:\s*auto/);
+  assert.match(mediumCharacter, /aspect-ratio:\s*1/);
+  assert.match(placement, /inset:\s*0/);
+  assert.match(placement, /width:\s*100%/);
+  assert.match(placement, /height:\s*100%/);
+
+  for (const viewport of [768, 721]) {
+    const stageColumn = viewport - 72 - 320;
+    const character = Math.min(420, stageColumn);
+    assert.ok(character <= stageColumn, `${viewport}px viewport must not clip ${character}px character`);
+  }
+});
+
 test('pet studio consumes shared semantics and resets colour overrides atomically', () => {
   const editor = read('../AvatarEditor.jsx');
   const pet = read('./PetCustomizer.jsx');
