@@ -177,6 +177,50 @@ const requiredAvatarStudioTranslations = [
   ['XP to Level', 'XP do poziomu'],
 ];
 
+const requiredSpecialThemeTranslations = [
+  ['None', 'Brak'],
+  ['Easter', 'Wielkanoc'],
+  ['Christmas', 'Boże Narodzenie'],
+  ['Birthday', 'Urodziny'],
+  ['Halloween', 'Halloween'],
+  ["April Fools' Day", 'Prima Aprilis'],
+  ['Wet Monday', 'Śmigus Dyngus'],
+  ['Summer Vacation', 'Wakacje'],
+  ['Active', 'Aktywny'],
+  ['Spring petals, painted eggs and bunny decorations', 'Wiosenne płatki, pisanki i królicze ozdoby'],
+  ['Falling snow, warm lights and festive greenery', 'Padający śnieg, ciepłe lampki i świąteczne gałązki'],
+  ['Confetti, balloons and a birthday cake', 'Konfetti, balony i urodzinowy tort'],
+  ['Pumpkins, friendly ghosts and flying bats', 'Dynie, przyjazne duszki i latające nietoperze'],
+  ['Colourful streamers and playful decorations', 'Kolorowe serpentyny i psotne dekoracje'],
+  ['Droplets, splashes and water play', 'Krople, rozbryzgi i wodna zabawa'],
+  ['Sunshine, palms and a beach atmosphere', 'Słońce, palmy i plażowa atmosfera'],
+];
+
+const requiredKidInterfaceTranslations = [
+  ['Focus map', 'Mapa skupienia'],
+  ['One clear step, then a reward.', 'Jeden jasny krok, potem nagroda.'],
+  ['Next step', 'Następny krok'],
+  ['See the quests for today without the extra noise.', 'Zobacz dzisiejsze misje bez nadmiaru bodźców.'],
+  ['Style lab', 'Laboratorium stylu'],
+  ['Open avatar looks with playful safe themes.', 'Otwórz stylizacje awatara w bezpiecznych klimatach.'],
+  ['Reward vault', 'Sejf nagród'],
+  ['Check what your XP can unlock next.', 'Sprawdź, co możesz odblokować za XP.'],
+  ['Mischief Kawaii', 'Psotne kawaii'],
+  ['Shadow Hunt', 'Łowy w cieniu'],
+  ['Block Builder', 'Budowanie z bloków'],
+  ['Arcade Run', 'Arcade run'],
+  ['Workshop Tasks', 'Warsztatowe zadania'],
+  ['Winter Workshop', 'Zimowy warsztat'],
+];
+
+const requiredCalendarNotificationTranslations = [
+  ['Notifications', 'Powiadomienia'],
+  ['Unread', 'Nieprzeczytane'],
+  ['Read', 'Przeczytane'],
+  ['Recipient', 'Odbiorca'],
+  ['Family member', 'Członek rodziny'],
+];
+
 test('polish overlay translates chore detail metadata', () => {
   for (const fileUrl of overlayFiles) {
     const source = fs.readFileSync(fileUrl, 'utf8');
@@ -265,6 +309,72 @@ test('polish overlay translates Hero Studio controls', () => {
     );
 
     for (const [english, polish] of requiredAvatarStudioTranslations) {
+      assert.equal(
+        translations.get(english),
+        polish,
+        `${fileUrl.pathname} maps ${english} incorrectly`,
+      );
+    }
+  }
+});
+
+test('polish overlay translates every family special theme', () => {
+  for (const fileUrl of overlayFiles) {
+    const source = fs.readFileSync(fileUrl, 'utf8');
+
+    for (const [english, polish] of requiredSpecialThemeTranslations) {
+      const escapedEnglish = english.replaceAll("'", "\\'");
+      assert.equal(
+        source.includes(`'${escapedEnglish}': '${polish}',`),
+        true,
+        `${fileUrl.pathname} maps ${english} incorrectly`,
+      );
+    }
+  }
+});
+
+test('avatar shop dynamic unlock copy is Polish at the source', () => {
+  const source = fs.readFileSync(
+    new URL('../pages/AvatarShop.jsx', import.meta.url),
+    'utf8',
+  );
+
+  assert.match(source, /Zdobądź \$\{item\.unlock_value\} XP/);
+  assert.match(source, /Znajdź w misjach/);
+  assert.doesNotMatch(source, /Earn \$\{item\.unlock_value\}( total)? XP|Find in quests/);
+});
+
+test('polish overlay translates kid interface theme text', () => {
+  for (const fileUrl of overlayFiles) {
+    const source = fs.readFileSync(fileUrl, 'utf8');
+    const translations = new Map(
+      [...source.matchAll(/^\s*'([^']+)': '([^']*)',/gm)].map((match) => [
+        match[1],
+        match[2],
+      ]),
+    );
+
+    for (const [english, polish] of requiredKidInterfaceTranslations) {
+      assert.equal(
+        translations.get(english),
+        polish,
+        `${fileUrl.pathname} maps ${english} incorrectly`,
+      );
+    }
+  }
+});
+
+test('polish overlay translates calendar notification history', () => {
+  for (const fileUrl of overlayFiles) {
+    const source = fs.readFileSync(fileUrl, 'utf8');
+    const translations = new Map(
+      [...source.matchAll(/^\s*'([^']+)': '([^']*)',/gm)].map((match) => [
+        match[1],
+        match[2],
+      ]),
+    );
+
+    for (const [english, polish] of requiredCalendarNotificationTranslations) {
       assert.equal(
         translations.get(english),
         polish,

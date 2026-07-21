@@ -9,13 +9,13 @@ import './index.css';
 
 function AppProviders() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
+    <AuthProvider>
+      <ThemeProvider>
         <SettingsProvider>
           <App />
         </SettingsProvider>
-      </AuthProvider>
-    </ThemeProvider>
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
 
