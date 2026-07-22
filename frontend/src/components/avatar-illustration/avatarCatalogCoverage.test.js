@@ -31,6 +31,16 @@ const registryEntries = (source, exportName) => {
     .map(([, id, renderer]) => ({ id, renderer }));
 };
 
+const accessoryRegistryEntries = (source) => {
+  const match = source.match(
+    /export const ACCESSORY_RENDERERS = Object\.freeze\(\{([\s\S]*?)\n\}\);/,
+  );
+  assert.ok(match, 'missing ACCESSORY_RENDERERS');
+  return [...match[1].matchAll(
+    /^  ([a-z][a-z0-9_]*): Object\.freeze\(\{ layer: '(rear|front)', Component: ([A-Z][A-Za-z0-9_]*) \}\),$/gm,
+  )].map(([, id, layer, Component]) => ({ id, layer, Component }));
+};
+
 const hairEntry = (source, constantName) => {
   const match = source.match(
     new RegExp(
@@ -229,6 +239,136 @@ test('body and outfit-pattern registries exactly cover the editor catalog', () =
     registryKeys('./parts/outfits.jsx', 'OUTFIT_PATTERN_RENDERERS'),
     ids(AVATAR_CATALOG.pattern),
   );
+});
+
+test('equipment registry exactly covers the catalog with the frozen layer map', () => {
+  const accessoryUrl = new URL('./parts/accessories.jsx', import.meta.url);
+  assert.doesNotThrow(() => readFileSync(accessoryUrl), 'missing accessories artwork module');
+  const source = readFileSync(accessoryUrl, 'utf8');
+  const entries = accessoryRegistryEntries(source);
+
+  assert.deepEqual(entries.map(({ id }) => id).sort(), ids(AVATAR_CATALOG.accessory));
+  assert.equal(entries.length, AVATAR_CATALOG.accessory.options.length);
+  assert.deepEqual(
+    Object.fromEntries(entries.map(({ id, layer, Component }) => [id, { layer, Component }])),
+    {
+      scarf: { layer: 'front', Component: 'Scarf' },
+      necklace: { layer: 'front', Component: 'Necklace' },
+      bow_tie: { layer: 'front', Component: 'BowTie' },
+      cape: { layer: 'rear', Component: 'Cape' },
+      wings: { layer: 'rear', Component: 'Wings' },
+      shield: { layer: 'front', Component: 'Shield' },
+      sword: { layer: 'rear', Component: 'Sword' },
+      stage_mic: { layer: 'front', Component: 'StageMic' },
+      spirit_blade: { layer: 'rear', Component: 'SpiritBlade' },
+      bell_collar: { layer: 'front', Component: 'BellCollar' },
+    },
+  );
+});
+
+test('compositor resolves accessories once and places rear equipment before front equipment', () => {
+  const compositor = readFileSync(new URL('./AvatarArtwork.jsx', import.meta.url), 'utf8');
+  const registry = readFileSync(new URL('./registry.js', import.meta.url), 'utf8');
+
+  assert.match(registry, /import \{ ACCESSORY_RENDERERS \} from '\.\/parts\/accessories\.jsx';/);
+  assert.match(registry, /export \{[\s\S]*?ACCESSORY_RENDERERS,/);
+  assert.equal(
+    (compositor.match(/normalizedConfig\.accessories\.map\s*\(/g) || []).length,
+    1,
+    'the normalized saved array must be resolved exactly once',
+  );
+  assert.match(
+    compositor,
+    /const rearAccessories = resolvedAccessories\.filter\(\(\{ entry \}\) => entry && entry\.layer === 'rear'\);/,
+  );
+  assert.match(
+    compositor,
+    /const frontAccessories = resolvedAccessories\.filter\(\(\{ entry \}\) => entry && entry\.layer === 'front'\);/,
+  );
+
+  const rearExpression = compositor.indexOf("entry.layer === 'rear'");
+  const frontExpression = compositor.indexOf("entry.layer === 'front'");
+  assert.ok(rearExpression >= 0 && frontExpression > rearExpression);
+  assert.match(
+    compositor,
+    /<g data-avatar-layer="rear-accessories">\s*\{rearAccessories\.map\([\s\S]*?\}\s*<\/g>/,
+  );
+  assert.match(
+    compositor,
+    /<g data-avatar-layer="front-accessories">\s*\{frontAccessories\.map\([\s\S]*?\}\s*<\/g>/,
+  );
+});
+
+test('all ten equipment renderers are unique modeled gear with safe declared bounds', () => {
+  const accessoryUrl = new URL('./parts/accessories.jsx', import.meta.url);
+  assert.doesNotThrow(() => readFileSync(accessoryUrl), 'missing accessories artwork module');
+  const source = readFileSync(accessoryUrl, 'utf8');
+  const entries = accessoryRegistryEntries(source);
+  const comparableRenderers = [];
+
+  assert.equal(new Set(entries.map(({ Component }) => Component)).size, 10);
+  for (const { id, layer, Component } of entries) {
+    const body = functionSource(source, Component);
+    assert.equal(
+      (body.match(/(?:export )?function [A-Z][A-Za-z0-9_]*\(/g) || []).length,
+      1,
+      `${id} renderer cannot define another component during render`,
+    );
+    assert.match(body, /\{\s*config\s*,\s*palette\s*,\s*paints\s*\}/);
+    assert.match(body, new RegExp(`data-avatar-variant="accessory:${id}"`));
+    assert.match(body, /className="[^"]*avatar-accessory-base[^"]*avatar-outline[^"]*"/);
+    assert.match(body, /fill=\{paints\.gear\}/, `${id} must consume its instance-local gear paint`);
+    assert.match(body, /stroke=\{palette\.gear\.outline\}/, `${id} needs a colored gear outline`);
+    assert.match(
+      body,
+      /className="[^"]*avatar-accessory-highlight[^"]*"[\s\S]*?(?:fill|stroke)=\{palette\.gear\.(?:light|highlight)\}/,
+      `${id} needs a palette-derived highlight`,
+    );
+    assert.match(body, /className="[^"]*avatar-accessory-detail[^"]*"/);
+    assert.match(body, /data-avatar-material="(?:fabric|metal|feather|gem|leather|mesh)"/);
+
+    const boundsMatch = body.match(/data-avatar-bounds="([\d.]+) ([\d.]+) ([\d.]+) ([\d.]+)"/);
+    assert.ok(boundsMatch, `${id} needs inspectable full-canvas bounds metadata`);
+    const [minX, minY, maxX, maxY] = boundsMatch.slice(1).map(Number);
+    assert.ok(minX >= 0 && minY >= 0 && maxX <= 240 && maxY <= 320, `${id} exceeds full frame`);
+    assert.ok(maxX > minX && maxY > minY, `${id} bounds must have positive area`);
+    if (layer === 'front') {
+      assert.ok(minY >= 110, `${id} enters the two-eye safety zone`);
+    }
+
+    comparableRenderers.push(
+      body
+        .replace(new RegExp(Component, 'g'), 'AccessoryRenderer')
+        .replace(new RegExp(`accessory:${id}`, 'g'), 'accessory:variant')
+        .replace(/\s+/g, ' ')
+        .trim(),
+    );
+  }
+
+  assert.equal(new Set(comparableRenderers).size, 10, 'equipment cannot alias placeholder geometry');
+});
+
+test('equipment rendering preserves saved order and duplicate legacy IDs without mutation', () => {
+  const compositor = readFileSync(new URL('./AvatarArtwork.jsx', import.meta.url), 'utf8');
+  const renderer = functionSource(compositor, 'renderAccessoryItem');
+
+  assert.match(
+    compositor,
+    /normalizedConfig\.accessories\.map\(\(id, index\) => \(\{ id, index, entry: ACCESSORY_RENDERERS\[id\] \}\)\)/,
+  );
+  assert.match(renderer, /const Accessory = entry\.Component;/);
+  assert.match(renderer, /key=\{`\$\{id\}-\$\{index\}`\}/);
+  assert.match(renderer, /config=\{config\}/);
+  assert.match(renderer, /palette=\{palette\}/);
+  assert.match(renderer, /paints=\{paints\}/);
+  assert.doesNotMatch(
+    compositor,
+    /(?:normalizedConfig\.accessories|resolvedAccessories|rearAccessories|frontAccessories)\.(?:sort|reverse|splice|copyWithin)\s*\(/,
+  );
+  assert.doesNotMatch(compositor, /normalizedConfig\.accessories\s*=/);
+  assert.doesNotMatch(compositor, /config\.accessories\s*=/);
+  assert.equal((compositor.match(/data-avatar-layer="rear-accessories"/g) || []).length, 1);
+  assert.equal((compositor.match(/data-avatar-layer="front-accessories"/g) || []).length, 1);
 });
 
 test('three body builds are frozen unique renderers with semantic surfaces', () => {

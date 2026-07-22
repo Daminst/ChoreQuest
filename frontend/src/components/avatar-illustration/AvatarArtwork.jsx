@@ -13,6 +13,7 @@ import {
 } from './avatarGeometry.js';
 import { Anatomy } from './parts/anatomy.jsx';
 import {
+  ACCESSORY_RENDERERS,
   BODY_RENDERERS,
   EYE_RENDERERS,
   FACE_EXTRA_RENDERERS,
@@ -60,6 +61,18 @@ function buildAvatarPaints(ids) {
   });
 }
 
+function renderAccessoryItem({ id, index, entry }, config, palette, paints) {
+  const Accessory = entry.Component;
+  return (
+    <Accessory
+      key={`${id}-${index}`}
+      config={config}
+      palette={palette}
+      paints={paints}
+    />
+  );
+}
+
 export function AvatarArtwork({ config = EMPTY_CONFIG, crop = 'icon', label = 'ChoreQuest avatar' }) {
   const frame = getAvatarFrame(crop);
   const normalizedConfig = useMemo(() => normalizeAvatarIllustrationConfig(config), [config]);
@@ -87,6 +100,9 @@ export function AvatarArtwork({ config = EMPTY_CONFIG, crop = 'icon', label = 'C
   const headFeatureTransform = getAvatarHeadFeatureTransform(headFeatureOffset);
   const frontHairMarginTransform = getAvatarHeadMarginTransform(Hair.marginTop);
   const rearHairMarginTransform = frontHairMarginTransform;
+  const resolvedAccessories = normalizedConfig.accessories.map((id, index) => ({ id, index, entry: ACCESSORY_RENDERERS[id] }));
+  const rearAccessories = resolvedAccessories.filter(({ entry }) => entry && entry.layer === 'rear');
+  const frontAccessories = resolvedAccessories.filter(({ entry }) => entry && entry.layer === 'front');
 
   return (
     <svg
@@ -121,7 +137,9 @@ export function AvatarArtwork({ config = EMPTY_CONFIG, crop = 'icon', label = 'C
           />
         </g>
         <g data-avatar-layer="rear-pet" />
-        <g data-avatar-layer="rear-accessories" />
+        <g data-avatar-layer="rear-accessories">
+          {rearAccessories.map((item) => renderAccessoryItem(item, normalizedConfig, palette, paints))}
+        </g>
         <g data-avatar-layer="rear-hair" transform={rearHairMarginTransform}>
           <g data-avatar-head-rig="true" transform={headRigTransform}>
             <Hair.Rear config={normalizedConfig} palette={palette} paints={paints} />
@@ -170,7 +188,9 @@ export function AvatarArtwork({ config = EMPTY_CONFIG, crop = 'icon', label = 'C
             <Hat config={normalizedConfig} palette={palette} paints={paints} />
           </g>
         </g>
-        <g data-avatar-layer="front-accessories" />
+        <g data-avatar-layer="front-accessories">
+          {frontAccessories.map((item) => renderAccessoryItem(item, normalizedConfig, palette, paints))}
+        </g>
         <g data-avatar-layer="pet" />
         <g data-avatar-layer="finish" />
       </g>

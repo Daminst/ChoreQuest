@@ -1,3 +1,4 @@
+import { ACCESSORY_RENDERERS } from './parts/accessories.jsx';
 import {
   EYE_RENDERERS,
   FACE_EXTRA_RENDERERS,
@@ -10,6 +11,7 @@ import { HEAD_FEATURE_OFFSETS, HEAD_RENDERERS } from './parts/heads.jsx';
 import { BODY_RENDERERS, OUTFIT_PATTERN_RENDERERS } from './parts/outfits.jsx';
 
 export {
+  ACCESSORY_RENDERERS,
   BODY_RENDERERS,
   EYE_RENDERERS,
   FACE_EXTRA_RENDERERS,
