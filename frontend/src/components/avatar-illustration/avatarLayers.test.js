@@ -41,8 +41,39 @@ test('vertical slice models hair, face, hoodie, shorts, and shoes with distinct 
     'avatar-sleeve-fold', 'avatar-ribbing', 'avatar-pocket-stitch',
     'avatar-shorts-panel', 'avatar-shoe-panel', 'avatar-hair-root-shadow',
     'avatar-hair-boundary', 'avatar-hair-directional-highlight',
-    'avatar-jaw-shadow', 'avatar-eye-shadow', 'avatar-nose-plane',
+    'avatar-jaw-plane', 'avatar-upper-eye-plane', 'avatar-nose-plane',
   ]) {
     assert.match(source, new RegExp(marker), `missing ${marker}`);
   }
+});
+
+test('short hair opens both brows and reserves lifted paint for selective highlights', () => {
+  const source = readFileSync(new URL('parts/hair.jsx', import.meta.url), 'utf8');
+
+  assert.match(source, /avatar-brow-window-left/, 'missing left brow window');
+  assert.match(source, /avatar-brow-window-right/, 'missing right brow window');
+  assert.doesNotMatch(
+    source,
+    /fill=\{palette\.hair\.lifted\}/,
+    'lifted hair paint must not fill broad crown or lock shapes',
+  );
+  assert.match(
+    source,
+    /avatar-hair-directional-highlight[\s\S]*?fill="none"[\s\S]*?stroke=\{palette\.hair\.lifted\}/,
+    'lifted hair paint must be limited to an open directional highlight',
+  );
+});
+
+test('face finish uses localized planes and two small highlights per eye', () => {
+  const heads = readFileSync(new URL('parts/heads.jsx', import.meta.url), 'utf8');
+  const faces = readFileSync(new URL('parts/faces.jsx', import.meta.url), 'utf8');
+
+  assert.match(heads, /avatar-cheek-plane/, 'missing curved cheek plane');
+  assert.match(heads, /avatar-jaw-plane/, 'missing localized jaw plane');
+  assert.doesNotMatch(faces, /avatar-eye-shadow/, 'broad eye socket masks must be removed');
+  assert.equal(
+    (faces.match(/avatar-eye-highlight-small/g) || []).length,
+    4,
+    'each eye must have exactly two small highlights',
+  );
 });
