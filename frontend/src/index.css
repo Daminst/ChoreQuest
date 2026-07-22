@@ -1006,36 +1006,6 @@ h1, h2, h3, h4, h5, h6 {
   97% { transform: rotate(0deg) translateY(0); }
 }
 
-@keyframes avatar-blink {
-  0%, 86%, 100% { opacity: 0; }
-  90%, 96% { opacity: 1; }
-}
-
-@keyframes avatar-mouth-move {
-  0%, 90%, 100% { transform: scaleY(1); }
-  93% { transform: scaleY(1.25); }
-  96% { transform: scaleY(1); }
-}
-
-@keyframes avatar-pet-bounce {
-  0%, 100% { transform: translateY(0); }
-  40% { transform: translateY(-0.6px); }
-  60% { transform: translateY(-0.6px); }
-}
-
-@keyframes avatar-tail-wag {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(12deg); }
-  75% { transform: rotate(-12deg); }
-}
-
-@keyframes avatar-sparkle {
-  0%, 88%, 100% { opacity: 0; }
-  92% { opacity: 0.8; }
-  95% { opacity: 0; }
-  97% { opacity: 0.5; }
-}
-
 .avatar-idle {
   animation:
     avatar-sway 4s ease-in-out infinite,
@@ -1049,6 +1019,11 @@ h1, h2, h3, h4, h5, h6 {
   display: block;
   shape-rendering: geometricPrecision;
   isolation: isolate;
+}
+
+.avatar-display {
+  display: block;
+  flex: 0 0 auto;
 }
 
 .avatar-main-silhouette {
@@ -1098,50 +1073,19 @@ h1, h2, h3, h4, h5, h6 {
   contain-intrinsic-size: 112px;
 }
 
-.avatar-option-card .avatar-svg {
+.avatar-option-card .avatar-svg,
+.avatar-option-card .avatar-artwork {
   transition: transform 180ms ease, filter 180ms ease;
 }
 
-.avatar-option-card:hover .avatar-svg {
+.avatar-option-card:hover .avatar-svg,
+.avatar-option-card:hover .avatar-artwork {
   transform: scale(1.06);
   filter: saturate(1.08);
 }
 
-.avatar-idle .avatar-eyelid {
-  animation: avatar-blink 5s ease-in-out infinite;
-  animation-delay: var(--avatar-delay, 0s);
-}
-
-.avatar-idle .avatar-mouth {
-  animation: avatar-mouth-move 7s ease-in-out infinite;
-  animation-delay: var(--avatar-delay, 0s);
-  transform-origin: 16px 18px;
-}
-
-.avatar-idle .avatar-pet {
-  animation: avatar-pet-bounce 2s ease-in-out infinite;
-  animation-delay: var(--avatar-delay, 0s);
-}
-
-.avatar-idle .avatar-pet-tail {
-  animation: avatar-tail-wag 0.6s ease-in-out infinite;
-  animation-delay: var(--avatar-delay, 0s);
-  transform-origin: center bottom;
-  transform-box: fill-box;
-}
-
-.avatar-idle .avatar-sparkle {
-  animation: avatar-sparkle 6s ease-in-out infinite;
-  animation-delay: var(--avatar-delay, 0s);
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .avatar-idle,
-  .avatar-idle .avatar-eyelid,
-  .avatar-idle .avatar-mouth,
-  .avatar-idle .avatar-pet,
-  .avatar-idle .avatar-pet-tail,
-  .avatar-idle .avatar-sparkle {
+  .avatar-idle {
     animation: none !important;
   }
 }

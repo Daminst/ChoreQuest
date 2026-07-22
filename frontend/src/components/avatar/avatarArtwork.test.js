@@ -4,15 +4,13 @@ import { readFileSync } from 'node:fs';
 
 
 const artworkFiles = [
-  './heads.jsx',
-  './eyes.jsx',
-  './mouths.jsx',
-  './faceExtras.jsx',
-  './hair.jsx',
-  './bodies.jsx',
-  './hats.jsx',
-  './accessories.jsx',
-  './pets.jsx',
+  '../avatar-illustration/parts/heads.jsx',
+  '../avatar-illustration/parts/faces.jsx',
+  '../avatar-illustration/parts/hair.jsx',
+  '../avatar-illustration/parts/hats.jsx',
+  '../avatar-illustration/parts/outfits.jsx',
+  '../avatar-illustration/parts/accessories.jsx',
+  '../avatar-illustration/parts/pets.jsx',
 ];
 
 test('every avatar artwork family contains visible finish details', () => {
@@ -28,7 +26,7 @@ test('every avatar artwork family contains visible finish details', () => {
 
 test('legacy avatar option identifiers remain available', () => {
   const optionSources = [
-    '../AvatarEditor.jsx',
+    '../avatar-editor/avatarCatalog.js',
     '../avatar-editor/avatarPetCatalog.js',
   ].map((file) => readFileSync(new URL(file, import.meta.url), 'utf8')).join('\n');
 

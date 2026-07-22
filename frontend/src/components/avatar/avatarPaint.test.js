@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildAvatarPalette, mixHex } from './avatarPaint.js';
+import { buildAvatarPalette, liftHex, mixHex } from './avatarPaint.js';
 
 
 test('mixHex creates stable lighter and darker colours', () => {
@@ -14,6 +14,13 @@ test('mixHex supports shorthand colours and clamps the mix amount', () => {
   assert.equal(mixHex('#fff', '#000', -1), '#ffffff');
 });
 
+test('liftHex raises HSL lightness for black, near-black, brown, and saturated orange', () => {
+  assert.equal(liftHex('#000000'), '#2e2e2e');
+  assert.equal(liftHex('#050301'), '#513110');
+  assert.equal(liftHex('#4a3728'), '#866348');
+  assert.equal(liftHex('#f08020'), '#f6b176');
+});
+
 test('avatar palette preserves base user colours', () => {
   const palette = buildAvatarPalette({
     head_color: '#c68642',
@@ -22,6 +29,17 @@ test('avatar palette preserves base user colours', () => {
 
   assert.equal(palette.skin.base, '#c68642');
   assert.equal(palette.hair.base, '#4a3728');
+  assert.equal(palette.hair.lifted, '#866348');
   assert.notEqual(palette.skin.light, palette.skin.base);
   assert.notEqual(palette.skin.shadow, palette.skin.base);
+});
+
+test('illustration finishes provide readable outlines for light and dark bases', () => {
+  const light = buildAvatarPalette({ head_color: '#ffffff' }).skin;
+  const dark = buildAvatarPalette({ head_color: '#000000' }).skin;
+  assert.match(light.outline, /^#[0-9a-f]{6}$/);
+  assert.match(dark.outline, /^#[0-9a-f]{6}$/);
+  assert.notEqual(light.outline, light.base);
+  assert.notEqual(dark.outline, dark.base);
+  assert.match(light.cheek, /^#[0-9a-f]{6}$/);
 });

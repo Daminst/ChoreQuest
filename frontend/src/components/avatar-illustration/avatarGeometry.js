@@ -1,0 +1,238 @@
+export const AVATAR_CANVAS = Object.freeze({ width: 240, height: 320 });
+
+export const AVATAR_PET_PLACEMENT = Object.freeze({
+  saved: Object.freeze({ min: 4, max: 28 }),
+  canvas: Object.freeze({
+    minX: 36,
+    maxX: 204,
+    minY: 64,
+    maxY: 280,
+  }),
+});
+
+function freezePoint(x, y, role) {
+  return Object.freeze(role ? { x, y, role } : { x, y });
+}
+
+const HEAD_RIG_ANCHOR = freezePoint(120, 12);
+const HEAD_RIG_SCALE = 0.75;
+const HEAD_FEATURE_ANCHOR = freezePoint(120, 88);
+
+export const AVATAR_HEAD_RIG = Object.freeze({
+  anchor: HEAD_RIG_ANCHOR,
+  scaleX: HEAD_RIG_SCALE,
+  scaleY: HEAD_RIG_SCALE,
+  sourceBounds: Object.freeze({
+    visibleCrown: 12,
+    visibleChin: 136,
+    neckBottom: 142,
+  }),
+  transform: `translate(${HEAD_RIG_ANCHOR.x} ${HEAD_RIG_ANCHOR.y}) scale(${HEAD_RIG_SCALE}) translate(${-HEAD_RIG_ANCHOR.x} ${-HEAD_RIG_ANCHOR.y})`,
+});
+
+export const AVATAR_HEADWEAR_ANCHORS = Object.freeze({
+  skullTop: freezePoint(120, 30),
+  band: Object.freeze({
+    left: freezePoint(76, 52),
+    right: freezePoint(164, 52),
+  }),
+  temples: Object.freeze({
+    left: freezePoint(78, 78),
+    right: freezePoint(162, 78),
+  }),
+});
+
+export const AVATAR_POSE_ANCHORS = Object.freeze({
+  shoulders: Object.freeze({
+    left: freezePoint(94, 132),
+    right: freezePoint(150, 127),
+  }),
+  hips: Object.freeze({
+    free: freezePoint(104, 216),
+    weight: freezePoint(139, 220),
+  }),
+  knees: Object.freeze({
+    free: freezePoint(94, 262),
+    weight: freezePoint(140, 256),
+  }),
+  soles: Object.freeze({
+    free: freezePoint(78, 310),
+    weight: freezePoint(150, 315),
+  }),
+  hands: Object.freeze({
+    hip: freezePoint(80, 203, 'hip'),
+    relaxed: freezePoint(169, 224, 'relaxed'),
+  }),
+});
+
+export const AVATAR_BODY_PROPORTIONS = Object.freeze({
+  upperBody: Object.freeze({
+    hoodTop: 109,
+    hoodBottom: 151,
+    torsoTop: 124,
+  }),
+  legs: Object.freeze({
+    free: Object.freeze({
+      thighLeft: 84,
+      thighRight: 121,
+      kneeLeft: 79,
+      kneeRight: 111,
+    }),
+    weight: Object.freeze({
+      thighLeft: 120,
+      thighRight: 161,
+      kneeLeft: 126,
+      kneeRight: 156,
+    }),
+  }),
+});
+
+const BODY_BUILD_CENTER_X = 120;
+
+function formatTransformNumber(value) {
+  const rounded = Number(Number(value).toFixed(2));
+  return Object.is(rounded, -0) ? 0 : rounded;
+}
+
+function freezeScaledRegion(anchorX, widthRatio) {
+  return Object.freeze({
+    anchorX,
+    scaleX: widthRatio,
+    scaleY: 1,
+    transform: `translate(${anchorX} 0) scale(${widthRatio} 1) translate(${-anchorX} 0)`,
+  });
+}
+
+function freezeTranslatedHand(anchorX, widthRatio) {
+  const translateX = formatTransformNumber((anchorX - BODY_BUILD_CENTER_X) * (widthRatio - 1));
+  return Object.freeze({
+    anchorX,
+    translateX,
+    transform: `translate(${translateX} 0)`,
+  });
+}
+
+function freezeBodyBuildRig(id, widthRatio) {
+  return Object.freeze({
+    id,
+    widthRatio,
+    torso: freezeScaledRegion(BODY_BUILD_CENTER_X, widthRatio),
+    legs: Object.freeze({
+      free: freezeScaledRegion(AVATAR_POSE_ANCHORS.soles.free.x, widthRatio),
+      weight: freezeScaledRegion(AVATAR_POSE_ANCHORS.soles.weight.x, widthRatio),
+    }),
+    hands: Object.freeze({
+      hip: freezeTranslatedHand(AVATAR_POSE_ANCHORS.hands.hip.x, widthRatio),
+      relaxed: freezeTranslatedHand(AVATAR_POSE_ANCHORS.hands.relaxed.x, widthRatio),
+    }),
+  });
+}
+
+export const AVATAR_BODY_BUILD_RIGS = Object.freeze({
+  slim: freezeBodyBuildRig('slim', 0.9),
+  regular: freezeBodyBuildRig('regular', 1),
+  broad: freezeBodyBuildRig('broad', 1.12),
+});
+
+export const AVATAR_FRAMES = Object.freeze({
+  full: Object.freeze({ viewBox: '0 0 240 320', circular: false }),
+  portrait: Object.freeze({ viewBox: '48 4 144 144', circular: true }),
+  icon: Object.freeze({ viewBox: '42 18 156 156', circular: true }),
+});
+
+function freezeCamera(scale, targetY) {
+  const sourceAnchor = freezePoint(120, 12);
+  const targetAnchor = freezePoint(120, targetY);
+  return Object.freeze({
+    sourceAnchor,
+    targetAnchor,
+    scaleX: scale,
+    scaleY: scale,
+    transform: `translate(${targetAnchor.x} ${targetAnchor.y}) scale(${scale}) translate(${-sourceAnchor.x} ${-sourceAnchor.y})`,
+  });
+}
+
+export const AVATAR_CAMERAS = Object.freeze({
+  full: freezeCamera(1, 12),
+  portrait: freezeCamera(1.32, 7),
+  icon: freezeCamera(1.18, 20),
+});
+
+const PORTRAIT_CATEGORIES = new Set(['head', 'skin', 'hair', 'eyes', 'mouth', 'hat', 'face']);
+const FULL_CATEGORIES = new Set(['body', 'outfit', 'pattern', 'background', 'accessory', 'pet']);
+
+export function getAvatarFrame(crop = 'icon') {
+  return AVATAR_FRAMES[crop] || AVATAR_FRAMES.icon;
+}
+
+export function getAvatarCameraTransform(crop = 'icon') {
+  return (AVATAR_CAMERAS[crop] || AVATAR_CAMERAS.icon).transform;
+}
+
+export function getAvatarHeadRigTransform() {
+  return AVATAR_HEAD_RIG.transform;
+}
+
+export function getAvatarHeadMarginTransform(offsetY = 0) {
+  const offset = Number(offsetY);
+  const overshootCorrection = Number.isFinite(offset) && offset < 0 ? -offset : 0;
+  return `translate(0 ${overshootCorrection})`;
+}
+
+export function getAvatarHeadFeatureTransform(offset = {}) {
+  const xValue = Number(offset.x);
+  const yValue = Number(offset.y);
+  const scaleXValue = Number(offset.scaleX);
+  const scaleYValue = Number(offset.scaleY);
+  const x = Number.isFinite(xValue) ? xValue : 0;
+  const y = Number.isFinite(yValue) ? yValue : 0;
+  const scaleX = Number.isFinite(scaleXValue) && scaleXValue > 0 ? scaleXValue : 1;
+  const scaleY = Number.isFinite(scaleYValue) && scaleYValue > 0 ? scaleYValue : 1;
+  return `translate(${HEAD_FEATURE_ANCHOR.x} ${HEAD_FEATURE_ANCHOR.y}) translate(${x} ${y}) scale(${scaleX} ${scaleY}) translate(${-HEAD_FEATURE_ANCHOR.x} ${-HEAD_FEATURE_ANCHOR.y})`;
+}
+
+export function getAvatarBuildTransform(build = 'regular') {
+  return getAvatarBuildRig(build).torso.transform;
+}
+
+export function getAvatarBuildRig(build = 'regular') {
+  return AVATAR_BODY_BUILD_RIGS[build] || AVATAR_BODY_BUILD_RIGS.regular;
+}
+
+export function getAvatarHandTransform(build = 'regular', hand = 'hip') {
+  const rig = getAvatarBuildRig(build);
+  return (rig.hands[hand] || rig.hands.hip).transform;
+}
+
+export function getAvatarRenderDimensions(size, crop = 'icon') {
+  const height = Number.isFinite(Number(size)) ? Number(size) : 64;
+  return crop === 'full'
+    ? { width: Math.round(height * AVATAR_CANVAS.width / AVATAR_CANVAS.height), height }
+    : { width: height, height };
+}
+
+export function getAvatarOptionCrop(category) {
+  if (PORTRAIT_CATEGORIES.has(category)) return 'portrait';
+  if (FULL_CATEGORIES.has(category)) return 'full';
+  return 'icon';
+}
+
+export function mapLegacyPetPoint(x, y) {
+  const { saved, canvas } = AVATAR_PET_PLACEMENT;
+  const clamp = (value) => Math.min(saved.max, Math.max(saved.min, Number(value) || saved.min));
+  return {
+    x: Math.round(canvas.minX + ((clamp(x) - saved.min) / (saved.max - saved.min)) * (canvas.maxX - canvas.minX)),
+    y: Math.round(canvas.minY + ((clamp(y) - saved.min) / (saved.max - saved.min)) * (canvas.maxY - canvas.minY)),
+  };
+}
+
+export function mapAvatarPetCanvasPointToLegacy(x, y) {
+  const { saved, canvas } = AVATAR_PET_PLACEMENT;
+  const clampCanvas = (value, min, max) => Math.min(max, Math.max(min, Number(value) || min));
+  const canvasX = clampCanvas(x, canvas.minX, canvas.maxX);
+  const canvasY = clampCanvas(y, canvas.minY, canvas.maxY);
+  return {
+    x: Math.round(saved.min + ((canvasX - canvas.minX) / (canvas.maxX - canvas.minX)) * (saved.max - saved.min)),
+    y: Math.round(saved.min + ((canvasY - canvas.minY) / (canvas.maxY - canvas.minY)) * (saved.max - saved.min)),
+  };
+}
