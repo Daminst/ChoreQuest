@@ -2,7 +2,7 @@ import { useId, useMemo } from 'react';
 
 import { buildAvatarPalette } from '../avatar/avatarPaint.js';
 import { AvatarDefs } from './AvatarDefs.jsx';
-import { normalizeAvatarIllustrationConfig } from './avatarConfig.js';
+import { getAvatarSelectionKey, normalizeAvatarIllustrationConfig } from './avatarConfig.js';
 import {
   AVATAR_POSE_ANCHORS,
   getAvatarCameraTransform,
@@ -110,18 +110,7 @@ export function AvatarArtwork({
   const resolvedAccessories = normalizedConfig.accessories.map((id, index) => ({ id, index, entry: ACCESSORY_RENDERERS[id] }));
   const rearAccessories = resolvedAccessories.filter(({ entry }) => entry && entry.layer === 'rear');
   const frontAccessories = resolvedAccessories.filter(({ entry }) => entry && entry.layer === 'front');
-  const selectionKey = [
-    normalizedConfig.head,
-    normalizedConfig.hair,
-    normalizedConfig.eyes,
-    normalizedConfig.mouth,
-    normalizedConfig.hat,
-    normalizedConfig.body,
-    normalizedConfig.outfit_pattern,
-    normalizedConfig.face_extra,
-    normalizedConfig.pet,
-    ...normalizedConfig.accessories,
-  ].join('|');
+  const selectionKey = getAvatarSelectionKey(normalizedConfig);
 
   return (
     <svg
