@@ -33,6 +33,17 @@ export function mixHex(color, target, amount) {
   return `#${channels.join('')}`;
 }
 
+export function liftHex(color, amount = 0.5) {
+  const sourceHex = expandHex(color).slice(1);
+  const ratio = Math.min(1, Math.max(0, Number(amount) || 0));
+  const factor = 1 + ratio;
+  const channels = [0, 2, 4].map((offset) => Math.min(
+    255,
+    Math.round(Number.parseInt(sourceHex.slice(offset, offset + 2), 16) * factor),
+  ).toString(16).padStart(2, '0'));
+  return `#${channels.join('')}`;
+}
+
 const perceivedLightness = (hex) => {
   const value = expandHex(hex).slice(1);
   const [r, g, b] = [0, 2, 4].map((offset) => Number.parseInt(value.slice(offset, offset + 2), 16));
@@ -54,9 +65,10 @@ function finish(base, { skin = false } = {}) {
 }
 
 export function buildAvatarPalette(config = {}) {
+  const hairColor = config.hair_color || DEFAULT_COLORS.hair;
   return {
     skin: finish(config.head_color || DEFAULT_COLORS.skin, { skin: true }),
-    hair: finish(config.hair_color || DEFAULT_COLORS.hair),
+    hair: { ...finish(hairColor), lifted: liftHex(hairColor) },
     outfit: finish(config.body_color || DEFAULT_COLORS.outfit),
     hat: finish(config.hat_color || DEFAULT_COLORS.hat),
     gear: finish(config.accessory_color || DEFAULT_COLORS.gear),

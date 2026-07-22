@@ -33,16 +33,8 @@ function buildAvatarIds(prefix) {
   });
 }
 
-function buildAvatarPaints(ids) {
-  return Object.freeze({
-    skin: `url(#${ids.skinGradient})`,
-    hair: `url(#${ids.hairGradient})`,
-    outfit: `url(#${ids.outfitGradient})`,
-    hat: `url(#${ids.hatGradient})`,
-    gear: `url(#${ids.gearGradient})`,
-    pet: `url(#${ids.petGradient})`,
-    background: `url(#${ids.backgroundGradient})`,
-  });
+function buildAvatarBackgroundPaint(ids) {
+  return `url(#${ids.backgroundGradient})`;
 }
 
 export function AvatarArtwork({ config = EMPTY_CONFIG, crop = 'icon', label = 'ChoreQuest avatar' }) {
@@ -52,7 +44,7 @@ export function AvatarArtwork({ config = EMPTY_CONFIG, crop = 'icon', label = 'C
   const reactId = useId();
   const prefix = `cq-avatar-${reactId.replace(UNSAFE_ID_CHARACTERS, '') || 'instance'}`;
   const ids = useMemo(() => buildAvatarIds(prefix), [prefix]);
-  const paints = useMemo(() => buildAvatarPaints(ids), [ids]);
+  const backgroundPaint = useMemo(() => buildAvatarBackgroundPaint(ids), [ids]);
   const hasBackground = crop === 'portrait' || crop === 'icon';
   const Head = resolveAvatarPart(HEAD_RENDERERS, normalizedConfig.head, 'round');
   const Eyes = resolveAvatarPart(EYE_RENDERERS, normalizedConfig.eyes, 'normal');
@@ -82,7 +74,7 @@ export function AvatarArtwork({ config = EMPTY_CONFIG, crop = 'icon', label = 'C
           y="0"
           width="240"
           height="320"
-          fill={paints.background}
+          fill={backgroundPaint}
         />
       ) : null}
       <g data-avatar-layer="rear-effects" />

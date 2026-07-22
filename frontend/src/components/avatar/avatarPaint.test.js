@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildAvatarPalette, mixHex } from './avatarPaint.js';
+import { buildAvatarPalette, liftHex, mixHex } from './avatarPaint.js';
 
 
 test('mixHex creates stable lighter and darker colours', () => {
@@ -14,6 +14,11 @@ test('mixHex supports shorthand colours and clamps the mix amount', () => {
   assert.equal(mixHex('#fff', '#000', -1), '#ffffff');
 });
 
+test('liftHex brightens dark colours without washing their hue toward white', () => {
+  assert.equal(liftHex('#4a3728', 0.5), '#6f533c');
+  assert.equal(liftHex('#f08020', 1), '#ffff40');
+});
+
 test('avatar palette preserves base user colours', () => {
   const palette = buildAvatarPalette({
     head_color: '#c68642',
@@ -22,6 +27,7 @@ test('avatar palette preserves base user colours', () => {
 
   assert.equal(palette.skin.base, '#c68642');
   assert.equal(palette.hair.base, '#4a3728');
+  assert.equal(palette.hair.lifted, '#6f533c');
   assert.notEqual(palette.skin.light, palette.skin.base);
   assert.notEqual(palette.skin.shadow, palette.skin.base);
 });

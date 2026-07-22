@@ -32,3 +32,15 @@ test('vertical slice contains complete anatomy and illustration finish markers',
     assert.match(source, new RegExp(marker), `missing ${marker}`);
   }
 });
+
+test('vertical slice models hair, face, hoodie, shorts, and shoes with distinct finish planes', () => {
+  const files = ['parts/anatomy.jsx', 'parts/heads.jsx', 'parts/faces.jsx', 'parts/hair.jsx', 'parts/outfits.jsx'];
+  const source = files.map((file) => readFileSync(new URL(file, import.meta.url), 'utf8')).join('\n');
+  for (const marker of [
+    'avatar-hair-lock', 'avatar-hair-plane', 'avatar-face-plane', 'avatar-hood-volume',
+    'avatar-sleeve-fold', 'avatar-ribbing', 'avatar-pocket-stitch',
+    'avatar-shorts-panel', 'avatar-shoe-panel',
+  ]) {
+    assert.match(source, new RegExp(marker), `missing ${marker}`);
+  }
+});
