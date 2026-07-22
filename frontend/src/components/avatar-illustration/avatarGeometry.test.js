@@ -44,31 +44,157 @@ test('catalog remains complete and default config keeps version two', () => {
   assert.equal(DEFAULT_CONFIG._v, 2);
 });
 
-test('shared head rig keeps the full figure within 3.25 to 3.75 head heights', () => {
-  const { AVATAR_HEAD_RIG, AVATAR_POSE_ANCHORS, getAvatarHeadRigTransform } = avatarGeometry;
+test('visible crown-to-sole ratio uses the same crown as visible head height', () => {
+  const {
+    AVATAR_HEAD_RIG,
+    AVATAR_POSE_ANCHORS,
+  } = avatarGeometry;
   assert.ok(AVATAR_HEAD_RIG, 'missing shared head-rig geometry contract');
   assert.ok(AVATAR_POSE_ANCHORS, 'missing shared pose-anchor contract');
-  assert.equal(typeof getAvatarHeadRigTransform, 'function');
   assert.ok(Object.isFrozen(AVATAR_HEAD_RIG));
-  assert.ok(Object.isFrozen(AVATAR_HEAD_RIG.anchor));
   assert.ok(Object.isFrozen(AVATAR_HEAD_RIG.sourceBounds));
 
   const {
     anchor, scaleX, scaleY, sourceBounds,
   } = AVATAR_HEAD_RIG;
-  assert.ok(scaleX > scaleY, 'head rig must preserve expressive width while reducing height');
-  const headHeight = (sourceBounds.headBottom - sourceBounds.headTop) * scaleY;
-  const figureTop = anchor.y + ((sourceBounds.artworkTop - anchor.y) * scaleY);
-  const figureBottom = Math.max(
+  const visibleCrown = anchor.y + ((sourceBounds.visibleCrown - anchor.y) * scaleY);
+  const visibleChin = anchor.y + ((sourceBounds.visibleChin - anchor.y) * scaleY);
+  const lowestSole = Math.max(
     AVATAR_POSE_ANCHORS.soles.free.y,
     AVATAR_POSE_ANCHORS.soles.weight.y,
   );
-  const headRatio = (figureBottom - figureTop) / headHeight;
-  const visibleNeckHeight = (sourceBounds.neckBottom - sourceBounds.headBottom) * scaleY;
+  const visibleHeadHeight = visibleChin - visibleCrown;
+  const figureHeight = lowestSole - visibleCrown;
+  const headRatio = figureHeight / visibleHeadHeight;
 
   assert.ok(headRatio >= 3.25 && headRatio <= 3.75, `head ratio ${headRatio} is out of range`);
-  assert.ok(visibleNeckHeight <= 5, 'scaled neck must remain compact under the smaller head');
+  assert.ok(visibleCrown >= 8, 'visible crown needs useful top safety in the full frame');
+  assert.ok(lowestSole <= 316, 'lowest sole needs useful bottom safety in the full frame');
+});
+
+test('body rebalance is authored in final canvas anchors without vertical scaling', () => {
+  const { AVATAR_POSE_ANCHORS, getAvatarBuildTransform } = avatarGeometry;
+  assert.equal(AVATAR_POSE_ANCHORS.soles.free.y, 310);
+  assert.equal(AVATAR_POSE_ANCHORS.soles.weight.y, 315);
+  assert.equal(AVATAR_POSE_ANCHORS.knees.free.y, 262);
+  assert.equal(AVATAR_POSE_ANCHORS.knees.weight.y, 256);
+  assert.equal(
+    getAvatarBuildTransform('regular'),
+    'translate(120 0) scale(1 1) translate(-120 0)',
+    'body geometry must not rely on an anisotropic camera-like stretch',
+  );
+});
+
+test('hood and upper torso stay compact against the transformed chin', () => {
+  const {
+    AVATAR_BODY_PROPORTIONS,
+    AVATAR_HEAD_RIG,
+    AVATAR_POSE_ANCHORS,
+  } = avatarGeometry;
+  assert.ok(AVATAR_BODY_PROPORTIONS, 'missing shared body-proportion contract');
+  assert.ok(Object.isFrozen(AVATAR_BODY_PROPORTIONS));
+  assert.ok(Object.isFrozen(AVATAR_BODY_PROPORTIONS.upperBody));
+
+  const { anchor, scaleY, sourceBounds } = AVATAR_HEAD_RIG;
+  const visibleChin = anchor.y + ((sourceBounds.visibleChin - anchor.y) * scaleY);
+  const shoulderTop = Math.min(
+    AVATAR_POSE_ANCHORS.shoulders.left.y,
+    AVATAR_POSE_ANCHORS.shoulders.right.y,
+  );
+  const { hoodTop, hoodBottom, torsoTop } = AVATAR_BODY_PROPORTIONS.upperBody;
+
+  assert.ok(hoodBottom - hoodTop <= 42, 'hood must read as a shallow collar, not a tall oval');
+  assert.ok(hoodTop - visibleChin >= 4, 'short neck must remain visible above the collar');
+  assert.ok(hoodTop - visibleChin <= 14, 'collar must stay visually attached to the neck');
+  assert.ok(shoulderTop - visibleChin <= 24, 'shoulders must remain close to the chin');
+  assert.ok(torsoTop - visibleChin <= 20, 'upper torso must not detach from the head');
+});
+
+test('authored leg silhouettes keep controlled thigh and knee volume', () => {
+  const { AVATAR_BODY_PROPORTIONS, AVATAR_POSE_ANCHORS } = avatarGeometry;
+  assert.ok(AVATAR_BODY_PROPORTIONS, 'missing shared body-proportion contract');
+  assert.ok(Object.isFrozen(AVATAR_BODY_PROPORTIONS.legs));
+
+  for (const side of ['free', 'weight']) {
+    const leg = AVATAR_BODY_PROPORTIONS.legs[side];
+    assert.ok(Object.isFrozen(leg));
+    assert.ok(leg.thighRight - leg.thighLeft >= 35, `${side} thigh is too narrow`);
+    assert.ok(leg.kneeRight - leg.kneeLeft >= 30, `${side} knee is too narrow`);
+    assert.ok(
+      leg.thighLeft < AVATAR_POSE_ANCHORS.hips[side].x
+        && leg.thighRight > AVATAR_POSE_ANCHORS.hips[side].x,
+      `${side} thigh must carry volume around its hip anchor`,
+    );
+  }
+});
+
+test('head rig scales uniformly and keeps the visible crown near y=12', () => {
+  const { AVATAR_HEAD_RIG, getAvatarHeadRigTransform } = avatarGeometry;
+  assert.ok(AVATAR_HEAD_RIG);
+  assert.equal(typeof getAvatarHeadRigTransform, 'function');
+  assert.ok(Object.isFrozen(AVATAR_HEAD_RIG.anchor));
+
+  const {
+    anchor, scaleX, scaleY, sourceBounds,
+  } = AVATAR_HEAD_RIG;
+  assert.equal(scaleX, scaleY, 'head rig must not flatten heads, strokes, or future parts');
+  assert.equal(sourceBounds.visibleCrown, 12);
+  assert.equal(sourceBounds.visibleChin, 136);
+  const visibleCrown = anchor.y + ((sourceBounds.visibleCrown - anchor.y) * scaleY);
+  const visibleChin = anchor.y + ((sourceBounds.visibleChin - anchor.y) * scaleY);
+  const visibleNeckHeight = (sourceBounds.neckBottom - sourceBounds.visibleChin) * scaleY;
+
+  assert.ok(Math.abs(visibleCrown - 12) <= 1, `visible crown moved to ${visibleCrown}`);
+  assert.ok(visibleChin > 100 && visibleChin < 110, `visible chin moved to ${visibleChin}`);
+  assert.ok(visibleNeckHeight <= 5, 'uniformly scaled neck must remain compact');
+  assert.match(AVATAR_HEAD_RIG.transform, /scale\([^\s)]+\)/, 'head scale must have one axis value');
   assert.equal(getAvatarHeadRigTransform(), AVATAR_HEAD_RIG.transform);
+});
+
+test('crop cameras are frozen uniform transforms over the unchanged frames', () => {
+  const {
+    AVATAR_CAMERAS,
+    AVATAR_HEAD_RIG,
+    getAvatarCameraTransform,
+  } = avatarGeometry;
+  assert.ok(AVATAR_CAMERAS, 'missing shared crop-camera contract');
+  assert.equal(typeof getAvatarCameraTransform, 'function');
+  assert.ok(Object.isFrozen(AVATAR_CAMERAS));
+
+  for (const crop of ['full', 'portrait', 'icon']) {
+    const camera = AVATAR_CAMERAS[crop];
+    assert.ok(Object.isFrozen(camera), `${crop} camera must be immutable`);
+    assert.ok(Object.isFrozen(camera.sourceAnchor));
+    assert.ok(Object.isFrozen(camera.targetAnchor));
+    assert.equal(camera.scaleX, camera.scaleY, `${crop} camera must remain uniform`);
+    assert.match(camera.transform, /scale\([^\s)]+\)/, `${crop} camera needs one scale value`);
+    assert.equal(getAvatarCameraTransform(crop), camera.transform);
+  }
+
+  const portrait = AVATAR_CAMERAS.portrait;
+  const visibleHeadHeight = (
+    AVATAR_HEAD_RIG.sourceBounds.visibleChin - AVATAR_HEAD_RIG.sourceBounds.visibleCrown
+  ) * AVATAR_HEAD_RIG.scaleY;
+  const portraitFrameHeight = Number(getAvatarFrame('portrait').viewBox.split(' ')[3]);
+  const portraitOccupancy = (visibleHeadHeight * portrait.scaleY) / portraitFrameHeight;
+  assert.ok(portraitOccupancy >= 0.84, `portrait head occupancy ${portraitOccupancy} is too small`);
+  assert.equal(getAvatarFrame('portrait').viewBox, '48 4 144 144');
+  assert.equal(getAvatarFrame('icon').viewBox, '42 18 156 156');
+});
+
+test('hair margin stays an exact outer canvas translation', () => {
+  const {
+    AVATAR_HEAD_RIG,
+    getAvatarHeadMarginTransform,
+    getAvatarHeadRigTransform,
+  } = avatarGeometry;
+  assert.equal(typeof getAvatarHeadMarginTransform, 'function');
+  assert.equal(getAvatarHeadMarginTransform(-20), 'translate(0 -20)');
+  assert.equal(
+    getAvatarHeadRigTransform(-20),
+    AVATAR_HEAD_RIG.transform,
+    'head rig must ignore margin metadata instead of scaling it internally',
+  );
 });
 
 test('default pose anchors encode a visible one-leg weight shift and unequal hands', () => {

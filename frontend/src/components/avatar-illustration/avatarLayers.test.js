@@ -122,7 +122,29 @@ test('instance-local material paints are passed to and consumed by major masses'
   assert.match(outfits, /fill=\{paints\.outfit\}/, 'outfit surface must consume outfit paint');
 });
 
-test('all head-attached layers share one rig and pose parts consume shared anchors', () => {
+test('one camera wrapper owns one literal sequence of all named artwork layers', () => {
+  const compositor = readFileSync(new URL('./AvatarArtwork.jsx', import.meta.url), 'utf8');
+  assert.equal(
+    (compositor.match(/data-avatar-camera=/g) || []).length,
+    1,
+    'compositor must render one shared camera-wrapped artwork tree',
+  );
+  assert.match(compositor, /const cameraTransform = getAvatarCameraTransform\(crop\);/);
+  assert.match(
+    compositor,
+    /<g data-avatar-camera=\{crop\} transform=\{cameraTransform\}>[\s\S]*?<g data-avatar-layer="finish"\s*\/>\s*<\/g>/,
+    'every named layer must live inside the same camera wrapper',
+  );
+  for (const layer of getAvatarLayerOrder()) {
+    assert.equal(
+      (compositor.match(new RegExp(`data-avatar-layer="${layer}"`, 'g')) || []).length,
+      1,
+      `${layer} must occur once in the shared artwork tree`,
+    );
+  }
+});
+
+test('all head-attached layers share a nested rig while hair margin stays outside it', () => {
   const compositor = readFileSync(new URL('./AvatarArtwork.jsx', import.meta.url), 'utf8');
   const anatomy = readFileSync(new URL('parts/anatomy.jsx', import.meta.url), 'utf8');
   const outfits = readFileSync(new URL('parts/outfits.jsx', import.meta.url), 'utf8');
@@ -130,18 +152,21 @@ test('all head-attached layers share one rig and pose parts consume shared ancho
   for (const layer of ['rear-hair', 'neck-ears', 'head', 'face', 'hat']) {
     assert.match(
       compositor,
-      new RegExp(`data-avatar-layer="${layer}"[^>]*transform=\\{headRigTransform\\}`),
-      `${layer} must use the shared head rig`,
+      new RegExp(`data-avatar-layer="${layer}"[^>]*>[\\s\\S]*?<g data-avatar-head-rig="true" transform=\\{headRigTransform\\}`),
+      `${layer} must contain the shared head rig`,
     );
   }
   assert.match(
     compositor,
-    /data-avatar-layer="front-hair"[^>]*transform=\{frontHairTransform\}/,
-    'front hair must compose its margin with the shared head rig',
+    /data-avatar-layer="front-hair"[^>]*transform=\{frontHairMarginTransform\}>\s*<g data-avatar-head-rig="true" transform=\{headRigTransform\}/,
+    'front hair margin must be the outer transform around the shared head rig',
   );
-  assert.match(compositor, /getAvatarHeadRigTransform\(Hair\.marginTop\)/);
+  assert.match(compositor, /getAvatarHeadMarginTransform\(Hair\.marginTop\)/);
+  assert.doesNotMatch(compositor, /getAvatarHeadRigTransform\(Hair\.marginTop\)/);
   assert.match(anatomy, /AVATAR_POSE_ANCHORS/);
   assert.match(outfits, /AVATAR_POSE_ANCHORS/);
+  assert.match(anatomy, /AVATAR_BODY_PROPORTIONS/);
+  assert.match(outfits, /AVATAR_BODY_PROPORTIONS/);
 });
 
 test('contact shadow is painted in rear effects and finish stays semantically empty', () => {

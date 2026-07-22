@@ -1,15 +1,21 @@
-import { AVATAR_POSE_ANCHORS, getAvatarBuildTransform } from '../avatarGeometry.js';
+import {
+  AVATAR_BODY_PROPORTIONS,
+  AVATAR_POSE_ANCHORS,
+  getAvatarBuildTransform,
+} from '../avatarGeometry.js';
 
 const {
   hands, hips, knees, soles,
 } = AVATAR_POSE_ANCHORS;
+const { free: freeLeg, weight: weightLeg } = AVATAR_BODY_PROPORTIONS.legs;
+const { hoodBottom, hoodTop } = AVATAR_BODY_PROPORTIONS.upperBody;
 
 const FREE_SHORTS_PATH = `M${hips.free.x - 18} ${hips.free.y - 5} C98 213 111 216 123 217 L120 237 C107 240 94 238 82 233 Z`;
 const WEIGHT_SHORTS_PATH = `M123 217 C137 219 149 218 ${hips.weight.x + 21} ${hips.weight.y - 5} L161 235 C150 240 136 241 120 237 Z`;
-const FREE_SOCK_PATH = `M80 ${knees.free.y + 7} C86 262 96 263 102 259 L100 ${soles.free.y - 12} H81 Z`;
-const WEIGHT_SOCK_PATH = `M128 ${knees.weight.y + 12} C135 262 145 262 151 258 L150 ${soles.weight.y - 14} H129 Z`;
-const FREE_SHOE_PANEL_PATH = `M${soles.free.x - 3} ${soles.free.y - 18} C85 269 95 273 102 280 L98 286 H66 C66 279 70 275 75 272 Z`;
-const WEIGHT_SHOE_PANEL_PATH = `M${soles.weight.x - 18} ${soles.weight.y - 15} C141 272 154 273 164 281 L168 288 H132 Z`;
+const FREE_SOCK_PATH = `M${freeLeg.kneeLeft - 2} ${knees.free.y + 7} C85 273 98 274 ${freeLeg.kneeRight - 6} 270 L${freeLeg.kneeRight - 8} ${soles.free.y - 12} H79 Z`;
+const WEIGHT_SOCK_PATH = `M${weightLeg.kneeLeft - 1} ${knees.weight.y + 12} C134 272 148 272 ${weightLeg.kneeRight} 268 L${weightLeg.kneeRight - 1} ${soles.weight.y - 14} H126 Z`;
+const FREE_SHOE_PANEL_PATH = `M${soles.free.x - 3} ${soles.free.y - 18} C85 289 95 293 102 300 L98 306 H66 C66 299 70 295 75 292 Z`;
+const WEIGHT_SHOE_PANEL_PATH = `M${soles.weight.x - 18} ${soles.weight.y - 15} C141 292 154 293 164 301 L168 308 H132 Z`;
 
 function OutfitSurface({ config, palette, paints, section }) {
   const buildTransform = getAvatarBuildTransform(config.body);
@@ -61,11 +67,11 @@ function OutfitSurface({ config, palette, paints, section }) {
         />
         <path className="avatar-outline" d={FREE_SOCK_PATH} fill="#f8f4eb" stroke={palette.gear.outline} strokeWidth="1.9" />
         <path className="avatar-outline" d={WEIGHT_SOCK_PATH} fill="#f8f4eb" stroke={palette.gear.outline} strokeWidth="1.9" />
-        <path className="avatar-detail" d="M81 265 L101 267 M129 266 L150 266" fill="none" stroke={palette.outfit.base} strokeWidth="4" />
+        <path className="avatar-detail" d="M81 276 L101 278 M129 276 L150 276" fill="none" stroke={palette.outfit.base} strokeWidth="4" />
         <path className="avatar-shoe-panel" d={FREE_SHOE_PANEL_PATH} fill={palette.gear.light} opacity="0.48" />
         <path className="avatar-shoe-panel" d={WEIGHT_SHOE_PANEL_PATH} fill={palette.gear.base} opacity="0.7" />
-        <path className="avatar-detail" d="M76 276 L96 282 M72 280 L96 285 M136 281 L157 278 M138 285 L162 282" fill="none" stroke="#f8f4eb" strokeWidth="2.2" strokeLinecap="round" />
-        <path className="avatar-outfit-seam" d="M61 285 C73 289 89 289 101 286 M129 289 C142 292 158 291 170 289" fill="none" stroke="#f8f4eb" strokeWidth="4.2" strokeLinecap="round" />
+        <path className="avatar-detail" d="M76 296 L96 302 M72 300 L96 305 M136 301 L157 298 M138 305 L162 302" fill="none" stroke="#f8f4eb" strokeWidth="2.2" strokeLinecap="round" />
+        <path className="avatar-outfit-seam" d="M61 305 C73 309 89 309 101 306 M129 310 C142 313 158 312 170 310" fill="none" stroke="#f8f4eb" strokeWidth="4.2" strokeLinecap="round" />
         <path className="avatar-detail" d={`M61 ${soles.free.y} H100 M130 ${soles.weight.y} H168`} fill="none" stroke={palette.gear.outline} strokeWidth="1.3" strokeLinecap="round" opacity="0.75" />
       </g>
     );
@@ -75,7 +81,7 @@ function OutfitSurface({ config, palette, paints, section }) {
     <g transform={buildTransform}>
       <path
         className="avatar-hood-volume avatar-outline"
-        d="M92 149 C97 135 108 127 121 127 C136 127 149 136 154 151 C150 159 143 165 135 168 C131 162 126 158 121 156 C115 158 110 162 107 168 C99 164 95 158 92 149 Z"
+        d={`M91 143 C98 129 108 ${hoodTop} 121 ${hoodTop} C135 ${hoodTop} 146 128 153 143 C148 149 142 154 136 ${hoodBottom} C132 151 127 146 121 143 C115 146 110 151 106 ${hoodBottom} C100 155 95 150 91 143 Z`}
         fill={paints.outfit}
         stroke={palette.outfit.outline}
         strokeWidth="3"
@@ -83,15 +89,15 @@ function OutfitSurface({ config, palette, paints, section }) {
       />
       <path
         className="avatar-hood-volume"
-        d="M99 151 C105 141 113 137 122 137 C132 137 141 142 147 152 C141 158 135 162 130 164 C128 158 124 153 121 151 C117 153 114 157 112 163 C106 160 102 156 99 151 Z"
-        fill={palette.outfit.shadow}
-        stroke={palette.outfit.light}
-        strokeWidth="1.5"
+        d="M102 139 C106 127 113 121 121 121 C130 121 137 128 141 139 C136 141 131 144 127 148 C126 142 124 138 121 136 C117 138 114 143 112 149 C108 146 105 143 102 139 Z"
+        fill={palette.outfit.deep}
+        stroke={palette.outfit.outline}
+        strokeWidth="1.8"
         strokeLinejoin="round"
       />
       <path
         className="avatar-highlight"
-        d="M97 148 C103 140 111 136 119 135"
+        d="M96 138 C102 128 109 121 117 119"
         fill="none"
         stroke={palette.outfit.light}
         strokeWidth="2.4"

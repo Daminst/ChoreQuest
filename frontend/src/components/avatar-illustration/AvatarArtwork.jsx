@@ -3,7 +3,13 @@ import { useId, useMemo } from 'react';
 import { buildAvatarPalette } from '../avatar/avatarPaint.js';
 import { AvatarDefs } from './AvatarDefs.jsx';
 import { normalizeAvatarIllustrationConfig } from './avatarConfig.js';
-import { getAvatarFrame, getAvatarHeadRigTransform } from './avatarGeometry.js';
+import {
+  AVATAR_POSE_ANCHORS,
+  getAvatarCameraTransform,
+  getAvatarFrame,
+  getAvatarHeadMarginTransform,
+  getAvatarHeadRigTransform,
+} from './avatarGeometry.js';
 import { Anatomy } from './parts/anatomy.jsx';
 import {
   BODY_RENDERERS,
@@ -19,6 +25,10 @@ import './avatarIllustration.css';
 
 const EMPTY_CONFIG = Object.freeze({});
 const UNSAFE_ID_CHARACTERS = /[^a-zA-Z0-9_-]/g;
+const CONTACT_SHADOW_Y = Math.max(
+  AVATAR_POSE_ANCHORS.soles.free.y,
+  AVATAR_POSE_ANCHORS.soles.weight.y,
+) - 1;
 
 function buildAvatarIds(prefix) {
   return Object.freeze({
@@ -65,8 +75,9 @@ export function AvatarArtwork({ config = EMPTY_CONFIG, crop = 'icon', label = 'C
     normalizedConfig.outfit_pattern,
     'none',
   );
+  const cameraTransform = getAvatarCameraTransform(crop);
   const headRigTransform = getAvatarHeadRigTransform();
-  const frontHairTransform = getAvatarHeadRigTransform(Hair.marginTop);
+  const frontHairMarginTransform = getAvatarHeadMarginTransform(Hair.marginTop);
 
   return (
     <svg
@@ -87,50 +98,64 @@ export function AvatarArtwork({ config = EMPTY_CONFIG, crop = 'icon', label = 'C
           fill={paints.background}
         />
       ) : null}
-      <g data-avatar-layer="rear-effects">
-        <ellipse
-          className="avatar-contact-shadow avatar-detail"
-          cx="120"
-          cy="294"
-          rx="58"
-          ry="6"
-          fill={palette.background.deep}
-          opacity="0.24"
-          filter={`url(#${ids.silhouetteShadow})`}
-        />
+      <g data-avatar-camera={crop} transform={cameraTransform}>
+        <g data-avatar-layer="rear-effects">
+          <ellipse
+            className="avatar-contact-shadow avatar-detail"
+            cx="120"
+            cy={CONTACT_SHADOW_Y}
+            rx="58"
+            ry="4"
+            fill={palette.background.deep}
+            opacity="0.24"
+            filter={`url(#${ids.silhouetteShadow})`}
+          />
+        </g>
+        <g data-avatar-layer="rear-pet" />
+        <g data-avatar-layer="rear-accessories" />
+        <g data-avatar-layer="rear-hair">
+          <g data-avatar-head-rig="true" transform={headRigTransform}>
+            <Hair.Rear config={normalizedConfig} palette={palette} paints={paints} />
+          </g>
+        </g>
+        <g data-avatar-layer="legs">
+          <Anatomy palette={palette} paints={paints} build={normalizedConfig.body} section="legs" />
+          <Body config={normalizedConfig} palette={palette} paints={paints} section="legs" />
+        </g>
+        <g data-avatar-layer="torso-arms">
+          <Anatomy palette={palette} paints={paints} build={normalizedConfig.body} section="torso-arms" />
+          <Body config={normalizedConfig} palette={palette} paints={paints} section="torso-arms" />
+          <OutfitPattern config={normalizedConfig} palette={palette} paints={paints} />
+        </g>
+        <g data-avatar-layer="neck-ears">
+          <g data-avatar-head-rig="true" transform={headRigTransform}>
+            <Anatomy palette={palette} paints={paints} build={normalizedConfig.body} />
+          </g>
+        </g>
+        <g data-avatar-layer="head">
+          <g data-avatar-head-rig="true" transform={headRigTransform}>
+            <Head config={normalizedConfig} palette={palette} paints={paints} />
+          </g>
+        </g>
+        <g data-avatar-layer="face">
+          <g data-avatar-head-rig="true" transform={headRigTransform}>
+            <Eyes config={normalizedConfig} palette={palette} paints={paints} />
+            <Mouth config={normalizedConfig} palette={palette} paints={paints} />
+            <FaceExtra config={normalizedConfig} palette={palette} paints={paints} />
+          </g>
+        </g>
+        <g data-avatar-layer="front-hair" transform={frontHairMarginTransform}>
+          <g data-avatar-head-rig="true" transform={headRigTransform}>
+            <Hair.Front config={normalizedConfig} palette={palette} paints={paints} />
+          </g>
+        </g>
+        <g data-avatar-layer="hat">
+          <g data-avatar-head-rig="true" transform={headRigTransform} />
+        </g>
+        <g data-avatar-layer="front-accessories" />
+        <g data-avatar-layer="pet" />
+        <g data-avatar-layer="finish" />
       </g>
-      <g data-avatar-layer="rear-pet" />
-      <g data-avatar-layer="rear-accessories" />
-      <g data-avatar-layer="rear-hair" transform={headRigTransform}>
-        <Hair.Rear config={normalizedConfig} palette={palette} paints={paints} />
-      </g>
-      <g data-avatar-layer="legs">
-        <Anatomy palette={palette} paints={paints} build={normalizedConfig.body} section="legs" />
-        <Body config={normalizedConfig} palette={palette} paints={paints} section="legs" />
-      </g>
-      <g data-avatar-layer="torso-arms">
-        <Anatomy palette={palette} paints={paints} build={normalizedConfig.body} section="torso-arms" />
-        <Body config={normalizedConfig} palette={palette} paints={paints} section="torso-arms" />
-        <OutfitPattern config={normalizedConfig} palette={palette} paints={paints} />
-      </g>
-      <g data-avatar-layer="neck-ears" transform={headRigTransform}>
-        <Anatomy palette={palette} paints={paints} build={normalizedConfig.body} />
-      </g>
-      <g data-avatar-layer="head" transform={headRigTransform}>
-        <Head config={normalizedConfig} palette={palette} paints={paints} />
-      </g>
-      <g data-avatar-layer="face" transform={headRigTransform}>
-        <Eyes config={normalizedConfig} palette={palette} paints={paints} />
-        <Mouth config={normalizedConfig} palette={palette} paints={paints} />
-        <FaceExtra config={normalizedConfig} palette={palette} paints={paints} />
-      </g>
-      <g data-avatar-layer="front-hair" transform={frontHairTransform}>
-        <Hair.Front config={normalizedConfig} palette={palette} paints={paints} />
-      </g>
-      <g data-avatar-layer="hat" transform={headRigTransform} />
-      <g data-avatar-layer="front-accessories" />
-      <g data-avatar-layer="pet" />
-      <g data-avatar-layer="finish" />
     </svg>
   );
 }

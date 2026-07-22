@@ -4,43 +4,63 @@ function freezePoint(x, y, role) {
   return Object.freeze(role ? { x, y, role } : { x, y });
 }
 
-const HEAD_RIG_ANCHOR = freezePoint(120, 82);
-const HEAD_RIG_SCALE_X = 0.86;
-const HEAD_RIG_SCALE_Y = 0.75;
+const HEAD_RIG_ANCHOR = freezePoint(120, 12);
+const HEAD_RIG_SCALE = 0.75;
 
 export const AVATAR_HEAD_RIG = Object.freeze({
   anchor: HEAD_RIG_ANCHOR,
-  scaleX: HEAD_RIG_SCALE_X,
-  scaleY: HEAD_RIG_SCALE_Y,
+  scaleX: HEAD_RIG_SCALE,
+  scaleY: HEAD_RIG_SCALE,
   sourceBounds: Object.freeze({
-    artworkTop: 12,
-    headTop: 30,
-    headBottom: 136,
+    visibleCrown: 12,
+    visibleChin: 136,
     neckBottom: 142,
   }),
-  transform: `translate(${HEAD_RIG_ANCHOR.x} ${HEAD_RIG_ANCHOR.y}) scale(${HEAD_RIG_SCALE_X} ${HEAD_RIG_SCALE_Y}) translate(${-HEAD_RIG_ANCHOR.x} ${-HEAD_RIG_ANCHOR.y})`,
+  transform: `translate(${HEAD_RIG_ANCHOR.x} ${HEAD_RIG_ANCHOR.y}) scale(${HEAD_RIG_SCALE}) translate(${-HEAD_RIG_ANCHOR.x} ${-HEAD_RIG_ANCHOR.y})`,
 });
 
 export const AVATAR_POSE_ANCHORS = Object.freeze({
   shoulders: Object.freeze({
-    left: freezePoint(94, 147),
-    right: freezePoint(150, 142),
+    left: freezePoint(94, 132),
+    right: freezePoint(150, 127),
   }),
   hips: Object.freeze({
     free: freezePoint(104, 216),
     weight: freezePoint(139, 220),
   }),
   knees: Object.freeze({
-    free: freezePoint(94, 251),
-    weight: freezePoint(140, 246),
+    free: freezePoint(94, 262),
+    weight: freezePoint(140, 256),
   }),
   soles: Object.freeze({
-    free: freezePoint(78, 290),
-    weight: freezePoint(150, 294),
+    free: freezePoint(78, 310),
+    weight: freezePoint(150, 315),
   }),
   hands: Object.freeze({
     hip: freezePoint(80, 203, 'hip'),
     relaxed: freezePoint(169, 224, 'relaxed'),
+  }),
+});
+
+export const AVATAR_BODY_PROPORTIONS = Object.freeze({
+  upperBody: Object.freeze({
+    hoodTop: 116,
+    hoodBottom: 158,
+    torsoTop: 124,
+  }),
+  legs: Object.freeze({
+    free: Object.freeze({
+      thighLeft: 84,
+      thighRight: 121,
+      kneeLeft: 79,
+      kneeRight: 111,
+    }),
+    weight: Object.freeze({
+      thighLeft: 120,
+      thighRight: 161,
+      kneeLeft: 126,
+      kneeRight: 156,
+    }),
   }),
 });
 
@@ -52,6 +72,24 @@ export const AVATAR_FRAMES = Object.freeze({
   icon: Object.freeze({ viewBox: '42 18 156 156', circular: true }),
 });
 
+function freezeCamera(scale, targetY) {
+  const sourceAnchor = freezePoint(120, 12);
+  const targetAnchor = freezePoint(120, targetY);
+  return Object.freeze({
+    sourceAnchor,
+    targetAnchor,
+    scaleX: scale,
+    scaleY: scale,
+    transform: `translate(${targetAnchor.x} ${targetAnchor.y}) scale(${scale}) translate(${-sourceAnchor.x} ${-sourceAnchor.y})`,
+  });
+}
+
+export const AVATAR_CAMERAS = Object.freeze({
+  full: freezeCamera(1, 12),
+  portrait: freezeCamera(1.32, 7),
+  icon: freezeCamera(1.18, 20),
+});
+
 const PORTRAIT_CATEGORIES = new Set(['head', 'skin', 'hair', 'eyes', 'mouth', 'hat', 'face']);
 const FULL_CATEGORIES = new Set(['body', 'outfit', 'pattern', 'background', 'accessory', 'pet']);
 
@@ -59,11 +97,17 @@ export function getAvatarFrame(crop = 'icon') {
   return AVATAR_FRAMES[crop] || AVATAR_FRAMES.icon;
 }
 
-export function getAvatarHeadRigTransform(offsetY = 0) {
+export function getAvatarCameraTransform(crop = 'icon') {
+  return (AVATAR_CAMERAS[crop] || AVATAR_CAMERAS.icon).transform;
+}
+
+export function getAvatarHeadRigTransform() {
+  return AVATAR_HEAD_RIG.transform;
+}
+
+export function getAvatarHeadMarginTransform(offsetY = 0) {
   const offset = Number(offsetY);
-  return Number.isFinite(offset) && offset !== 0
-    ? `${AVATAR_HEAD_RIG.transform} translate(0 ${offset})`
-    : AVATAR_HEAD_RIG.transform;
+  return `translate(0 ${Number.isFinite(offset) ? offset : 0})`;
 }
 
 export function getAvatarBuildTransform(build = 'regular') {
