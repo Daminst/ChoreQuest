@@ -326,6 +326,71 @@ test('pet accessories are explicit unique modeled variants', () => {
   }
 });
 
+test('pet accessories use frozen semantic attachment roles and bandanas stay on every species neck', () => {
+  const source = readFileSync(new URL('./parts/pets.jsx', import.meta.url), 'utf8');
+  const expectedAttachments = {
+    none: { role: 'none', offsetX: 0, offsetY: 0 },
+    crown: { role: 'head', offsetX: 0, offsetY: 0 },
+    party_hat: { role: 'head', offsetX: 0, offsetY: 0 },
+    bow: { role: 'ear', offsetX: 0, offsetY: 0 },
+    bandana: { role: 'neck', offsetX: 0, offsetY: 0 },
+    halo: { role: 'head', offsetX: 0, offsetY: -5 },
+    flower: { role: 'ear', offsetX: 0, offsetY: 0 },
+  };
+  const attachmentMatch = source.match(
+    /export const PET_ACCESSORY_ATTACHMENTS = Object\.freeze\(\{([\s\S]*?)\n\}\);/,
+  );
+  assert.ok(attachmentMatch, 'missing frozen pet accessory attachment map');
+  const actualAttachments = Object.fromEntries(
+    [...attachmentMatch[1].matchAll(
+      /^  ([a-z][a-z0-9_]*): Object\.freeze\(\{ role: '(none|head|ear|neck)', offsetX: (-?\d+), offsetY: (-?\d+) \}\),$/gm,
+    )].map(([, id, role, offsetX, offsetY]) => [id, {
+      role,
+      offsetX: Number(offsetX),
+      offsetY: Number(offsetY),
+    }]),
+  );
+  assert.deepEqual(actualAttachments, expectedAttachments);
+  assert.deepEqual(Object.keys(actualAttachments).sort(), PET_ACCESSORY_OPTIONS.map(({ id }) => id).sort());
+
+  const expectedAnchors = {
+    cat: { head: [0, -49], ear: [-15, -43], neck: [0, -9] },
+    dog: { head: [0, -47], ear: [-17, -39], neck: [0, -9] },
+    dragon: { head: [0, -53], ear: [-14, -47], neck: [0, -9] },
+    owl: { head: [0, -52], ear: [-15, -46], neck: [0, -9] },
+    bunny: { head: [0, -59], ear: [-12, -48], neck: [0, -9] },
+    phoenix: { head: [0, -57], ear: [-14, -48], neck: [0, -9] },
+  };
+  const anchorsMatch = source.match(
+    /export const PET_ACCESSORY_ANCHORS = Object\.freeze\(\{([\s\S]*?)\n\}\);/,
+  );
+  assert.ok(anchorsMatch, 'missing frozen per-species accessory anchor map');
+  const actualAnchors = Object.fromEntries(
+    [...anchorsMatch[1].matchAll(
+      /^  ([a-z]+): Object\.freeze\(\{ head: Object\.freeze\(\{ x: (-?\d+), y: (-?\d+) \}\), ear: Object\.freeze\(\{ x: (-?\d+), y: (-?\d+) \}\), neck: Object\.freeze\(\{ x: (-?\d+), y: (-?\d+) \}\) \}\),$/gm,
+    )].map(([, id, headX, headY, earX, earY, neckX, neckY]) => [id, {
+      head: [Number(headX), Number(headY)],
+      ear: [Number(earX), Number(earY)],
+      neck: [Number(neckX), Number(neckY)],
+    }]),
+  );
+  assert.deepEqual(actualAnchors, expectedAnchors);
+  assert.deepEqual(Object.keys(actualAnchors).sort(), PET_OPTIONS.filter(({ id }) => id !== 'none').map(({ id }) => id).sort());
+  for (const [species, anchors] of Object.entries(actualAnchors)) {
+    assert.ok(anchors.neck[1] >= -10 && anchors.neck[1] <= -7, `${species} bandana must sit on the lower neck/chest`);
+    assert.ok(anchors.neck[1] >= anchors.head[1] + 38, `${species} bandana cannot reuse the forehead anchor`);
+  }
+
+  const bandana = functionSource(source, 'PetBandana');
+  assert.match(bandana, /d="M-20,-1 Q0,4 20,-1 L16,3 Q0,7 -16,3 Z"/);
+  assert.match(bandana, /d="M15,2 L22,7 L16,7 L11,4 Z"/);
+  assert.match(source, /const accessoryAttachment = PET_ACCESSORY_ATTACHMENTS\[accessoryType\][\s\S]*?PET_ACCESSORY_ATTACHMENTS\.none;/);
+  assert.match(source, /const accessoryAnchor = accessoryAnchors\[accessoryAttachment\.role\][\s\S]*?accessoryAnchors\.head;/);
+  assert.match(source, /data-pet-accessory-role=\{accessoryAttachment\.role\}/);
+  assert.match(source, /data-pet-accessory-anchor=\{`\$\{accessoryX\},\$\{accessoryY\}`\}/);
+  assert.match(source, /transform=\{`translate\(\$\{accessoryX\} \$\{accessoryY\}\)`\}/);
+});
+
 test('pet progression maps exact scale and cumulative face-safe effect semantics', () => {
   const source = readFileSync(new URL('./parts/pets.jsx', import.meta.url), 'utf8');
   assert.match(source, /const levelScale = getPetLevelScale\(resolvedLevel\);/);
@@ -351,28 +416,72 @@ test('pet progression maps exact scale and cumulative face-safe effect semantics
   assert.doesNotMatch(source, /id="(?:pet|avatar)-/, 'pet SVG ids cannot be global literals');
 });
 
-test('head placement stays centered without headwear and moves sideways only around headwear geometry', () => {
+test('every hat owns an exact measured head-perch profile with truthful render metadata', () => {
   const source = readFileSync(new URL('./parts/pets.jsx', import.meta.url), 'utf8');
-  assert.match(source, /const HEAD_BASELINE_X_OFFSET = 83;/);
-  assert.match(source, /const HEAD_CENTER_BASELINE_Y_OFFSET = 11;/);
-  assert.match(source, /const HEAD_CENTER_PLACEMENT_SCALE = 0\.44;/);
-  assert.match(
-    source,
-    /const usesSidePerch = safePosition === 'head'\s*&& Boolean\(config\.hat && config\.hat !== 'none'\);/,
+  const expectedProfileByHat = {
+    none: 'center',
+    crown: 'sideRight',
+    wizard: 'sideRight',
+    beanie: 'sideRight',
+    cap: 'sideRight',
+    pirate: 'sideRight',
+    headphones: 'sideRight',
+    tiara: 'sideRight',
+    horns: 'centerRaised',
+    bunny_ears: 'centerRaised',
+    cat_ears: 'centerHigh',
+    halo: 'sideRight',
+    viking: 'sideRight',
+    star_headset: 'sideRight',
+    hunter_hood: 'sideRight',
+    kitty_bow_ears: 'centerHigh',
+    mischief_hood: 'sideRight',
+  };
+  const profileMapMatch = source.match(
+    /export const PET_HEAD_PERCH_PROFILE_BY_HAT = Object\.freeze\(\{([\s\S]*?)\n\}\);/,
   );
-  assert.match(
-    source,
-    /baselineX: safePosition === 'head'[\s\S]*?\? anchor\.x \+ \(usesSidePerch \? HEAD_BASELINE_X_OFFSET : 0\)[\s\S]*?: anchor\.x,/,
+  assert.ok(profileMapMatch, 'missing frozen per-hat head-perch profile map');
+  const actualProfileByHat = Object.fromEntries(
+    [...profileMapMatch[1].matchAll(/^  ([a-z][a-z0-9_]*): '([A-Za-z]+)',$/gm)]
+      .map(([, hat, profile]) => [hat, profile]),
   );
-  assert.match(
-    source,
-    /baselineY: anchor\.y \+ \([\s\S]*?safePosition === 'head' && !usesSidePerch[\s\S]*?\? HEAD_CENTER_BASELINE_Y_OFFSET[\s\S]*?: NAMED_BASELINE_OFFSET[\s\S]*?\),/,
+  assert.deepEqual(actualProfileByHat, expectedProfileByHat);
+  assert.deepEqual(Object.keys(actualProfileByHat).sort(), ids(AVATAR_CATALOG.hat));
+
+  const expectedProfiles = {
+    center: { baselineX: 120, baselineY: 47, placementScale: 0.44, facing: 1, perchMode: 'center' },
+    centerRaised: { baselineX: 120, baselineY: 35, placementScale: 0.32, facing: 1, perchMode: 'center' },
+    centerHigh: { baselineX: 120, baselineY: 27, placementScale: 0.25, facing: 1, perchMode: 'center' },
+    sideRight: { baselineX: 203, baselineY: 94, placementScale: 0.72, facing: -1, perchMode: 'side' },
+  };
+  const profileMatch = source.match(
+    /export const PET_HEAD_PERCH_PROFILES = Object\.freeze\(\{([\s\S]*?)\n\}\);/,
   );
-  assert.match(source, /placementScale: safePosition === 'head'[\s\S]*?\? \(usesSidePerch \? HEAD_SIDE_PLACEMENT_SCALE : HEAD_CENTER_PLACEMENT_SCALE\)[\s\S]*?: 1,/);
-  assert.match(source, /perchMode: safePosition === 'head' \? \(usesSidePerch \? 'side' : 'center'\) : 'ground',/);
+  assert.ok(profileMatch, 'missing frozen measured head-perch profiles');
+  const actualProfiles = Object.fromEntries(
+    [...profileMatch[1].matchAll(
+      /^  ([A-Za-z]+): Object\.freeze\(\{ baselineX: (-?[\d.]+), baselineY: (-?[\d.]+), placementScale: ([\d.]+), facing: (-?\d+), perchMode: '([a-z-]+)' \}\),$/gm,
+    )].map(([, id, baselineX, baselineY, placementScale, facing, perchMode]) => [
+      id,
+      {
+        baselineX: Number(baselineX),
+        baselineY: Number(baselineY),
+        placementScale: Number(placementScale),
+        facing: Number(facing),
+        perchMode,
+      },
+    ]),
+  );
+  assert.deepEqual(actualProfiles, expectedProfiles);
+  assert.doesNotMatch(source, /config\.hat\s*&&\s*config\.hat\s*!==\s*'none'/);
+  assert.match(source, /PET_HEAD_PERCH_PROFILE_BY_HAT\[config\.hat\][\s\S]*?PET_HEAD_PERCH_PROFILE_BY_HAT\.none/);
+  assert.match(source, /const headProfile = PET_HEAD_PERCH_PROFILES\[headProfileId\];/);
+  assert.match(source, /data-pet-saved-anchor=\{`\$\{placement\.anchorX\},\$\{placement\.anchorY\}`\}/);
+  assert.match(source, /data-pet-render-anchor=\{`\$\{placement\.baselineX\},\$\{placement\.baselineY\}`\}/);
+  assert.match(source, /data-pet-perch-profile=\{placement\.perchProfile\}/);
   assert.match(source, /data-pet-perch=\{placement\.perchMode\}/);
 
-  const centeredBaseline = 36 + 11;
+  const centeredBaseline = expectedProfiles.center.baselineY;
   assert.ok(centeredBaseline + (-59 - 24) * 1.28 * 0.44 >= 0, 'a tall pet accessory stays inside the canvas');
   assert.ok(centeredBaseline + 3 * 1.28 * 0.44 < 50, 'the centered perch stays above the face-safe line');
 });

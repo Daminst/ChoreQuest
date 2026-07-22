@@ -10,10 +10,6 @@ import { mapLegacyPetPoint } from '../avatarGeometry.js';
 const EMPTY_CONFIG = Object.freeze({});
 const NAMED_BASELINE_OFFSET = 58;
 const CUSTOM_CENTER_TO_BASELINE = 26;
-const HEAD_CENTER_BASELINE_Y_OFFSET = 11;
-const HEAD_CENTER_PLACEMENT_SCALE = 0.44;
-const HEAD_SIDE_PLACEMENT_SCALE = 0.72;
-const HEAD_BASELINE_X_OFFSET = 83;
 const COMPACT_VIEW_BOX = '154 200 92 120';
 
 export const PET_POSITION_ANCHORS = Object.freeze({
@@ -22,13 +18,50 @@ export const PET_POSITION_ANCHORS = Object.freeze({
   head: Object.freeze({ x: 120, y: 36 }),
 });
 
-const PET_ACCESSORY_ANCHORS = Object.freeze({
-  cat: -49,
-  dog: -47,
-  dragon: -53,
-  owl: -52,
-  bunny: -59,
-  phoenix: -57,
+export const PET_HEAD_PERCH_PROFILES = Object.freeze({
+  center: Object.freeze({ baselineX: 120, baselineY: 47, placementScale: 0.44, facing: 1, perchMode: 'center' }),
+  centerRaised: Object.freeze({ baselineX: 120, baselineY: 35, placementScale: 0.32, facing: 1, perchMode: 'center' }),
+  centerHigh: Object.freeze({ baselineX: 120, baselineY: 27, placementScale: 0.25, facing: 1, perchMode: 'center' }),
+  sideRight: Object.freeze({ baselineX: 203, baselineY: 94, placementScale: 0.72, facing: -1, perchMode: 'side' }),
+});
+
+export const PET_HEAD_PERCH_PROFILE_BY_HAT = Object.freeze({
+  none: 'center',
+  crown: 'sideRight',
+  wizard: 'sideRight',
+  beanie: 'sideRight',
+  cap: 'sideRight',
+  pirate: 'sideRight',
+  headphones: 'sideRight',
+  tiara: 'sideRight',
+  horns: 'centerRaised',
+  bunny_ears: 'centerRaised',
+  cat_ears: 'centerHigh',
+  halo: 'sideRight',
+  viking: 'sideRight',
+  star_headset: 'sideRight',
+  hunter_hood: 'sideRight',
+  kitty_bow_ears: 'centerHigh',
+  mischief_hood: 'sideRight',
+});
+
+export const PET_ACCESSORY_ATTACHMENTS = Object.freeze({
+  none: Object.freeze({ role: 'none', offsetX: 0, offsetY: 0 }),
+  crown: Object.freeze({ role: 'head', offsetX: 0, offsetY: 0 }),
+  party_hat: Object.freeze({ role: 'head', offsetX: 0, offsetY: 0 }),
+  bow: Object.freeze({ role: 'ear', offsetX: 0, offsetY: 0 }),
+  bandana: Object.freeze({ role: 'neck', offsetX: 0, offsetY: 0 }),
+  halo: Object.freeze({ role: 'head', offsetX: 0, offsetY: -5 }),
+  flower: Object.freeze({ role: 'ear', offsetX: 0, offsetY: 0 }),
+});
+
+export const PET_ACCESSORY_ANCHORS = Object.freeze({
+  cat: Object.freeze({ head: Object.freeze({ x: 0, y: -49 }), ear: Object.freeze({ x: -15, y: -43 }), neck: Object.freeze({ x: 0, y: -9 }) }),
+  dog: Object.freeze({ head: Object.freeze({ x: 0, y: -47 }), ear: Object.freeze({ x: -17, y: -39 }), neck: Object.freeze({ x: 0, y: -9 }) }),
+  dragon: Object.freeze({ head: Object.freeze({ x: 0, y: -53 }), ear: Object.freeze({ x: -14, y: -47 }), neck: Object.freeze({ x: 0, y: -9 }) }),
+  owl: Object.freeze({ head: Object.freeze({ x: 0, y: -52 }), ear: Object.freeze({ x: -15, y: -46 }), neck: Object.freeze({ x: 0, y: -9 }) }),
+  bunny: Object.freeze({ head: Object.freeze({ x: 0, y: -59 }), ear: Object.freeze({ x: -12, y: -48 }), neck: Object.freeze({ x: 0, y: -9 }) }),
+  phoenix: Object.freeze({ head: Object.freeze({ x: 0, y: -57 }), ear: Object.freeze({ x: -14, y: -48 }), neck: Object.freeze({ x: 0, y: -9 }) }),
 });
 
 function EmptyPart() {
@@ -353,9 +386,9 @@ function PetBow({ finishes }) {
 function PetBandana({ finishes }) {
   return (
     <g data-avatar-variant="pet-accessory:bandana">
-      <path className="avatar-pet-accessory-base avatar-outline" d="M-21,-1 Q0,7 21,-1 L18,7 Q0,14 -18,7 Z" fill={finishes.accent.base} stroke={finishes.accent.outline} strokeWidth="1.4" />
-      <path className="avatar-pet-accessory-highlight" d="M-16,1 Q-5,6 6,5 L2,8 Q-8,8 -16,5 Z" fill={finishes.accent.highlight} opacity="0.6" />
-      <path d="M16,5 L24,14 L17,13 L12,7 Z" fill={finishes.accent.shadow} stroke={finishes.accent.outline} strokeWidth="1.1" strokeLinejoin="round" />
+      <path className="avatar-pet-accessory-base avatar-outline" d="M-20,-1 Q0,4 20,-1 L16,3 Q0,7 -16,3 Z" fill={finishes.accent.base} stroke={finishes.accent.outline} strokeWidth="1.4" />
+      <path className="avatar-pet-accessory-highlight" d="M-15,1 Q-5,4 6,3 L2,5 Q-8,5 -15,3 Z" fill={finishes.accent.highlight} opacity="0.6" />
+      <path d="M15,2 L22,7 L16,7 L11,4 Z" fill={finishes.accent.shadow} stroke={finishes.accent.outline} strokeWidth="1.1" strokeLinejoin="round" />
     </g>
   );
 }
@@ -445,29 +478,24 @@ function resolvePetPlacement(config, position) {
       facing: mapped.x < 120 ? 1 : -1,
       placementScale: 1,
       perchMode: 'custom',
+      perchProfile: 'custom',
     });
   }
 
   const safePosition = PET_POSITION_ANCHORS[position] ? position : 'right';
   const anchor = PET_POSITION_ANCHORS[safePosition];
-  const usesSidePerch = safePosition === 'head'
-    && Boolean(config.hat && config.hat !== 'none');
+  const headProfileId = PET_HEAD_PERCH_PROFILE_BY_HAT[config.hat]
+    || PET_HEAD_PERCH_PROFILE_BY_HAT.none;
+  const headProfile = PET_HEAD_PERCH_PROFILES[headProfileId];
   return Object.freeze({
     anchorX: anchor.x,
     anchorY: anchor.y,
-    baselineX: safePosition === 'head'
-      ? anchor.x + (usesSidePerch ? HEAD_BASELINE_X_OFFSET : 0)
-      : anchor.x,
-    baselineY: anchor.y + (
-      safePosition === 'head' && !usesSidePerch
-        ? HEAD_CENTER_BASELINE_Y_OFFSET
-        : NAMED_BASELINE_OFFSET
-    ),
-    facing: safePosition === 'right' || usesSidePerch ? -1 : 1,
-    placementScale: safePosition === 'head'
-      ? (usesSidePerch ? HEAD_SIDE_PLACEMENT_SCALE : HEAD_CENTER_PLACEMENT_SCALE)
-      : 1,
-    perchMode: safePosition === 'head' ? (usesSidePerch ? 'side' : 'center') : 'ground',
+    baselineX: safePosition === 'head' ? headProfile.baselineX : anchor.x,
+    baselineY: safePosition === 'head' ? headProfile.baselineY : anchor.y + NAMED_BASELINE_OFFSET,
+    facing: safePosition === 'head' ? headProfile.facing : safePosition === 'right' ? -1 : 1,
+    placementScale: safePosition === 'head' ? headProfile.placementScale : 1,
+    perchMode: safePosition === 'head' ? headProfile.perchMode : 'ground',
+    perchProfile: safePosition === 'head' ? headProfileId : 'ground',
   });
 }
 
@@ -515,21 +543,34 @@ export function PetArtwork({
   const levelScale = getPetLevelScale(resolvedLevel);
   const colors = buildPetColors(config);
   const finishes = buildPetFinishes(colors);
-  const accessoryY = PET_ACCESSORY_ANCHORS[petType] || PET_ACCESSORY_ANCHORS.cat;
+  const accessoryAttachment = PET_ACCESSORY_ATTACHMENTS[accessoryType]
+    || PET_ACCESSORY_ATTACHMENTS.none;
+  const accessoryAnchors = PET_ACCESSORY_ANCHORS[petType] || PET_ACCESSORY_ANCHORS.cat;
+  const accessoryAnchor = accessoryAnchors[accessoryAttachment.role]
+    || accessoryAnchors.head;
+  const accessoryX = accessoryAnchor.x + accessoryAttachment.offsetX;
+  const accessoryY = accessoryAnchor.y + accessoryAttachment.offsetY;
   const artwork = (
     <g
       className="avatar-pet-artwork"
       data-pet-type={petType}
       data-pet-position={resolvedPosition}
       data-pet-anchor={`${placement.anchorX},${placement.anchorY}`}
+      data-pet-saved-anchor={`${placement.anchorX},${placement.anchorY}`}
+      data-pet-render-anchor={`${placement.baselineX},${placement.baselineY}`}
       data-pet-perch={placement.perchMode}
+      data-pet-perch-profile={placement.perchProfile}
       data-pet-motion={motionEnabled ? 'on' : 'off'}
       transform={`translate(${placement.baselineX} ${placement.baselineY}) scale(${placement.placementScale}) scale(${placement.facing} 1)`}
     >
       <g data-pet-level={resolvedLevel} data-pet-level-scale={levelScale.toFixed(2)} transform={`scale(${levelScale})`}>
         <PetRearEffects level={resolvedLevel} finishes={finishes} />
         <PetRenderer colors={colors} finishes={finishes} level={resolvedLevel} />
-        <g transform={`translate(0 ${accessoryY})`}>
+        <g
+          data-pet-accessory-role={accessoryAttachment.role}
+          data-pet-accessory-anchor={`${accessoryX},${accessoryY}`}
+          transform={`translate(${accessoryX} ${accessoryY})`}
+        >
           <PetAccessory colors={colors} finishes={finishes} />
         </g>
         <PetFrontEffects level={resolvedLevel} finishes={finishes} />
