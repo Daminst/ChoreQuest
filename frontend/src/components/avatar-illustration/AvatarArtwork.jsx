@@ -18,6 +18,7 @@ import {
   FACE_EXTRA_RENDERERS,
   FaceModeling,
   HAIR_RENDERERS,
+  HAT_RENDERERS,
   HEAD_FEATURE_OFFSETS,
   HEAD_RENDERERS,
   MOUTH_RENDERERS,
@@ -72,6 +73,7 @@ export function AvatarArtwork({ config = EMPTY_CONFIG, crop = 'icon', label = 'C
   const Mouth = resolveAvatarPart(MOUTH_RENDERERS, normalizedConfig.mouth, 'smile');
   const FaceExtra = resolveAvatarPart(FACE_EXTRA_RENDERERS, normalizedConfig.face_extra, 'none');
   const Hair = resolveAvatarPart(HAIR_RENDERERS, normalizedConfig.hair, 'short');
+  const Hat = resolveAvatarPart(HAT_RENDERERS, normalizedConfig.hat, 'none');
   const Body = resolveAvatarPart(BODY_RENDERERS, normalizedConfig.body, 'regular');
   const OutfitPattern = resolveAvatarPart(
     OUTFIT_PATTERN_RENDERERS,
@@ -83,6 +85,7 @@ export function AvatarArtwork({ config = EMPTY_CONFIG, crop = 'icon', label = 'C
   const headFeatureOffset = HEAD_FEATURE_OFFSETS[normalizedConfig.head] || HEAD_FEATURE_OFFSETS.round;
   const headFeatureTransform = getAvatarHeadFeatureTransform(headFeatureOffset);
   const frontHairMarginTransform = getAvatarHeadMarginTransform(Hair.marginTop);
+  const rearHairMarginTransform = frontHairMarginTransform;
 
   return (
     <svg
@@ -118,7 +121,7 @@ export function AvatarArtwork({ config = EMPTY_CONFIG, crop = 'icon', label = 'C
         </g>
         <g data-avatar-layer="rear-pet" />
         <g data-avatar-layer="rear-accessories" />
-        <g data-avatar-layer="rear-hair">
+        <g data-avatar-layer="rear-hair" transform={rearHairMarginTransform}>
           <g data-avatar-head-rig="true" transform={headRigTransform}>
             <Hair.Rear config={normalizedConfig} palette={palette} paints={paints} />
           </g>
@@ -158,7 +161,9 @@ export function AvatarArtwork({ config = EMPTY_CONFIG, crop = 'icon', label = 'C
           </g>
         </g>
         <g data-avatar-layer="hat">
-          <g data-avatar-head-rig="true" transform={headRigTransform} />
+          <g data-avatar-head-rig="true" transform={headRigTransform}>
+            <Hat config={normalizedConfig} palette={palette} paints={paints} />
+          </g>
         </g>
         <g data-avatar-layer="front-accessories" />
         <g data-avatar-layer="pet" />

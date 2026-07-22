@@ -20,6 +20,18 @@ export const AVATAR_HEAD_RIG = Object.freeze({
   transform: `translate(${HEAD_RIG_ANCHOR.x} ${HEAD_RIG_ANCHOR.y}) scale(${HEAD_RIG_SCALE}) translate(${-HEAD_RIG_ANCHOR.x} ${-HEAD_RIG_ANCHOR.y})`,
 });
 
+export const AVATAR_HEADWEAR_ANCHORS = Object.freeze({
+  skullTop: freezePoint(120, 30),
+  band: Object.freeze({
+    left: freezePoint(76, 52),
+    right: freezePoint(164, 52),
+  }),
+  temples: Object.freeze({
+    left: freezePoint(78, 78),
+    right: freezePoint(162, 78),
+  }),
+});
+
 export const AVATAR_POSE_ANCHORS = Object.freeze({
   shoulders: Object.freeze({
     left: freezePoint(94, 132),

@@ -110,7 +110,7 @@ test('instance-local material paints are passed to and consumed by major masses'
       `${material} paint must reference its current instance id`,
     );
   }
-  for (const part of ['Hair.Rear', 'Anatomy', 'Body', 'Head', 'Eyes', 'Mouth', 'FaceExtra', 'Hair.Front']) {
+  for (const part of ['Hair.Rear', 'Anatomy', 'Body', 'Head', 'Eyes', 'Mouth', 'FaceExtra', 'Hair.Front', 'Hat']) {
     assert.match(
       compositor,
       new RegExp(`<${part.replace('.', '\\.')}[\\s\\S]*?paints=\\{paints\\}`),
@@ -163,12 +163,34 @@ test('all head-attached layers share a nested rig while hair margin stays outsid
     /data-avatar-layer="front-hair"[^>]*transform=\{frontHairMarginTransform\}>\s*<g data-avatar-head-rig="true" transform=\{headRigTransform\}/,
     'front hair margin must be the outer transform around the shared head rig',
   );
+  assert.match(
+    compositor,
+    /data-avatar-layer="rear-hair"[^>]*transform=\{rearHairMarginTransform\}>\s*<g data-avatar-head-rig="true" transform=\{headRigTransform\}/,
+    'rear hair margin must use the same outer unscaled transform as front hair',
+  );
   assert.match(compositor, /getAvatarHeadMarginTransform\(Hair\.marginTop\)/);
   assert.doesNotMatch(compositor, /getAvatarHeadRigTransform\(Hair\.marginTop\)/);
   assert.match(anatomy, /AVATAR_POSE_ANCHORS/);
   assert.match(outfits, /AVATAR_POSE_ANCHORS/);
   assert.match(anatomy, /AVATAR_BODY_PROPORTIONS/);
   assert.match(outfits, /AVATAR_BODY_PROPORTIONS/);
+});
+
+test('selected headwear is resolved once and painted after front hair inside the shared head rig', () => {
+  const compositor = readFileSync(new URL('./AvatarArtwork.jsx', import.meta.url), 'utf8');
+  const registry = readFileSync(new URL('./registry.js', import.meta.url), 'utf8');
+  const hats = readFileSync(new URL('parts/hats.jsx', import.meta.url), 'utf8');
+
+  assert.match(registry, /import \{ HAT_RENDERERS \} from '\.\/parts\/hats\.jsx';/);
+  assert.match(registry, /export \{[\s\S]*?HAIR_RENDERERS,[\s\S]*?HAT_RENDERERS,/);
+  assert.match(compositor, /const Hat = resolveAvatarPart\(HAT_RENDERERS, normalizedConfig\.hat, 'none'\);/);
+  assert.equal((compositor.match(/<Hat\b/g) || []).length, 1, 'one selected hat renderer is enough');
+  assert.match(
+    compositor,
+    /data-avatar-layer="front-hair"[\s\S]*?data-avatar-layer="hat"[^>]*>\s*<g data-avatar-head-rig="true" transform=\{headRigTransform\}>\s*<Hat config=\{normalizedConfig\} palette=\{palette\} paints=\{paints\} \/>/,
+    'hat must paint over front hair in the same head-source coordinate system',
+  );
+  assert.match(hats, /avatar-hood-occluder/, 'hood occlusion must be authored in headwear artwork');
 });
 
 test('contact shadow is painted in rear effects and finish stays semantically empty', () => {

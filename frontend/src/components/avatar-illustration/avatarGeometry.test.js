@@ -197,6 +197,27 @@ test('hair margin stays an exact outer canvas translation', () => {
   );
 });
 
+test('headwear exposes frozen skull, band, and temple anchors in head-source coordinates', () => {
+  const { AVATAR_HEADWEAR_ANCHORS, AVATAR_HEAD_RIG } = avatarGeometry;
+  assert.ok(AVATAR_HEADWEAR_ANCHORS, 'missing shared headwear-anchor contract');
+  assert.ok(Object.isFrozen(AVATAR_HEADWEAR_ANCHORS));
+  assert.deepEqual(AVATAR_HEADWEAR_ANCHORS.skullTop, { x: 120, y: 30 });
+  assert.deepEqual(AVATAR_HEADWEAR_ANCHORS.band.left, { x: 76, y: 52 });
+  assert.deepEqual(AVATAR_HEADWEAR_ANCHORS.band.right, { x: 164, y: 52 });
+  assert.deepEqual(AVATAR_HEADWEAR_ANCHORS.temples.left, { x: 78, y: 78 });
+  assert.deepEqual(AVATAR_HEADWEAR_ANCHORS.temples.right, { x: 162, y: 78 });
+  assert.ok(Object.isFrozen(AVATAR_HEADWEAR_ANCHORS.skullTop));
+  assert.ok(Object.isFrozen(AVATAR_HEADWEAR_ANCHORS.band));
+  assert.ok(Object.isFrozen(AVATAR_HEADWEAR_ANCHORS.band.left));
+  assert.ok(Object.isFrozen(AVATAR_HEADWEAR_ANCHORS.temples));
+  assert.equal(
+    AVATAR_HEADWEAR_ANCHORS.skullTop.y,
+    30,
+    'headwear coordinates must stay authored inside the shared head rig',
+  );
+  assert.equal(AVATAR_HEAD_RIG.sourceBounds.visibleCrown, 12);
+});
+
 test('head feature transforms stay anchored to the shared face center', () => {
   const { getAvatarHeadFeatureTransform } = avatarGeometry;
   assert.equal(typeof getAvatarHeadFeatureTransform, 'function');
