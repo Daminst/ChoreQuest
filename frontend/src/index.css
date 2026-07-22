@@ -1051,6 +1051,11 @@ h1, h2, h3, h4, h5, h6 {
   isolation: isolate;
 }
 
+.avatar-display {
+  display: block;
+  flex: 0 0 auto;
+}
+
 .avatar-main-silhouette {
   transform-origin: 16px 27px;
 }
@@ -1098,11 +1103,13 @@ h1, h2, h3, h4, h5, h6 {
   contain-intrinsic-size: 112px;
 }
 
-.avatar-option-card .avatar-svg {
+.avatar-option-card .avatar-svg,
+.avatar-option-card .avatar-artwork {
   transition: transform 180ms ease, filter 180ms ease;
 }
 
-.avatar-option-card:hover .avatar-svg {
+.avatar-option-card:hover .avatar-svg,
+.avatar-option-card:hover .avatar-artwork {
   transform: scale(1.06);
   filter: saturate(1.08);
 }

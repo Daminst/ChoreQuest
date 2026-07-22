@@ -92,6 +92,7 @@ function renderPetCards({ options, configKey, config, selected, locked, lockedMe
           <AvatarOptionCard
             key={option.id}
             option={option}
+            category="pet"
             configKey={configKey}
             config={config}
             selected={selected === option.id}

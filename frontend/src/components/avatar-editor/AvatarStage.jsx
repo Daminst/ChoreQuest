@@ -2,6 +2,7 @@ import { Crosshair, LockKeyhole } from 'lucide-react';
 import AvatarDisplay from '../AvatarDisplay';
 import {
   getAvatarStageCharacterClassName,
+  getAvatarStageMotionClassName,
   mapPetPointerPosition,
   resolvePetPlacementKey,
 } from './avatarStagePlacement';
@@ -24,14 +25,20 @@ export function AvatarStage({ config, placementMode = false, previewMessage = ''
   };
 
   return (
-    <section className="avatar-stage" aria-label="Podgląd awatara na żywo">
+    <section
+      className="avatar-stage"
+      aria-label="Podgląd awatara na żywo"
+      style={{ '--avatar-stage-bg': config.bg_color || '#1a1a2e' }}
+    >
       <div className="avatar-stage__spotlight" aria-hidden="true" />
       <div
         className={getAvatarStageCharacterClassName(placementMode)}
         data-avatar-placement-active={placementMode ? 'true' : 'false'}
         data-avatar-motion={placementMode ? 'off' : 'on'}
       >
-        <AvatarDisplay config={config} size="studio" />
+        <div className={getAvatarStageMotionClassName(placementMode)}>
+          <AvatarDisplay config={config} size="studio" crop="full" />
+        </div>
         {placementMode && (
           <svg
             className="avatar-stage__placement"

@@ -9,8 +9,12 @@ const PET_KEYBOARD_MOVES = Object.freeze({
   ArrowDown: Object.freeze([0, 1]),
 });
 
-export function getAvatarStageCharacterClassName(placementMode) {
-  return `avatar-stage__character${placementMode ? '' : ' avatar-idle'}`;
+export function getAvatarStageCharacterClassName() {
+  return 'avatar-stage__character';
+}
+
+export function getAvatarStageMotionClassName(placementMode) {
+  return `avatar-stage__motion${placementMode ? '' : ' avatar-idle'}`;
 }
 
 export function clampPetCoordinate(value) {

@@ -158,13 +158,15 @@ test('studio stage keeps the hero prominent and the clean save action legible', 
   const mobile = extractCssBlock(css, '@media (max-width: 720px)');
 
   assert.match(display, /studio:\s*420/);
-  assert.match(spotlight, /var\(--color-accent\) 32%/);
+  assert.match(spotlight, /var\(--avatar-stage-bg\)/);
   assert.match(plinth, /width:\s*min\(54%,\s*420px\)/);
   assert.match(disabledSave, /color:\s*#061715/);
   assert.match(disabledSave, /opacity:\s*0\.68/);
   assert.match(mobile, /\.avatar-stage__character\s*\{[^}]*position:\s*absolute/s);
   assert.match(mobile, /\.avatar-stage__character\s*\{[^}]*top:\s*50%[^}]*left:\s*50%/s);
-  assert.match(mobile, /\.avatar-stage__character\s*\{[^}]*transform:\s*translate\(-50%,\s*-50%\)\s*scale\(0\.56\)/s);
+  assert.match(mobile, /\.avatar-stage__character\s*\{[^}]*height:\s*clamp\(230px,\s*29dvh,\s*270px\)/s);
+  assert.match(mobile, /\.avatar-stage__character\s*\{[^}]*transform:\s*translate\(-50%,\s*-50%\)/s);
+  assert.doesNotMatch(mobile, /\.avatar-stage__character\s*\{[^}]*scale\(/s);
 });
 
 test('medium workspace scales the shared character and placement box to the stage column', () => {
@@ -175,7 +177,7 @@ test('medium workspace scales the shared character and placement box to the stag
 
   assert.match(mediumCharacter, /width:\s*min\(420px,\s*100%\)/);
   assert.match(mediumCharacter, /height:\s*auto/);
-  assert.match(mediumCharacter, /aspect-ratio:\s*1/);
+  assert.match(mediumCharacter, /aspect-ratio:\s*3\s*\/\s*4/);
   assert.match(placement, /inset:\s*0/);
   assert.match(placement, /width:\s*100%/);
   assert.match(placement, /height:\s*100%/);
