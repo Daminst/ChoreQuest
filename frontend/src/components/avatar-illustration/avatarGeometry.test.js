@@ -203,6 +203,19 @@ test('hood and upper torso stay compact against the transformed chin', () => {
   assert.ok(torsoTop - visibleChin <= 20, 'upper torso must not detach from the head');
 });
 
+test('transformed neck reaches the hoodie collar without a floating seam', () => {
+  const { AVATAR_BODY_PROPORTIONS, AVATAR_HEAD_RIG } = avatarGeometry;
+  const { anchor, scaleY, sourceBounds } = AVATAR_HEAD_RIG;
+  const transformedNeckBottom = anchor.y
+    + ((sourceBounds.neckBottom - anchor.y) * scaleY);
+  const { hoodTop } = AVATAR_BODY_PROPORTIONS.upperBody;
+
+  assert.ok(
+    hoodTop <= transformedNeckBottom + 1,
+    `hood top ${hoodTop} must meet transformed neck bottom ${transformedNeckBottom}`,
+  );
+});
+
 test('authored leg silhouettes keep controlled thigh and knee volume', () => {
   const { AVATAR_BODY_PROPORTIONS, AVATAR_POSE_ANCHORS } = avatarGeometry;
   assert.ok(AVATAR_BODY_PROPORTIONS, 'missing shared body-proportion contract');

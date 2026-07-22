@@ -67,8 +67,8 @@ export const AVATAR_POSE_ANCHORS = Object.freeze({
 
 export const AVATAR_BODY_PROPORTIONS = Object.freeze({
   upperBody: Object.freeze({
-    hoodTop: 116,
-    hoodBottom: 158,
+    hoodTop: 109,
+    hoodBottom: 151,
     torsoTop: 124,
   }),
   legs: Object.freeze({
