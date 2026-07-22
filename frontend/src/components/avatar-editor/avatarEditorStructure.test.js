@@ -140,7 +140,8 @@ test('stage owns live preview and pet placement while pet customiser exposes fou
   const pet = read('./PetCustomizer.jsx');
   assert.match(stage, /AvatarDisplay/);
   assert.match(stage, /avatarStagePlacement/);
-  assert.match(stage, /viewBox="0 0 32 32"/);
+  assert.match(stage, /viewBox=\{PET_PLACEMENT_FRAME\.viewBox\}/);
+  assert.doesNotMatch(stage, /viewBox="0 0 32 32"/);
   assert.match(stage, /Dotknij, aby ustawić pupila/);
   for (const label of ['Appearance', 'Colours', 'Position', 'Accessory']) {
     assert.match(pet, new RegExp(label));

@@ -35,6 +35,43 @@ test('legacy pet points map into the full-body canvas and clamp safely', () => {
   assert.deepEqual(mapLegacyPetPoint(-20, 80), { x: 36, y: 280 });
 });
 
+test('pet placement geometry is frozen and maps canvas anchors back to saved coordinates', () => {
+  const {
+    AVATAR_PET_PLACEMENT,
+    mapAvatarPetCanvasPointToLegacy,
+  } = avatarGeometry;
+
+  assert.ok(AVATAR_PET_PLACEMENT, 'missing shared pet placement geometry');
+  assert.ok(Object.isFrozen(AVATAR_PET_PLACEMENT));
+  assert.ok(Object.isFrozen(AVATAR_PET_PLACEMENT.saved));
+  assert.ok(Object.isFrozen(AVATAR_PET_PLACEMENT.canvas));
+  assert.deepEqual(AVATAR_PET_PLACEMENT.saved, { min: 4, max: 28 });
+  assert.deepEqual(AVATAR_PET_PLACEMENT.canvas, {
+    minX: 36,
+    maxX: 204,
+    minY: 64,
+    maxY: 280,
+  });
+  assert.equal(typeof mapAvatarPetCanvasPointToLegacy, 'function');
+
+  for (const saved of [
+    { x: 4, y: 4 },
+    { x: 28, y: 4 },
+    { x: 4, y: 28 },
+    { x: 28, y: 28 },
+    { x: 16, y: 16 },
+  ]) {
+    const renderedAnchor = mapLegacyPetPoint(saved.x, saved.y);
+    assert.deepEqual(
+      mapAvatarPetCanvasPointToLegacy(renderedAnchor.x, renderedAnchor.y),
+      saved,
+      `saved ${JSON.stringify(saved)} must round-trip through its rendered anchor`,
+    );
+  }
+
+  assert.deepEqual(mapAvatarPetCanvasPointToLegacy(-100, 999), { x: 4, y: 28 });
+});
+
 test('catalog remains complete and default config keeps version two', () => {
   assert.equal(AVATAR_CATALOG.head.options.length, 9);
   assert.equal(AVATAR_CATALOG.hair.options.length, 21);

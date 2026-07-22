@@ -1,6 +1,10 @@
-const MIN_PET_COORDINATE = 4;
-const MAX_PET_COORDINATE = 28;
-const PET_STAGE_SIZE = 32;
+import {
+  AVATAR_CANVAS,
+  AVATAR_PET_PLACEMENT,
+  mapAvatarPetCanvasPointToLegacy,
+} from '../avatar-illustration/avatarGeometry.js';
+
+const { min: MIN_PET_COORDINATE, max: MAX_PET_COORDINATE } = AVATAR_PET_PLACEMENT.saved;
 
 const PET_KEYBOARD_MOVES = Object.freeze({
   ArrowLeft: Object.freeze([-1, 0]),
@@ -21,21 +25,10 @@ export function clampPetCoordinate(value) {
   return Math.max(MIN_PET_COORDINATE, Math.min(MAX_PET_COORDINATE, value));
 }
 
-export function getContainedSquareRect(rect) {
-  const size = Math.min(rect.width, rect.height);
-  return {
-    left: rect.left + ((rect.width - size) / 2),
-    top: rect.top + ((rect.height - size) / 2),
-    width: size,
-    height: size,
-  };
-}
-
 export function mapPetPointerPosition(clientX, clientY, rect) {
-  const coordinateBox = getContainedSquareRect(rect);
-  const x = Math.round(((clientX - coordinateBox.left) / coordinateBox.width) * PET_STAGE_SIZE);
-  const y = Math.round(((clientY - coordinateBox.top) / coordinateBox.height) * PET_STAGE_SIZE);
-  return { x: clampPetCoordinate(x), y: clampPetCoordinate(y) };
+  const canvasX = ((clientX - rect.left) / rect.width) * AVATAR_CANVAS.width;
+  const canvasY = ((clientY - rect.top) / rect.height) * AVATAR_CANVAS.height;
+  return mapAvatarPetCanvasPointToLegacy(canvasX, canvasY);
 }
 
 export function movePetWithKeyboard(x, y, key) {

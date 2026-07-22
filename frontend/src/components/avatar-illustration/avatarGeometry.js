@@ -1,5 +1,15 @@
 export const AVATAR_CANVAS = Object.freeze({ width: 240, height: 320 });
 
+export const AVATAR_PET_PLACEMENT = Object.freeze({
+  saved: Object.freeze({ min: 4, max: 28 }),
+  canvas: Object.freeze({
+    minX: 36,
+    maxX: 204,
+    minY: 64,
+    maxY: 280,
+  }),
+});
+
 function freezePoint(x, y, role) {
   return Object.freeze(role ? { x, y, role } : { x, y });
 }
@@ -208,9 +218,21 @@ export function getAvatarOptionCrop(category) {
 }
 
 export function mapLegacyPetPoint(x, y) {
-  const clamp = (value) => Math.min(28, Math.max(4, Number(value) || 4));
+  const { saved, canvas } = AVATAR_PET_PLACEMENT;
+  const clamp = (value) => Math.min(saved.max, Math.max(saved.min, Number(value) || saved.min));
   return {
-    x: Math.round(36 + ((clamp(x) - 4) / 24) * 168),
-    y: Math.round(64 + ((clamp(y) - 4) / 24) * 216),
+    x: Math.round(canvas.minX + ((clamp(x) - saved.min) / (saved.max - saved.min)) * (canvas.maxX - canvas.minX)),
+    y: Math.round(canvas.minY + ((clamp(y) - saved.min) / (saved.max - saved.min)) * (canvas.maxY - canvas.minY)),
+  };
+}
+
+export function mapAvatarPetCanvasPointToLegacy(x, y) {
+  const { saved, canvas } = AVATAR_PET_PLACEMENT;
+  const clampCanvas = (value, min, max) => Math.min(max, Math.max(min, Number(value) || min));
+  const canvasX = clampCanvas(x, canvas.minX, canvas.maxX);
+  const canvasY = clampCanvas(y, canvas.minY, canvas.maxY);
+  return {
+    x: Math.round(saved.min + ((canvasX - canvas.minX) / (canvas.maxX - canvas.minX)) * (saved.max - saved.min)),
+    y: Math.round(saved.min + ((canvasY - canvas.minY) / (canvas.maxY - canvas.minY)) * (saved.max - saved.min)),
   };
 }
