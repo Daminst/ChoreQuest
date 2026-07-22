@@ -3,6 +3,10 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { AVATAR_CATALOG } from '../avatar-editor/avatarCatalog.js';
 import {
+  PET_ACCESSORY_OPTIONS,
+  PET_OPTIONS,
+} from '../avatar-editor/avatarPetCatalog.js';
+import {
   AVATAR_CAMERAS,
   AVATAR_HEAD_RIG,
   getAvatarFrame,
@@ -239,6 +243,169 @@ test('body and outfit-pattern registries exactly cover the editor catalog', () =
     registryKeys('./parts/outfits.jsx', 'OUTFIT_PATTERN_RENDERERS'),
     ids(AVATAR_CATALOG.pattern),
   );
+});
+
+test('pet registries exactly cover the pet catalogs', () => {
+  assert.deepEqual(
+    registryKeys('./parts/pets.jsx', 'PET_RENDERERS'),
+    PET_OPTIONS.map((option) => option.id).sort(),
+  );
+  assert.deepEqual(
+    registryKeys('./parts/pets.jsx', 'PET_ACCESSORY_RENDERERS'),
+    PET_ACCESSORY_OPTIONS.map((option) => option.id).sort(),
+  );
+});
+
+test('all six pets are distinct modeled companions on one frozen anchor contract', () => {
+  const petUrl = new URL('./parts/pets.jsx', import.meta.url);
+  assert.doesNotThrow(() => readFileSync(petUrl), 'missing v3 pets artwork module');
+  const source = readFileSync(petUrl, 'utf8');
+  const entries = registryEntries(source, 'PET_RENDERERS');
+
+  assert.deepEqual(Object.fromEntries(entries.map(({ id, renderer }) => [id, renderer])), {
+    none: 'EmptyPart',
+    cat: 'CatPet',
+    dog: 'DogPet',
+    dragon: 'DragonPet',
+    owl: 'OwlPet',
+    bunny: 'BunnyPet',
+    phoenix: 'PhoenixPet',
+  });
+  assert.match(source, /export const PET_POSITION_ANCHORS = Object\.freeze\(\{/);
+  for (const [id, x, y] of [['left', 40, 252], ['right', 200, 252], ['head', 120, 36]]) {
+    assert.match(
+      source,
+      new RegExp(`^  ${id}: Object\\.freeze\\(\\{ x: ${x}, y: ${y} \\}\\),$`, 'm'),
+      `${id} must preserve its full-canvas anchor`,
+    );
+  }
+  assert.match(source, /import \{ mapLegacyPetPoint \} from '\.\.\/avatarGeometry\.js';/);
+  assert.match(source, /mapLegacyPetPoint\(config\.pet_x, config\.pet_y\)/);
+
+  const silhouettes = [];
+  for (const { id, renderer } of entries.filter(({ id }) => id !== 'none')) {
+    const body = functionSource(source, renderer);
+    assert.match(body, new RegExp(`data-avatar-variant="pet:${id}"`));
+    assert.match(body, /<PetEyePair\b/, `${id} needs two modeled eyes`);
+    assert.match(body, /avatar-pet-base/, `${id} needs a primary body mass`);
+    assert.match(body, /avatar-pet-shadow/, `${id} needs a body shadow plane`);
+    assert.match(body, /avatar-pet-highlight/, `${id} needs a body highlight plane`);
+    assert.match(body, /avatar-outline/, `${id} needs a colored outline`);
+    assert.match(body, /avatar-pet-accent/, `${id} needs a separate accent surface`);
+    assert.match(body, /data-pet-ground="0"/, `${id} must share the same local foot line`);
+    const silhouette = body.match(/className="avatar-pet-base avatar-outline"[\s\S]*?d="([^"]+)"/);
+    assert.ok(silhouette, `${id} needs an inspectable authored silhouette`);
+    silhouettes.push(silhouette[1]);
+  }
+  assert.equal(new Set(silhouettes).size, 6, 'pet silhouettes cannot alias one another');
+  assert.doesNotMatch(source, /\.map\s*\(/, 'pet artwork cannot allocate authored geometry arrays per render');
+});
+
+test('pet accessories are explicit unique modeled variants', () => {
+  const source = readFileSync(new URL('./parts/pets.jsx', import.meta.url), 'utf8');
+  const entries = registryEntries(source, 'PET_ACCESSORY_RENDERERS');
+  assert.deepEqual(Object.fromEntries(entries.map(({ id, renderer }) => [id, renderer])), {
+    none: 'EmptyPart',
+    crown: 'PetCrown',
+    party_hat: 'PetPartyHat',
+    bow: 'PetBow',
+    bandana: 'PetBandana',
+    halo: 'PetHalo',
+    flower: 'PetFlower',
+  });
+  assert.equal(new Set(entries.map(({ renderer }) => renderer)).size, entries.length);
+  for (const { id, renderer } of entries) {
+    const body = functionSource(source, renderer);
+    if (id === 'none') {
+      assert.match(body, /return null;/);
+      continue;
+    }
+    assert.match(body, new RegExp(`data-avatar-variant="pet-accessory:${id}"`));
+    assert.match(body, /avatar-pet-accessory-highlight/);
+    assert.match(body, /avatar-outline/);
+  }
+});
+
+test('pet progression maps exact scale and cumulative face-safe effect semantics', () => {
+  const source = readFileSync(new URL('./parts/pets.jsx', import.meta.url), 'utf8');
+  assert.match(source, /const levelScale = getPetLevelScale\(resolvedLevel\);/);
+  assert.match(source, /data-pet-level-scale=\{levelScale\.toFixed\(2\)\}/);
+  const expectedEffects = {
+    2: 'aura',
+    3: 'gem-collar',
+    4: 'eye-shine',
+    5: 'sparkles',
+    6: 'shimmer',
+    7: 'glow',
+    8: 'gold-sparkles',
+  };
+  for (const [level, effect] of Object.entries(expectedEffects)) {
+    assert.match(
+      source,
+      new RegExp(`level >= ${level}[\\s\\S]*?data-pet-effect="${effect}"`),
+      `level ${level} must add ${effect}`,
+    );
+  }
+  assert.match(source, /data-pet-effect-zone="outside-face"/);
+  assert.match(source, /data-pet-motion=\{motionEnabled \? 'on' : 'off'\}/);
+  assert.doesNotMatch(source, /id="(?:pet|avatar)-/, 'pet SVG ids cannot be global literals');
+});
+
+test('head placement stays centered without headwear and moves sideways only around headwear geometry', () => {
+  const source = readFileSync(new URL('./parts/pets.jsx', import.meta.url), 'utf8');
+  assert.match(source, /const HEAD_BASELINE_X_OFFSET = 83;/);
+  assert.match(source, /const HEAD_CENTER_BASELINE_Y_OFFSET = 11;/);
+  assert.match(source, /const HEAD_CENTER_PLACEMENT_SCALE = 0\.44;/);
+  assert.match(
+    source,
+    /const usesSidePerch = safePosition === 'head'\s*&& Boolean\(config\.hat && config\.hat !== 'none'\);/,
+  );
+  assert.match(
+    source,
+    /baselineX: safePosition === 'head'[\s\S]*?\? anchor\.x \+ \(usesSidePerch \? HEAD_BASELINE_X_OFFSET : 0\)[\s\S]*?: anchor\.x,/,
+  );
+  assert.match(
+    source,
+    /baselineY: anchor\.y \+ \([\s\S]*?safePosition === 'head' && !usesSidePerch[\s\S]*?\? HEAD_CENTER_BASELINE_Y_OFFSET[\s\S]*?: NAMED_BASELINE_OFFSET[\s\S]*?\),/,
+  );
+  assert.match(source, /placementScale: safePosition === 'head'[\s\S]*?\? \(usesSidePerch \? HEAD_SIDE_PLACEMENT_SCALE : HEAD_CENTER_PLACEMENT_SCALE\)[\s\S]*?: 1,/);
+  assert.match(source, /perchMode: safePosition === 'head' \? \(usesSidePerch \? 'side' : 'center'\) : 'ground',/);
+  assert.match(source, /data-pet-perch=\{placement\.perchMode\}/);
+
+  const centeredBaseline = 36 + 11;
+  assert.ok(centeredBaseline + (-59 - 24) * 1.28 * 0.44 >= 0, 'a tall pet accessory stays inside the canvas');
+  assert.ok(centeredBaseline + 3 * 1.28 * 0.44 < 50, 'the centered perch stays above the face-safe line');
+});
+
+test('compact preview contains the tallest level-eight pet and accessory combination', () => {
+  const source = readFileSync(new URL('./parts/pets.jsx', import.meta.url), 'utf8');
+  const compactViewBox = source.match(/const COMPACT_VIEW_BOX = '([^']+)';/)?.[1]
+    .split(' ')
+    .map(Number);
+  assert.deepEqual(compactViewBox, [154, 200, 92, 120]);
+
+  const [, top, , height] = compactViewBox;
+  const partyHatTop = 310 + (-59 - 24) * 1.28;
+  const levelEightGlowBottom = 310 + 3 * 1.28;
+  assert.ok(top <= partyHatTop, 'the level-eight bunny party hat must remain visible');
+  assert.ok(top + height >= levelEightGlowBottom, 'the level-eight glow must remain visible');
+});
+
+test('main compositor and level rail share PetArtwork without legacy imports', () => {
+  const compositor = readFileSync(new URL('./AvatarArtwork.jsx', import.meta.url), 'utf8');
+  const registry = readFileSync(new URL('./registry.js', import.meta.url), 'utf8');
+  const customizer = readFileSync(new URL('../avatar-editor/PetCustomizer.jsx', import.meta.url), 'utf8');
+
+  assert.match(registry, /import \{ PET_ACCESSORY_RENDERERS, PET_RENDERERS, PetArtwork \} from '\.\/parts\/pets\.jsx';/);
+  assert.match(registry, /export \{[\s\S]*?PET_ACCESSORY_RENDERERS,[\s\S]*?PET_RENDERERS,[\s\S]*?PetArtwork,/);
+  assert.match(
+    compositor,
+    /data-avatar-layer="pet"[^>]*>[\s\S]*?<PetArtwork[\s\S]*?config=\{normalizedConfig\}[\s\S]*?motionEnabled=\{motionEnabled\}/,
+  );
+  assert.match(customizer, /import \{ PetArtwork \} from '\.\.\/avatar-illustration\/parts\/pets';/);
+  assert.doesNotMatch(customizer, /from '\.\.\/avatar\/pets'/);
+  assert.match(customizer, /function PetPreview\(\{ config, level \}\)/);
+  assert.match(customizer, /<PetArtwork[\s\S]*?pet_xp: PET_LEVEL_THRESHOLDS\[level - 1\][\s\S]*?pet_xp_map: \{\}[\s\S]*?position="right"[\s\S]*?level=\{level\}[\s\S]*?compact/);
 });
 
 test('equipment registry exactly covers the catalog with the frozen layer map', () => {

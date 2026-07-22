@@ -217,6 +217,18 @@ test('contact shadow is painted in rear effects and finish stays semantically em
   assert.match(source, /<g data-avatar-layer="finish"\s*\/>/);
 });
 
+test('pet artwork occupies the existing pet layer without adding cameras or layers', () => {
+  const source = readFileSync(new URL('./AvatarArtwork.jsx', import.meta.url), 'utf8');
+  assert.equal((source.match(/data-avatar-camera=/g) || []).length, 1);
+  assert.equal((source.match(/data-avatar-layer=/g) || []).length, 14);
+  assert.equal((source.match(/<PetArtwork\b/g) || []).length, 1);
+  assert.match(
+    source,
+    /<g data-avatar-layer="pet">\s*<PetArtwork[\s\S]*?<\/g>/,
+  );
+  assert.match(source, /data-avatar-motion=\{motionEnabled \? 'on' : 'off'\}/);
+});
+
 test('body limbs use regional transforms while both hands legs and shoes remain explicit', () => {
   const anatomy = readFileSync(new URL('parts/anatomy.jsx', import.meta.url), 'utf8');
   for (const marker of [

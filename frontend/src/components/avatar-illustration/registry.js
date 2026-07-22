@@ -9,6 +9,7 @@ import { HAIR_RENDERERS } from './parts/hair.jsx';
 import { HAT_RENDERERS } from './parts/hats.jsx';
 import { HEAD_FEATURE_OFFSETS, HEAD_RENDERERS } from './parts/heads.jsx';
 import { BODY_RENDERERS, OUTFIT_PATTERN_RENDERERS } from './parts/outfits.jsx';
+import { PET_ACCESSORY_RENDERERS, PET_RENDERERS, PetArtwork } from './parts/pets.jsx';
 
 export {
   ACCESSORY_RENDERERS,
@@ -22,6 +23,9 @@ export {
   HEAD_RENDERERS,
   MOUTH_RENDERERS,
   OUTFIT_PATTERN_RENDERERS,
+  PET_ACCESSORY_RENDERERS,
+  PET_RENDERERS,
+  PetArtwork,
 };
 
 export function resolveAvatarPart(registry, id, fallbackId) {

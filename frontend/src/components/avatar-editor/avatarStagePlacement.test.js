@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
 
 const loadPlacement = () => import('./avatarStagePlacement.js');
 
@@ -65,4 +66,8 @@ test('placement mode keeps the shared pet coordinate frame still while normal pr
 
   assert.equal(getAvatarStageCharacterClassName(false), 'avatar-stage__character avatar-idle');
   assert.equal(getAvatarStageCharacterClassName(true), 'avatar-stage__character');
+
+  const stage = readFileSync(new URL('./AvatarStage.jsx', import.meta.url), 'utf8');
+  assert.match(stage, /data-avatar-placement-active=\{placementMode \? 'true' : 'false'\}/);
+  assert.match(stage, /data-avatar-motion=\{placementMode \? 'off' : 'on'\}/);
 });

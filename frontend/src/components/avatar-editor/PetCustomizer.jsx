@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Heart } from 'lucide-react';
-import { buildPetColors, renderPet, renderPetExtras } from '../avatar/pets';
+import { PetArtwork } from '../avatar-illustration/parts/pets';
 import { AvatarColorPalette, AvatarOptionCard, AvatarOptionGrid } from './AvatarOptionControls';
 import {
   PET_ACCESSORY_OPTIONS,
@@ -8,8 +8,10 @@ import {
   PET_COLOR_RESET_PATCH,
   PET_LEVEL_COLORS,
   PET_LEVEL_NAMES,
+  PET_LEVEL_THRESHOLDS,
   PET_OPTIONS,
   PET_POSITION_OPTIONS,
+  buildPetColors,
   createPetBodyColorPatch,
   getPetLevelInfo,
   getPetXpForPet,
@@ -23,28 +25,20 @@ const PET_SECTIONS = [
   { id: 'accessory', label: 'Accessory', tabId: 'avatar-pet-tab-accessory', panelId: 'avatar-pet-panel-accessory' },
 ];
 
-function PetPreviewSvg({ petType, colors, level = 1 }) {
-  if (!petType || petType === 'none') return null;
-  const scale = (1 + (level - 1) * 0.04) * 1.3;
-  const isBig = ['dragon', 'phoenix'].includes(petType);
-  const centerX = isBig ? 25 : 26;
-  const centerY = isBig ? 19 : 20;
-  const glow = level >= 7 ? '#f59e0b' : level >= 5 ? '#a855f7' : level >= 2 ? '#3b82f6' : null;
+function PetPreview({ config, level }) {
   return (
-    <svg width="64" height="64" viewBox="0 0 12 12" className="avatar-pet-level-preview" aria-hidden="true">
-      <g transform={`translate(6,6) scale(${scale}) translate(${-centerX},${-centerY})`}>
-        {glow && <circle cx={centerX} cy={centerY} r="4" fill={glow} opacity={level >= 5 ? 0.25 : 0.18} />}
-        {renderPet(petType, colors, 'right', {})}
-        {renderPetExtras(petType, level, colors, 'right')}
-      </g>
-    </svg>
+    <PetArtwork
+      config={{ ...config, pet_xp: PET_LEVEL_THRESHOLDS[level - 1], pet_xp_map: {} }}
+      position="right"
+      level={level}
+      compact
+    />
   );
 }
 
 function PetLevelRail({ config }) {
   const petXp = getPetXpForPet(config, config.pet);
   const levelInfo = getPetLevelInfo(petXp);
-  const petColors = buildPetColors(config);
 
   return (
     <section className="avatar-pet-progress" aria-label="Pet level progression">
@@ -78,7 +72,7 @@ function PetLevelRail({ config }) {
               data-level-state={level < levelInfo.level ? 'past' : level > levelInfo.level ? 'future' : 'current'}
             >
               <span className="avatar-pet-level__number" style={{ color: PET_LEVEL_COLORS[level] }}>Level {level}</span>
-              <PetPreviewSvg petType={config.pet} colors={petColors} level={level} />
+              <PetPreview config={config} level={level} />
               <span className="avatar-pet-level__name">{name}</span>
             </div>
           );
@@ -141,7 +135,7 @@ function renderAppearanceControls({ config, locked, lockedMeta, getUnlockLabel, 
 }
 
 function renderColourControls({ config, onChange, onPatch }) {
-  const bodyColor = config.pet_color || '#8b4513';
+  const bodyColor = buildPetColors(config).body;
   const choosePartColor = (key, color) => onChange(key, color === bodyColor ? '' : color);
   const resetPartColors = () => onPatch(PET_COLOR_RESET_PATCH);
 

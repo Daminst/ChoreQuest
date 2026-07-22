@@ -24,6 +24,7 @@ import {
   HEAD_RENDERERS,
   MOUTH_RENDERERS,
   OUTFIT_PATTERN_RENDERERS,
+  PetArtwork,
   resolveAvatarPart,
 } from './registry.js';
 import './avatarIllustration.css';
@@ -73,7 +74,12 @@ function renderAccessoryItem({ id, index, entry }, config, palette, paints) {
   );
 }
 
-export function AvatarArtwork({ config = EMPTY_CONFIG, crop = 'icon', label = 'ChoreQuest avatar' }) {
+export function AvatarArtwork({
+  config = EMPTY_CONFIG,
+  crop = 'icon',
+  label = 'ChoreQuest avatar',
+  motionEnabled = true,
+}) {
   const frame = getAvatarFrame(crop);
   const normalizedConfig = useMemo(() => normalizeAvatarIllustrationConfig(config), [config]);
   const palette = useMemo(() => buildAvatarPalette(normalizedConfig), [normalizedConfig]);
@@ -110,6 +116,7 @@ export function AvatarArtwork({ config = EMPTY_CONFIG, crop = 'icon', label = 'C
       viewBox={frame.viewBox}
       role="img"
       aria-label={label}
+      data-avatar-motion={motionEnabled ? 'on' : 'off'}
       preserveAspectRatio="xMidYMid meet"
     >
       <AvatarDefs ids={ids} palette={palette} build={normalizedConfig.body} />
@@ -191,7 +198,13 @@ export function AvatarArtwork({ config = EMPTY_CONFIG, crop = 'icon', label = 'C
         <g data-avatar-layer="front-accessories">
           {frontAccessories.map((item) => renderAccessoryItem(item, normalizedConfig, palette, paints))}
         </g>
-        <g data-avatar-layer="pet" />
+        <g data-avatar-layer="pet">
+          <PetArtwork
+            config={normalizedConfig}
+            position={normalizedConfig.pet_position}
+            motionEnabled={motionEnabled}
+          />
+        </g>
         <g data-avatar-layer="finish" />
       </g>
     </svg>

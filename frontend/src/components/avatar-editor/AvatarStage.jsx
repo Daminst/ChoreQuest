@@ -26,7 +26,11 @@ export function AvatarStage({ config, placementMode = false, previewMessage = ''
   return (
     <section className="avatar-stage" aria-label="Podgląd awatara na żywo">
       <div className="avatar-stage__spotlight" aria-hidden="true" />
-      <div className={getAvatarStageCharacterClassName(placementMode)}>
+      <div
+        className={getAvatarStageCharacterClassName(placementMode)}
+        data-avatar-placement-active={placementMode ? 'true' : 'false'}
+        data-avatar-motion={placementMode ? 'off' : 'on'}
+      >
         <AvatarDisplay config={config} size="studio" />
         {placementMode && (
           <svg
