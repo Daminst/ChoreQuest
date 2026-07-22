@@ -20,3 +20,15 @@ test('compositor exposes every named layer in contract order', () => {
     cursor = next;
   }
 });
+
+test('vertical slice contains complete anatomy and illustration finish markers', () => {
+  const files = ['parts/anatomy.jsx', 'parts/heads.jsx', 'parts/faces.jsx', 'parts/hair.jsx', 'parts/outfits.jsx'];
+  const source = files.map((file) => readFileSync(new URL(file, import.meta.url), 'utf8')).join('\n');
+  for (const marker of [
+    'avatar-leg-left', 'avatar-leg-right', 'avatar-hand-left', 'avatar-hand-right',
+    'avatar-shoe-left', 'avatar-shoe-right', 'avatar-outline', 'avatar-highlight',
+    'avatar-detail', 'avatar-cheek', 'avatar-hair-strand', 'avatar-outfit-seam',
+  ]) {
+    assert.match(source, new RegExp(marker), `missing ${marker}`);
+  }
+});
