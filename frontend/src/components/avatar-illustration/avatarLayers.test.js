@@ -77,3 +77,82 @@ test('face finish uses localized planes and two small highlights per eye', () =>
     'each eye must have exactly two small highlights',
   );
 });
+
+test('instance-local material paints are passed to and consumed by major masses', () => {
+  const compositor = readFileSync(new URL('./AvatarArtwork.jsx', import.meta.url), 'utf8');
+  const anatomy = readFileSync(new URL('parts/anatomy.jsx', import.meta.url), 'utf8');
+  const heads = readFileSync(new URL('parts/heads.jsx', import.meta.url), 'utf8');
+  const hair = readFileSync(new URL('parts/hair.jsx', import.meta.url), 'utf8');
+  const outfits = readFileSync(new URL('parts/outfits.jsx', import.meta.url), 'utf8');
+
+  assert.match(compositor, /const reactId = useId\(\);[\s\S]*?const prefix = `cq-avatar-\$\{reactId\.replace/);
+  for (const [id, suffix] of Object.entries({
+    skinGradient: 'skin-gradient',
+    hairGradient: 'hair-gradient',
+    outfitGradient: 'outfit-gradient',
+    hatGradient: 'hat-gradient',
+    gearGradient: 'gear-gradient',
+    petGradient: 'pet-gradient',
+    backgroundGradient: 'background-gradient',
+    silhouetteShadow: 'silhouette-shadow',
+  })) {
+    const idSource = `${id}: \`\${prefix}-${suffix}\`,`;
+    assert.ok(compositor.includes(idSource), `${id} must derive from the useId-backed prefix`);
+  }
+  assert.match(compositor, /function buildAvatarPaints\(ids\)[\s\S]*?Object\.freeze\(\{/);
+  for (const material of ['skin', 'hair', 'outfit', 'hat', 'gear', 'pet', 'background']) {
+    const gradient = `${material}Gradient`;
+    const paintSource = `${material}: \`url(#\${ids.${gradient}})\``;
+    assert.ok(
+      compositor.includes(paintSource),
+      `${material} paint must reference its current instance id`,
+    );
+  }
+  for (const part of ['Hair.Rear', 'Anatomy', 'Body', 'Head', 'Eyes', 'Mouth', 'FaceExtra', 'Hair.Front']) {
+    assert.match(
+      compositor,
+      new RegExp(`<${part.replace('.', '\\.')}[\\s\\S]*?paints=\\{paints\\}`),
+      `${part} must receive the shared paint map`,
+    );
+  }
+  assert.match(heads, /fill=\{paints\.skin\}/, 'head mass must consume skin paint');
+  assert.match(hair, /fill=\{paints\.hair\}/, 'hair mass must consume hair paint');
+  assert.match(anatomy, /fill=\{paints\.outfit\}/, 'torso mass must consume outfit paint');
+  assert.match(anatomy, /fill=\{paints\.gear\}/, 'shoe mass must consume gear paint');
+  assert.match(outfits, /fill=\{paints\.outfit\}/, 'outfit surface must consume outfit paint');
+});
+
+test('all head-attached layers share one rig and pose parts consume shared anchors', () => {
+  const compositor = readFileSync(new URL('./AvatarArtwork.jsx', import.meta.url), 'utf8');
+  const anatomy = readFileSync(new URL('parts/anatomy.jsx', import.meta.url), 'utf8');
+  const outfits = readFileSync(new URL('parts/outfits.jsx', import.meta.url), 'utf8');
+
+  for (const layer of ['rear-hair', 'neck-ears', 'head', 'face', 'hat']) {
+    assert.match(
+      compositor,
+      new RegExp(`data-avatar-layer="${layer}"[^>]*transform=\\{headRigTransform\\}`),
+      `${layer} must use the shared head rig`,
+    );
+  }
+  assert.match(
+    compositor,
+    /data-avatar-layer="front-hair"[^>]*transform=\{frontHairTransform\}/,
+    'front hair must compose its margin with the shared head rig',
+  );
+  assert.match(compositor, /getAvatarHeadRigTransform\(Hair\.marginTop\)/);
+  assert.match(anatomy, /AVATAR_POSE_ANCHORS/);
+  assert.match(outfits, /AVATAR_POSE_ANCHORS/);
+});
+
+test('contact shadow is painted in rear effects and finish stays semantically empty', () => {
+  const source = readFileSync(new URL('./AvatarArtwork.jsx', import.meta.url), 'utf8');
+  const rearEffects = source.indexOf('data-avatar-layer="rear-effects"');
+  const rearPet = source.indexOf('data-avatar-layer="rear-pet"');
+  const contactShadow = source.indexOf('avatar-contact-shadow');
+  const finish = source.indexOf('data-avatar-layer="finish"');
+
+  assert.ok(rearEffects >= 0 && rearPet > rearEffects);
+  assert.ok(contactShadow > rearEffects && contactShadow < rearPet, 'shadow must be inside rear-effects');
+  assert.ok(contactShadow < finish, 'shadow must be behind the figure');
+  assert.match(source, /<g data-avatar-layer="finish"\s*\/>/);
+});

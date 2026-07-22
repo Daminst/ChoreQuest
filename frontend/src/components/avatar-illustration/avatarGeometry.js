@@ -1,5 +1,51 @@
 export const AVATAR_CANVAS = Object.freeze({ width: 240, height: 320 });
 
+function freezePoint(x, y, role) {
+  return Object.freeze(role ? { x, y, role } : { x, y });
+}
+
+const HEAD_RIG_ANCHOR = freezePoint(120, 82);
+const HEAD_RIG_SCALE_X = 0.86;
+const HEAD_RIG_SCALE_Y = 0.75;
+
+export const AVATAR_HEAD_RIG = Object.freeze({
+  anchor: HEAD_RIG_ANCHOR,
+  scaleX: HEAD_RIG_SCALE_X,
+  scaleY: HEAD_RIG_SCALE_Y,
+  sourceBounds: Object.freeze({
+    artworkTop: 12,
+    headTop: 30,
+    headBottom: 136,
+    neckBottom: 142,
+  }),
+  transform: `translate(${HEAD_RIG_ANCHOR.x} ${HEAD_RIG_ANCHOR.y}) scale(${HEAD_RIG_SCALE_X} ${HEAD_RIG_SCALE_Y}) translate(${-HEAD_RIG_ANCHOR.x} ${-HEAD_RIG_ANCHOR.y})`,
+});
+
+export const AVATAR_POSE_ANCHORS = Object.freeze({
+  shoulders: Object.freeze({
+    left: freezePoint(94, 147),
+    right: freezePoint(150, 142),
+  }),
+  hips: Object.freeze({
+    free: freezePoint(104, 216),
+    weight: freezePoint(139, 220),
+  }),
+  knees: Object.freeze({
+    free: freezePoint(94, 251),
+    weight: freezePoint(140, 246),
+  }),
+  soles: Object.freeze({
+    free: freezePoint(78, 290),
+    weight: freezePoint(150, 294),
+  }),
+  hands: Object.freeze({
+    hip: freezePoint(80, 203, 'hip'),
+    relaxed: freezePoint(169, 224, 'relaxed'),
+  }),
+});
+
+const AVATAR_BUILD_SCALE_X = Object.freeze({ slim: 0.9, regular: 1, broad: 1.12 });
+
 export const AVATAR_FRAMES = Object.freeze({
   full: Object.freeze({ viewBox: '0 0 240 320', circular: false }),
   portrait: Object.freeze({ viewBox: '48 4 144 144', circular: true }),
@@ -11,6 +57,18 @@ const FULL_CATEGORIES = new Set(['body', 'outfit', 'pattern', 'background', 'acc
 
 export function getAvatarFrame(crop = 'icon') {
   return AVATAR_FRAMES[crop] || AVATAR_FRAMES.icon;
+}
+
+export function getAvatarHeadRigTransform(offsetY = 0) {
+  const offset = Number(offsetY);
+  return Number.isFinite(offset) && offset !== 0
+    ? `${AVATAR_HEAD_RIG.transform} translate(0 ${offset})`
+    : AVATAR_HEAD_RIG.transform;
+}
+
+export function getAvatarBuildTransform(build = 'regular') {
+  const scaleX = AVATAR_BUILD_SCALE_X[build] || AVATAR_BUILD_SCALE_X.regular;
+  return `translate(120 0) scale(${scaleX} 1) translate(-120 0)`;
 }
 
 export function getAvatarRenderDimensions(size, crop = 'icon') {

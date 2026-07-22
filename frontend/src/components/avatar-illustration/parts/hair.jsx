@@ -1,10 +1,10 @@
-export function ShortHairFront({ palette }) {
+export function ShortHairFront({ palette, paints }) {
   return (
     <g>
       <path
         className="avatar-hair-silhouette avatar-outline"
         d="M77 84 C71 76 70 67 74 59 C68 59 64 56 61 52 C72 53 82 48 89 41 C81 43 74 39 71 34 C83 37 96 33 104 25 C97 27 92 22 90 17 C101 22 111 20 118 12 C124 20 133 23 142 24 C153 25 160 32 162 42 C170 43 174 48 177 56 C170 53 164 55 160 60 C166 68 164 77 157 86 C154 76 151 67 146 59 C142 55 136 54 132 57 C128 60 128 68 125 75 C123 80 120 83 116 86 C119 74 117 63 112 58 C108 54 102 55 97 59 C91 63 88 73 83 84 Z"
-        fill={palette.hair.shadow}
+        fill={paints.hair}
         stroke={palette.hair.outline}
         strokeWidth="3.4"
         strokeLinejoin="round"

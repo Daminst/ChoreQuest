@@ -1,31 +1,60 @@
-export function Anatomy({ palette, build = 'regular', section }) {
-  const scaleX = build === 'slim' ? 0.9 : build === 'broad' ? 1.12 : 1;
-  const buildTransform = `translate(120 0) scale(${scaleX} 1) translate(-120 0)`;
+import {
+  AVATAR_HEAD_RIG,
+  AVATAR_POSE_ANCHORS,
+  getAvatarBuildTransform,
+} from '../avatarGeometry.js';
+
+const {
+  hands, hips, knees, shoulders, soles,
+} = AVATAR_POSE_ANCHORS;
+const { neckBottom } = AVATAR_HEAD_RIG.sourceBounds;
+
+const FREE_LEG_PATH = `M${hips.free.x - 16} ${hips.free.y + 1} C91 229 90 240 ${knees.free.x - 9} ${knees.free.y + 1} C82 263 80 272 ${soles.free.x + 7} ${soles.free.y - 15} C89 281 98 278 102 269 C107 256 112 239 ${hips.free.x + 13} ${hips.free.y + 6} Z`;
+const WEIGHT_LEG_PATH = `M${hips.weight.x - 16} ${hips.weight.y + 2} C127 234 129 247 129 260 C129 272 133 279 ${soles.weight.x - 10} ${soles.weight.y - 14} C147 281 151 274 151 263 C151 248 153 233 ${hips.weight.x + 18} ${hips.weight.y - 3} Z`;
+const FREE_SHOE_PATH = `M${soles.free.x + 3} ${soles.free.y - 23} C91 267 99 271 ${soles.free.x + 27} ${soles.free.y - 11} L${soles.free.x + 24} ${soles.free.y} H${soles.free.x - 18} C59 282 65 275 75 271 Z`;
+const WEIGHT_SHOE_PATH = `M${soles.weight.x - 21} ${soles.weight.y - 14} C137 272 149 269 160 274 C169 278 173 286 ${soles.weight.x + 20} ${soles.weight.y} H${soles.weight.x - 23} Z`;
+const HIP_ARM_PATH = `M${shoulders.left.x + 2} ${shoulders.left.y + 4} C82 150 72 160 67 174 C63 184 67 192 75 195 C80 197 85 194 88 188 C86 194 84 198 82 201 C80 205 83 209 88 210 C94 210 97 205 95 200 C92 195 93 184 101 162 Z`;
+const RELAXED_ARM_PATH = `M${shoulders.right.x - 4} ${shoulders.right.y + 9} C160 154 169 168 173 186 C176 200 173 214 167 219 C162 222 156 218 154 212 C159 194 155 176 141 162 Z`;
+const HIP_HAND_PATH = `M${hands.hip.x - 7} ${hands.hip.y - 5} C76 196 82 197 86 201 C89 204 88 209 85 212 C81 215 76 212 73 208 C70 205 71 201 73 198 Z`;
+const RELAXED_HAND_PATH = `M${hands.relaxed.x - 6} ${hands.relaxed.y - 10} C159 218 159 225 162 230 C164 234 167 230 168 226 C167 232 169 235 172 233 C175 231 174 226 175 223 C175 228 178 229 180 226 C182 221 178 215 174 212 C170 209 166 211 163 214 Z`;
+
+export function Anatomy({ palette, paints, build = 'regular', section }) {
+  const buildTransform = getAvatarBuildTransform(build);
 
   if (section === 'legs') {
     return (
       <g transform={buildTransform}>
         <path
           className="avatar-leg-left avatar-outline"
-          d="M88 218 C89 232 89 247 92 261 C94 271 98 277 105 278 C112 278 115 272 115 263 L116 222 Z"
-          fill={palette.skin.base}
+          d={FREE_LEG_PATH}
+          fill={paints.skin}
           stroke={palette.skin.outline}
           strokeWidth="2.8"
           strokeLinejoin="round"
         />
         <path
           className="avatar-leg-right avatar-outline"
-          d="M124 222 L125 263 C125 272 130 278 137 279 C144 279 148 273 150 263 C152 247 153 231 152 218 Z"
+          d={WEIGHT_LEG_PATH}
           fill={palette.skin.shadow}
           stroke={palette.skin.outline}
           strokeWidth="2.8"
           strokeLinejoin="round"
         />
-        <path className="avatar-face-plane" d="M90 235 C96 240 106 241 115 237 L115 251 C108 255 99 254 92 249 Z" fill={palette.skin.light} opacity="0.25" />
-        <path className="avatar-face-plane" d="M126 250 C134 254 143 253 150 247 L149 261 C143 269 133 269 126 263 Z" fill={palette.skin.deep} opacity="0.16" />
+        <path
+          className="avatar-face-plane"
+          d="M85 237 C91 241 100 241 108 237 L104 251 C98 255 90 254 85 250 Z"
+          fill={palette.skin.light}
+          opacity="0.25"
+        />
+        <path
+          className="avatar-face-plane"
+          d="M129 249 C136 253 145 252 151 246 L151 260 C145 268 136 269 130 263 Z"
+          fill={palette.skin.deep}
+          opacity="0.16"
+        />
         <path
           className="avatar-detail"
-          d="M94 246 C100 249 107 249 113 246 M129 246 C135 249 142 249 148 246"
+          d={`M86 247 C91 250 ${knees.free.x + 5} 250 105 246 M130 245 C136 248 ${knees.weight.x + 5} 248 150 244`}
           fill="none"
           stroke={palette.skin.cheek}
           strokeWidth="2"
@@ -34,23 +63,23 @@ export function Anatomy({ palette, build = 'regular', section }) {
         />
         <path
           className="avatar-shoe-left avatar-outline"
-          d="M91 269 C101 268 109 272 116 280 L114 293 H72 C71 285 76 278 86 274 Z"
-          fill={palette.gear.base}
+          d={FREE_SHOE_PATH}
+          fill={paints.gear}
           stroke={palette.gear.outline}
           strokeWidth="3.1"
           strokeLinejoin="round"
         />
         <path
           className="avatar-shoe-right avatar-outline"
-          d="M126 280 C135 271 148 268 159 273 C168 277 172 285 169 293 H126 Z"
-          fill={palette.gear.shadow}
+          d={WEIGHT_SHOE_PATH}
+          fill={paints.gear}
           stroke={palette.gear.outline}
           strokeWidth="3.1"
           strokeLinejoin="round"
         />
         <path
           className="avatar-highlight"
-          d="M80 283 C90 278 101 278 108 282"
+          d="M65 280 C75 275 90 276 99 280"
           fill="none"
           stroke={palette.gear.highlight}
           strokeWidth="3"
@@ -59,7 +88,7 @@ export function Anatomy({ palette, build = 'regular', section }) {
         />
         <path
           className="avatar-detail"
-          d="M132 283 C143 278 153 279 161 284"
+          d="M133 283 C144 278 155 279 164 285"
           fill="none"
           stroke={palette.gear.highlight}
           strokeWidth="3"
@@ -75,29 +104,29 @@ export function Anatomy({ palette, build = 'regular', section }) {
       <g transform={buildTransform}>
         <path
           className="avatar-outline"
-          d="M82 153 C92 141 105 137 120 137 C138 137 150 143 158 156 L155 218 C137 226 103 226 84 218 Z"
-          fill={palette.outfit.base}
+          d="M84 154 C95 142 108 138 122 138 C139 138 154 145 162 159 L158 219 C141 229 110 227 88 218 Z"
+          fill={paints.outfit}
           stroke={palette.outfit.outline}
           strokeWidth="3.3"
           strokeLinejoin="round"
         />
         <path
           className="avatar-face-plane"
-          d="M137 142 C150 148 157 158 158 176 L155 217 C147 221 139 223 130 223 C139 205 142 181 137 142 Z"
+          d="M139 143 C153 149 161 160 161 178 L158 218 C149 223 141 225 132 225 C142 207 145 183 139 143 Z"
           fill={palette.outfit.deep}
           opacity="0.22"
         />
         <path
           className="avatar-outline"
-          d="M88 151 C75 155 67 169 63 185 C60 196 63 208 68 214 C73 220 81 218 87 211 C82 198 85 179 98 162 Z"
-          fill={palette.outfit.base}
+          d={HIP_ARM_PATH}
+          fill={paints.outfit}
           stroke={palette.outfit.outline}
           strokeWidth="3.1"
           strokeLinejoin="round"
         />
         <path
           className="avatar-outline"
-          d="M146 153 C160 157 169 172 172 190 C174 203 170 213 163 217 C158 220 153 216 151 211 C157 194 153 177 141 162 Z"
+          d={RELAXED_ARM_PATH}
           fill={palette.outfit.shadow}
           stroke={palette.outfit.outline}
           strokeWidth="3.1"
@@ -105,8 +134,8 @@ export function Anatomy({ palette, build = 'regular', section }) {
         />
         <path
           className="avatar-hand-left avatar-outline"
-          d="M67 207 C61 211 59 217 61 224 C62 229 65 233 68 231 C70 230 69 225 69 222 C71 228 73 232 76 230 C78 228 75 222 75 219 C78 224 80 226 82 224 C85 220 82 213 78 209 C74 205 70 205 67 207 Z"
-          fill={palette.skin.base}
+          d={HIP_HAND_PATH}
+          fill={paints.skin}
           stroke={palette.skin.outline}
           strokeWidth="2.2"
           strokeLinejoin="round"
@@ -114,7 +143,7 @@ export function Anatomy({ palette, build = 'regular', section }) {
         />
         <path
           className="avatar-hand-right avatar-outline"
-          d="M155 212 C151 216 150 223 153 228 C155 231 158 227 159 223 C158 229 160 233 163 232 C166 231 165 225 166 222 C166 227 168 230 171 228 C175 224 174 216 170 211 C166 207 159 208 155 212 Z"
+          d={RELAXED_HAND_PATH}
           fill={palette.skin.shadow}
           stroke={palette.skin.outline}
           strokeWidth="2.2"
@@ -123,7 +152,7 @@ export function Anatomy({ palette, build = 'regular', section }) {
         />
         <path
           className="avatar-detail"
-          d="M66 215 L69 222 M72 213 L75 219 M161 215 L159 223 M166 214 V222"
+          d="M75 201 L79 208 M80 200 L84 206 M164 218 L168 226 M170 216 L175 223"
           fill="none"
           stroke={palette.skin.outline}
           strokeWidth="1.3"
@@ -132,7 +161,7 @@ export function Anatomy({ palette, build = 'regular', section }) {
         />
         <path
           className="avatar-highlight"
-          d="M91 151 C101 145 112 143 122 144"
+          d="M93 150 C103 144 114 142 125 144"
           fill="none"
           stroke={palette.outfit.light}
           strokeWidth="3"
@@ -147,8 +176,8 @@ export function Anatomy({ palette, build = 'regular', section }) {
     <g>
       <path
         className="avatar-outline"
-        d="M108 121 H132 L135 151 H105 Z"
-        fill={palette.skin.base}
+        d={`M108 121 H132 L133 ${neckBottom} H107 Z`}
+        fill={paints.skin}
         stroke={palette.skin.outline}
         strokeWidth="2.8"
         strokeLinejoin="round"
@@ -159,7 +188,7 @@ export function Anatomy({ palette, build = 'regular', section }) {
         cy="84"
         rx="10"
         ry="15"
-        fill={palette.skin.base}
+        fill={paints.skin}
         stroke={palette.skin.outline}
         strokeWidth="2.6"
       />

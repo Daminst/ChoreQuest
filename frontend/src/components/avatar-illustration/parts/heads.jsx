@@ -1,10 +1,10 @@
-export function RoundHead({ palette }) {
+export function RoundHead({ palette, paints }) {
   return (
     <g>
       <path
         className="avatar-outline"
         d="M120 30 C94 30 79 47 78 75 C77 98 87 120 105 130 C114 135 124 136 134 131 C151 122 161 101 162 79 C163 50 146 30 120 30 Z"
-        fill={palette.skin.base}
+        fill={paints.skin}
         stroke={palette.skin.outline}
         strokeWidth="3.2"
         strokeLinejoin="round"
