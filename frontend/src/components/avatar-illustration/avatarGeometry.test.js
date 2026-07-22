@@ -182,14 +182,17 @@ test('crop cameras are frozen uniform transforms over the unchanged frames', () 
   assert.equal(getAvatarFrame('icon').viewBox, '42 18 156 156');
 });
 
-test('hair margin stays an exact outer canvas translation', () => {
+test('negative hair overshoot becomes an exact positive outer canvas translation', () => {
   const {
     AVATAR_HEAD_RIG,
     getAvatarHeadMarginTransform,
     getAvatarHeadRigTransform,
   } = avatarGeometry;
   assert.equal(typeof getAvatarHeadMarginTransform, 'function');
-  assert.equal(getAvatarHeadMarginTransform(-20), 'translate(0 -20)');
+  assert.equal(getAvatarHeadMarginTransform(-20), 'translate(0 20)');
+  assert.equal(getAvatarHeadMarginTransform(0), 'translate(0 0)');
+  assert.equal(getAvatarHeadMarginTransform(4), 'translate(0 0)');
+  assert.equal(getAvatarHeadMarginTransform('invalid'), 'translate(0 0)');
   assert.equal(
     getAvatarHeadRigTransform(-20),
     AVATAR_HEAD_RIG.transform,

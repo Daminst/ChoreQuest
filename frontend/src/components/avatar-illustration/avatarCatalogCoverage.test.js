@@ -2,6 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { AVATAR_CATALOG } from '../avatar-editor/avatarCatalog.js';
+import {
+  AVATAR_CAMERAS,
+  AVATAR_HEAD_RIG,
+  getAvatarFrame,
+  getAvatarHeadMarginTransform,
+} from './avatarGeometry.js';
 
 const ids = (entry) => entry.options.map((option) => option.id).sort();
 
@@ -28,7 +34,7 @@ const registryEntries = (source, exportName) => {
 const hairEntry = (source, constantName) => {
   const match = source.match(
     new RegExp(
-      `const ${constantName} = Object\\.freeze\\(\\{ Rear: ([A-Z][A-Za-z0-9]*), Front: ([A-Z][A-Za-z0-9]*), marginTop: (-?\\d+) \\}\\);`,
+      `const ${constantName} = Object\\.freeze\\(\\{ Rear: ([A-Z][A-Za-z0-9]*), Front: ([A-Z][A-Za-z0-9]*), marginTop: (-?\\d+(?:\\.\\d+)?) \\}\\);`,
     ),
   );
   assert.ok(match, `${constantName} must be a frozen exact hair entry`);
@@ -57,6 +63,150 @@ const comparableRendererSource = (source, renderer) => functionSource(source, re
   .replace(/data-avatar-variant="[^"]+"/g, '')
   .replace(/\s+/g, ' ')
   .trim();
+
+const PATH_COMMAND = /^[MLCZ]$/;
+const PORTRAIT_SAFETY_INSET = 1;
+
+const cubicAt = (start, control1, control2, end, t) => {
+  const inverse = 1 - t;
+  return (inverse ** 3 * start)
+    + (3 * inverse ** 2 * t * control1)
+    + (3 * inverse * t ** 2 * control2)
+    + (t ** 3 * end);
+};
+
+const cubicMinimum = (start, control1, control2, end) => {
+  const cubic = -start + (3 * control1) - (3 * control2) + end;
+  const quadratic = (3 * start) - (6 * control1) + (3 * control2);
+  const linear = (-3 * start) + (3 * control1);
+  const a = 3 * cubic;
+  const b = 2 * quadratic;
+  const candidates = [start, end];
+
+  if (Math.abs(a) < 1e-12) {
+    if (Math.abs(b) >= 1e-12) {
+      const root = -linear / b;
+      if (root > 0 && root < 1) candidates.push(cubicAt(start, control1, control2, end, root));
+    }
+  } else {
+    const discriminant = (b ** 2) - (4 * a * linear);
+    if (discriminant >= 0) {
+      const squareRoot = Math.sqrt(discriminant);
+      for (const root of [(-b + squareRoot) / (2 * a), (-b - squareRoot) / (2 * a)]) {
+        if (root > 0 && root < 1) candidates.push(cubicAt(start, control1, control2, end, root));
+      }
+    }
+  }
+  return Math.min(...candidates);
+};
+
+const svgPathTop = (pathData) => {
+  const tokens = pathData.match(/[MLCZ]|-?(?:\d+\.?\d*|\.\d+)/g) || [];
+  let index = 0;
+  let command = null;
+  let x = 0;
+  let y = 0;
+  let subpathX = 0;
+  let subpathY = 0;
+  let top = Infinity;
+
+  while (index < tokens.length) {
+    if (PATH_COMMAND.test(tokens[index])) command = tokens[index++];
+    assert.ok(command, 'path data lost its command near ' + tokens[index]);
+
+    if (command === 'Z') {
+      x = subpathX;
+      y = subpathY;
+      top = Math.min(top, y);
+      command = null;
+      continue;
+    }
+    if (command === 'M') {
+      x = Number(tokens[index++]);
+      y = Number(tokens[index++]);
+      subpathX = x;
+      subpathY = y;
+      top = Math.min(top, y);
+      command = 'L';
+      continue;
+    }
+    if (command === 'L') {
+      x = Number(tokens[index++]);
+      y = Number(tokens[index++]);
+      top = Math.min(top, y);
+      continue;
+    }
+    if (command === 'C') {
+      const control1X = Number(tokens[index++]);
+      const control1Y = Number(tokens[index++]);
+      const control2X = Number(tokens[index++]);
+      const control2Y = Number(tokens[index++]);
+      const endX = Number(tokens[index++]);
+      const endY = Number(tokens[index++]);
+      void control1X;
+      void control2X;
+      top = Math.min(top, cubicMinimum(y, control1Y, control2Y, endY));
+      x = endX;
+      y = endY;
+      continue;
+    }
+    assert.fail('unsupported authored path command ' + command);
+  }
+  return top;
+};
+
+const literalStrokeWidth = (tag) => {
+  if (!/\bstroke=/.test(tag) || /\bstroke="none"/.test(tag)) return 0;
+  const match = tag.match(/\bstrokeWidth="([\d.]+)"/);
+  return match ? Number(match[1]) : 1;
+};
+
+const rendererPaintBounds = (body, finishKind) => {
+  const bounds = [];
+  const finishStrokes = finishKind === 'hair'
+    ? { baseD: 3.2, shadowD: 0, highlightD: 2.15, strandD: 1.35, detailD: 1.55 }
+    : { baseD: 3, shadowD: 0, highlightD: 2.05, detailD: 1.4 };
+
+  for (const [attribute, strokeWidth] of Object.entries(finishStrokes)) {
+    const match = body.match(new RegExp(attribute + '="([^"]+)"'));
+    if (match) bounds.push({ geometryTop: svgPathTop(match[1]), strokeWidth });
+  }
+  for (const match of body.matchAll(/<path\b[^>]*\bd="([^"]+)"[^>]*\/>/g)) {
+    bounds.push({ geometryTop: svgPathTop(match[1]), strokeWidth: literalStrokeWidth(match[0]) });
+  }
+  for (const match of body.matchAll(/<circle\b[^>]*\bcy="([\d.]+)"[^>]*\br="([\d.]+)"[^>]*\/>/g)) {
+    bounds.push({
+      geometryTop: Number(match[1]) - Number(match[2]),
+      strokeWidth: literalStrokeWidth(match[0]),
+    });
+  }
+
+  return Object.freeze({
+    geometryTop: Math.min(...bounds.map(({ geometryTop }) => geometryTop)),
+    paintedTop: Math.min(...bounds.map(({ geometryTop, strokeWidth }) => geometryTop - (strokeWidth / 2))),
+  });
+};
+
+const mergePaintBounds = (...bounds) => Object.freeze({
+  geometryTop: Math.min(...bounds.map(({ geometryTop }) => geometryTop)),
+  paintedTop: Math.min(...bounds.map(({ paintedTop }) => paintedTop)),
+});
+
+const translationY = (transform) => {
+  const match = transform.match(/^translate\(0 (-?[\d.]+)\)$/);
+  assert.ok(match, 'expected an outer vertical translation, received ' + transform);
+  return Number(match[1]);
+};
+
+const portraitHeadTop = (sourceTop, outerOffset = 0) => {
+  const riggedTop = AVATAR_HEAD_RIG.anchor.y
+    + ((sourceTop - AVATAR_HEAD_RIG.anchor.y) * AVATAR_HEAD_RIG.scaleY);
+  const camera = AVATAR_CAMERAS.portrait;
+  return camera.targetAnchor.y
+    + (((riggedTop + outerOffset) - camera.sourceAnchor.y) * camera.scaleY);
+};
+
+const roundUpHundredth = (value) => Math.ceil((value - 1e-9) * 100) / 100;
 
 test('head and face registries exactly cover the editor catalog', () => {
   assert.deepEqual(registryKeys('./parts/heads.jsx', 'HEAD_RENDERERS'), ids(AVATAR_CATALOG.head));
@@ -107,10 +257,10 @@ test('hair entries are frozen two-pass contracts with unique authored fronts', (
 
   const basePaths = [];
   for (const { id, Front, marginTop } of contracts) {
-    assert.ok(marginTop <= 0, `${id} marginTop must never move hair downward`);
+    assert.ok(marginTop <= 0, `${id} marginTop must remain non-positive overshoot metadata`);
     if (marginTop < 0) {
       assert.ok(
-        ['spiky', 'mohawk', 'bun', 'afro', 'twin_buns'].includes(id),
+        ['spiky', 'bun', 'afro', 'twin_buns'].includes(id),
         `${id} may not claim tall-hair margin metadata`,
       );
     }
@@ -124,6 +274,71 @@ test('hair entries are frozen two-pass contracts with unique authored fronts', (
     basePaths.push(literalAttribute(body, 'baseD'));
   }
   assert.equal(new Set(basePaths).size, basePaths.length, 'front silhouettes must be authored distinctly');
+});
+
+test('hair overshoot metadata is derived from each real authored minimum after the shared head scale', () => {
+  const source = readFileSync(new URL('./parts/hair.jsx', import.meta.url), 'utf8');
+  const contracts = registryEntries(source, 'HAIR_RENDERERS')
+    .map(({ id, renderer }) => ({ id, ...hairEntry(source, renderer) }));
+  const mismatches = [];
+
+  for (const contract of contracts) {
+    if (contract.id === 'none') continue;
+    const bounds = mergePaintBounds(
+      rendererPaintBounds(functionSource(source, contract.Rear), 'hair'),
+      rendererPaintBounds(functionSource(source, contract.Front), 'hair'),
+    );
+    const outerOvershoot = Math.max(
+      0,
+      (AVATAR_HEAD_RIG.sourceBounds.visibleCrown - bounds.geometryTop) * AVATAR_HEAD_RIG.scaleY,
+    );
+    const expectedMarginTop = outerOvershoot > 0 ? -roundUpHundredth(outerOvershoot) : 0;
+    if (contract.marginTop !== expectedMarginTop) {
+      mismatches.push({
+        id: contract.id,
+        sourceMinY: Number(bounds.geometryTop.toFixed(3)),
+        expectedMarginTop,
+        actualMarginTop: contract.marginTop,
+      });
+    }
+  }
+
+  assert.deepEqual(mismatches, []);
+});
+
+test('all 21 hair entries keep their final painted top inside the portrait safety inset', () => {
+  const source = readFileSync(new URL('./parts/hair.jsx', import.meta.url), 'utf8');
+  const contracts = registryEntries(source, 'HAIR_RENDERERS')
+    .map(({ id, renderer }) => ({ id, ...hairEntry(source, renderer) }));
+  const frameTop = Number(getAvatarFrame('portrait').viewBox.split(' ')[1]);
+  const safeTop = frameTop + PORTRAIT_SAFETY_INSET;
+  const clipped = [];
+  let emptyEntries = 0;
+
+  for (const contract of contracts) {
+    if (contract.id === 'none') {
+      emptyEntries += 1;
+      continue;
+    }
+    const bounds = mergePaintBounds(
+      rendererPaintBounds(functionSource(source, contract.Rear), 'hair'),
+      rendererPaintBounds(functionSource(source, contract.Front), 'hair'),
+    );
+    const outerOffset = translationY(getAvatarHeadMarginTransform(contract.marginTop));
+    const finalTop = portraitHeadTop(bounds.paintedTop, outerOffset);
+    if (finalTop < safeTop) {
+      clipped.push({
+        id: contract.id,
+        paintedSourceMinY: Number(bounds.paintedTop.toFixed(3)),
+        finalTop: Number(finalTop.toFixed(3)),
+        safeTop,
+      });
+    }
+  }
+
+  assert.equal(contracts.length, 21);
+  assert.equal(emptyEntries, 1);
+  assert.deepEqual(clipped, []);
 });
 
 test('required long and voluminous hairstyles own visible unique rear artwork', () => {
@@ -215,6 +430,36 @@ test('hat catalog uses unique modeled renderers anchored to the shared skull con
   assert.doesNotMatch(source, /\.map\s*\(/, 'hat renderers must not allocate mapped elements');
 });
 
+test('all 17 headwear entries keep high decorative details inside the portrait safety inset', () => {
+  const source = readFileSync(new URL('./parts/hats.jsx', import.meta.url), 'utf8');
+  const entries = registryEntries(source, 'HAT_RENDERERS');
+  const frameTop = Number(getAvatarFrame('portrait').viewBox.split(' ')[1]);
+  const safeTop = frameTop + PORTRAIT_SAFETY_INSET;
+  const clipped = [];
+  let emptyEntries = 0;
+
+  for (const { id, renderer } of entries) {
+    if (id === 'none') {
+      emptyEntries += 1;
+      continue;
+    }
+    const bounds = rendererPaintBounds(functionSource(source, renderer), 'hat');
+    const finalTop = portraitHeadTop(bounds.paintedTop);
+    if (finalTop < safeTop) {
+      clipped.push({
+        id,
+        paintedSourceMinY: Number(bounds.paintedTop.toFixed(3)),
+        finalTop: Number(finalTop.toFixed(3)),
+        safeTop,
+      });
+    }
+  }
+
+  assert.equal(entries.length, 17);
+  assert.equal(emptyEntries, 1);
+  assert.deepEqual(clipped, []);
+});
+
 test('modeled headwear has material planes and both hoods paint real evenodd hair occluders', () => {
   const source = readFileSync(new URL('./parts/hats.jsx', import.meta.url), 'utf8');
   const finish = functionSource(source, 'HatFinish');
@@ -234,6 +479,23 @@ test('modeled headwear has material planes and both hoods paint real evenodd hai
     assert.match(body, /fillRule="evenodd"/);
     assert.match(body, /clipRule="evenodd"/);
   }
+});
+
+test('revealing halo uses a real evenodd opening and never paints a background-colored disk', () => {
+  const source = readFileSync(new URL('./parts/hats.jsx', import.meta.url), 'utf8');
+  const finish = functionSource(source, 'HatFinish');
+  const halo = functionSource(source, 'Halo');
+
+  assert.match(finish, /fillRule = 'nonzero'/);
+  assert.match(finish, /fillRule=\{fillRule\}/);
+  assert.match(halo, /data-hair-coverage="reveals"/);
+  assert.match(halo, /<HatFinish[\s\S]*?fillRule="evenodd"/);
+  assert.match(
+    halo,
+    /className="avatar-halo-opening avatar-outline"[\s\S]*?fill="none"/,
+    'halo opening must be a transparent stroked boundary rather than a painted disk',
+  );
+  assert.doesNotMatch(halo, /palette\.background/, 'revealing halo may not simulate transparency');
 });
 
 test('head feature offsets exactly cover the catalog and freeze every entry', () => {

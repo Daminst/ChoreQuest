@@ -9,6 +9,7 @@ function HatFinish({
   highlightD,
   detailD,
   strokeWidth = 3,
+  fillRule = 'nonzero',
 }) {
   return (
     <g className="avatar-hat-finish">
@@ -16,6 +17,8 @@ function HatFinish({
         className="avatar-hat-base avatar-outline"
         d={baseD}
         fill={paints.hat}
+        fillRule={fillRule}
+        clipRule={fillRule}
         stroke={palette.hat.outline}
         strokeWidth={strokeWidth}
         strokeLinejoin="round"
@@ -104,7 +107,7 @@ function Beanie({ config, palette, paints }) {
       />
       <path className="avatar-beanie-cuff avatar-outline" d="M78 49 C101 56 141 56 163 49 L164 62 C141 70 99 69 77 61 Z" fill={palette.hat.shadow} stroke={palette.hat.outline} strokeWidth="2.5" strokeLinejoin="round" />
       <path className="avatar-beanie-rib avatar-detail" d="M87 54 L87 63 M98 57 L98 66 M110 58 L110 67 M122 58 L122 67 M134 57 L134 66 M146 55 L146 64 M157 52 L157 61" fill="none" stroke={palette.hat.light} strokeWidth="1.35" opacity="0.7" />
-      <path className="avatar-beanie-pom avatar-outline" d="M109 21 C103 15 107 8 114 11 C118 5 127 8 127 14 C134 16 132 24 125 25 C120 29 112 27 109 21 Z" fill={paints.hat} stroke={palette.hat.outline} strokeWidth="2.2" strokeLinejoin="round" />
+      <path className="avatar-beanie-pom avatar-outline" d="M109 26 C103 20 107 13 114 16 C118 10 127 13 127 19 C134 21 132 29 125 30 C120 34 112 32 109 26 Z" fill={paints.hat} stroke={palette.hat.outline} strokeWidth="2.2" strokeLinejoin="round" />
       <path className="avatar-highlight" d="M113 16 C117 12 122 12 125 15" fill="none" stroke={palette.hat.highlight} strokeWidth="1.4" strokeLinecap="round" />
     </g>
   );
@@ -252,15 +255,16 @@ function Halo({ config, palette, paints }) {
       <HatFinish
         palette={palette}
         paints={paints}
-        baseD="M76 22 C82 12 101 9 121 10 C142 10 160 13 165 22 C160 32 141 35 120 35 C99 35 81 32 76 22 Z M87 22 C93 17 105 16 120 16 C136 16 149 17 155 22 C149 27 136 29 120 29 C104 29 93 27 87 22 Z"
-        shadowD="M78 22 C85 28 101 31 120 31 C140 31 156 28 163 22 C159 31 141 35 120 35 C99 35 81 32 76 22 Z"
-        highlightD="M84 18 C95 13 109 13 121 13 M130 13 C142 14 152 16 158 20"
-        detailD="M82 25 C94 30 108 32 121 32 M132 31 C145 30 155 26 161 22"
+        baseD="M76 29 C82 19 101 16 121 17 C142 17 160 20 165 29 C160 39 141 42 120 42 C99 42 81 39 76 29 Z M87 29 C93 24 105 23 120 23 C136 23 149 24 155 29 C149 34 136 36 120 36 C104 36 93 34 87 29 Z"
+        shadowD="M78 29 C85 35 101 38 120 38 C140 38 156 35 163 29 C159 38 141 42 120 42 C99 42 81 39 76 29 Z"
+        highlightD="M84 25 C95 20 109 20 121 20 M130 20 C142 21 152 23 158 27"
+        detailD="M82 32 C94 37 108 39 121 39 M132 38 C145 37 155 33 161 29"
+        fillRule="evenodd"
       />
-      <path className="avatar-halo-inner avatar-outline" d="M87 22 C93 17 105 16 120 16 C136 16 149 17 155 22 C149 27 136 29 120 29 C104 29 93 27 87 22 Z" fill={palette.background.deep} fillOpacity="0.92" stroke={palette.hat.highlight} strokeWidth="1.4" />
-      <path className="avatar-halo-ray avatar-highlight" d="M92 13 L88 8 M112 10 L111 5 M132 10 L134 5 M151 14 L155 9" fill="none" stroke={palette.hat.highlight} strokeWidth="1.6" strokeLinecap="round" opacity="0.78" />
-      <path className="avatar-halo-glint avatar-highlight" d="M72 20 L76 22 L72 24 L70 28 L68 24 L64 22 L68 20 L70 16 Z M170 18 L173 21 L177 22 L173 24 L171 28 L169 24 L165 22 L169 21 Z" fill={palette.hat.highlight} stroke={palette.hat.outline} strokeWidth="0.7" />
-      <path className="avatar-halo-tether avatar-detail" d="M95 31 C96 36 98 39 101 42 M145 31 C144 36 142 39 139 42" fill="none" stroke={palette.hat.light} strokeWidth="1" strokeDasharray="2 3" opacity="0.55" />
+      <path className="avatar-halo-opening avatar-outline" d="M87 29 C93 24 105 23 120 23 C136 23 149 24 155 29 C149 34 136 36 120 36 C104 36 93 34 87 29 Z" fill="none" stroke={palette.hat.highlight} strokeWidth="1.4" />
+      <path className="avatar-halo-ray avatar-highlight" d="M92 20 L88 15 M112 17 L111 12 M132 17 L134 12 M151 21 L155 16" fill="none" stroke={palette.hat.highlight} strokeWidth="1.6" strokeLinecap="round" opacity="0.78" />
+      <path className="avatar-halo-glint avatar-highlight" d="M72 27 L76 29 L72 31 L70 35 L68 31 L64 29 L68 27 L70 23 Z M170 25 L173 28 L177 29 L173 31 L171 35 L169 31 L165 29 L169 28 Z" fill={palette.hat.highlight} stroke={palette.hat.outline} strokeWidth="0.7" />
+      <path className="avatar-halo-tether avatar-detail" d="M95 38 C96 43 98 46 101 49 M145 38 C144 43 142 46 139 49" fill="none" stroke={palette.hat.light} strokeWidth="1" strokeDasharray="2 3" opacity="0.55" />
     </g>
   );
 }

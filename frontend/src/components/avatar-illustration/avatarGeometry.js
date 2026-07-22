@@ -120,7 +120,8 @@ export function getAvatarHeadRigTransform() {
 
 export function getAvatarHeadMarginTransform(offsetY = 0) {
   const offset = Number(offsetY);
-  return `translate(0 ${Number.isFinite(offset) ? offset : 0})`;
+  const overshootCorrection = Number.isFinite(offset) && offset < 0 ? -offset : 0;
+  return `translate(0 ${overshootCorrection})`;
 }
 
 export function getAvatarHeadFeatureTransform(offset = {}) {

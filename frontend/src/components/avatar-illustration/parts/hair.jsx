@@ -605,14 +605,14 @@ function IdolWavesHairFront({ config, palette, paints }) {
 const NONE_HAIR = Object.freeze({ Rear: EmptyHairPart, Front: EmptyHairPart, marginTop: 0 });
 const SHORT_HAIR = Object.freeze({ Rear: EmptyHairPart, Front: ShortHairFront, marginTop: 0 });
 const LONG_HAIR = Object.freeze({ Rear: LongHairRear, Front: LongHairFront, marginTop: 0 });
-const SPIKY_HAIR = Object.freeze({ Rear: EmptyHairPart, Front: SpikyHairFront, marginTop: -2 });
+const SPIKY_HAIR = Object.freeze({ Rear: EmptyHairPart, Front: SpikyHairFront, marginTop: -1.5 });
 const CURLY_HAIR = Object.freeze({ Rear: EmptyHairPart, Front: CurlyHairFront, marginTop: 0 });
-const MOHAWK_HAIR = Object.freeze({ Rear: EmptyHairPart, Front: MohawkHairFront, marginTop: -4 });
+const MOHAWK_HAIR = Object.freeze({ Rear: EmptyHairPart, Front: MohawkHairFront, marginTop: 0 });
 const BUZZ_HAIR = Object.freeze({ Rear: EmptyHairPart, Front: BuzzHairFront, marginTop: 0 });
 const PONYTAIL_HAIR = Object.freeze({ Rear: PonytailHairRear, Front: PonytailHairFront, marginTop: 0 });
-const BUN_HAIR = Object.freeze({ Rear: BunHairRear, Front: BunHairFront, marginTop: -3 });
+const BUN_HAIR = Object.freeze({ Rear: BunHairRear, Front: BunHairFront, marginTop: -7.19 });
 const PIGTAILS_HAIR = Object.freeze({ Rear: PigtailsHairRear, Front: PigtailsHairFront, marginTop: 0 });
-const AFRO_HAIR = Object.freeze({ Rear: AfroHairRear, Front: AfroHairFront, marginTop: -3 });
+const AFRO_HAIR = Object.freeze({ Rear: AfroHairRear, Front: AfroHairFront, marginTop: -4.26 });
 const BRAIDS_HAIR = Object.freeze({ Rear: BraidsHairRear, Front: BraidsHairFront, marginTop: 0 });
 const WAVY_HAIR = Object.freeze({ Rear: WavyHairRear, Front: WavyHairFront, marginTop: 0 });
 const SIDE_PART_HAIR = Object.freeze({ Rear: EmptyHairPart, Front: SidePartHairFront, marginTop: 0 });
@@ -621,7 +621,7 @@ const DREADLOCKS_HAIR = Object.freeze({ Rear: DreadlocksHairRear, Front: Dreadlo
 const BOB_HAIR = Object.freeze({ Rear: BobHairRear, Front: BobHairFront, marginTop: 0 });
 const SHOULDER_HAIR = Object.freeze({ Rear: ShoulderHairRear, Front: ShoulderHairFront, marginTop: 0 });
 const UNDERCUT_HAIR = Object.freeze({ Rear: EmptyHairPart, Front: UndercutHairFront, marginTop: 0 });
-const TWIN_BUNS_HAIR = Object.freeze({ Rear: TwinBunsHairRear, Front: TwinBunsHairFront, marginTop: -3 });
+const TWIN_BUNS_HAIR = Object.freeze({ Rear: TwinBunsHairRear, Front: TwinBunsHairFront, marginTop: -0.06 });
 const IDOL_WAVES_HAIR = Object.freeze({ Rear: IdolWavesHairRear, Front: IdolWavesHairFront, marginTop: 0 });
 
 export const HAIR_RENDERERS = Object.freeze({
