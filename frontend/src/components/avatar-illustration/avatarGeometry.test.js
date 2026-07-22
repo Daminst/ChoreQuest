@@ -197,6 +197,19 @@ test('hair margin stays an exact outer canvas translation', () => {
   );
 });
 
+test('head feature transforms stay anchored to the shared face center', () => {
+  const { getAvatarHeadFeatureTransform } = avatarGeometry;
+  assert.equal(typeof getAvatarHeadFeatureTransform, 'function');
+  assert.equal(
+    getAvatarHeadFeatureTransform({ x: 2, y: 3, scaleX: 0.9, scaleY: 1.1 }),
+    'translate(120 88) translate(2 3) scale(0.9 1.1) translate(-120 -88)',
+  );
+  assert.equal(
+    getAvatarHeadFeatureTransform(),
+    'translate(120 88) translate(0 0) scale(1 1) translate(-120 -88)',
+  );
+});
+
 test('default pose anchors encode a visible one-leg weight shift and unequal hands', () => {
   const { AVATAR_POSE_ANCHORS } = avatarGeometry;
   assert.ok(AVATAR_POSE_ANCHORS, 'missing shared pose-anchor contract');

@@ -64,17 +64,19 @@ test('short hair opens both brows and reserves lifted paint for selective highli
   );
 });
 
-test('face finish uses localized planes and two small highlights per eye', () => {
+test('face finish uses localized planes and the modeled-eye primitive owns two small highlights', () => {
   const heads = readFileSync(new URL('parts/heads.jsx', import.meta.url), 'utf8');
   const faces = readFileSync(new URL('parts/faces.jsx', import.meta.url), 'utf8');
 
   assert.match(heads, /avatar-cheek-plane/, 'missing curved cheek plane');
   assert.match(heads, /avatar-jaw-plane/, 'missing localized jaw plane');
   assert.doesNotMatch(faces, /avatar-eye-shadow/, 'broad eye socket masks must be removed');
+  const openEye = faces.match(/function OpenEye\([\s\S]*?\n\}\n\nfunction OpenEyePair/);
+  assert.ok(openEye, 'missing shared modeled-eye primitive');
   assert.equal(
-    (faces.match(/avatar-eye-highlight-small/g) || []).length,
-    4,
-    'each eye must have exactly two small highlights',
+    (openEye[0].match(/avatar-eye-highlight-small/g) || []).length,
+    2,
+    'each modeled open eye must own exactly two small highlights',
   );
 });
 

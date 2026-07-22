@@ -6,6 +6,7 @@ function freezePoint(x, y, role) {
 
 const HEAD_RIG_ANCHOR = freezePoint(120, 12);
 const HEAD_RIG_SCALE = 0.75;
+const HEAD_FEATURE_ANCHOR = freezePoint(120, 88);
 
 export const AVATAR_HEAD_RIG = Object.freeze({
   anchor: HEAD_RIG_ANCHOR,
@@ -108,6 +109,18 @@ export function getAvatarHeadRigTransform() {
 export function getAvatarHeadMarginTransform(offsetY = 0) {
   const offset = Number(offsetY);
   return `translate(0 ${Number.isFinite(offset) ? offset : 0})`;
+}
+
+export function getAvatarHeadFeatureTransform(offset = {}) {
+  const xValue = Number(offset.x);
+  const yValue = Number(offset.y);
+  const scaleXValue = Number(offset.scaleX);
+  const scaleYValue = Number(offset.scaleY);
+  const x = Number.isFinite(xValue) ? xValue : 0;
+  const y = Number.isFinite(yValue) ? yValue : 0;
+  const scaleX = Number.isFinite(scaleXValue) && scaleXValue > 0 ? scaleXValue : 1;
+  const scaleY = Number.isFinite(scaleYValue) && scaleYValue > 0 ? scaleYValue : 1;
+  return `translate(${HEAD_FEATURE_ANCHOR.x} ${HEAD_FEATURE_ANCHOR.y}) translate(${x} ${y}) scale(${scaleX} ${scaleY}) translate(${-HEAD_FEATURE_ANCHOR.x} ${-HEAD_FEATURE_ANCHOR.y})`;
 }
 
 export function getAvatarBuildTransform(build = 'regular') {

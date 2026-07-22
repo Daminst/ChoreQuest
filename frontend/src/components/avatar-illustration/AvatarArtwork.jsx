@@ -7,6 +7,7 @@ import {
   AVATAR_POSE_ANCHORS,
   getAvatarCameraTransform,
   getAvatarFrame,
+  getAvatarHeadFeatureTransform,
   getAvatarHeadMarginTransform,
   getAvatarHeadRigTransform,
 } from './avatarGeometry.js';
@@ -15,7 +16,9 @@ import {
   BODY_RENDERERS,
   EYE_RENDERERS,
   FACE_EXTRA_RENDERERS,
+  FaceModeling,
   HAIR_RENDERERS,
+  HEAD_FEATURE_OFFSETS,
   HEAD_RENDERERS,
   MOUTH_RENDERERS,
   OUTFIT_PATTERN_RENDERERS,
@@ -77,6 +80,8 @@ export function AvatarArtwork({ config = EMPTY_CONFIG, crop = 'icon', label = 'C
   );
   const cameraTransform = getAvatarCameraTransform(crop);
   const headRigTransform = getAvatarHeadRigTransform();
+  const headFeatureOffset = HEAD_FEATURE_OFFSETS[normalizedConfig.head] || HEAD_FEATURE_OFFSETS.round;
+  const headFeatureTransform = getAvatarHeadFeatureTransform(headFeatureOffset);
   const frontHairMarginTransform = getAvatarHeadMarginTransform(Hair.marginTop);
 
   return (
@@ -139,9 +144,12 @@ export function AvatarArtwork({ config = EMPTY_CONFIG, crop = 'icon', label = 'C
         </g>
         <g data-avatar-layer="face">
           <g data-avatar-head-rig="true" transform={headRigTransform}>
-            <Eyes config={normalizedConfig} palette={palette} paints={paints} />
-            <Mouth config={normalizedConfig} palette={palette} paints={paints} />
-            <FaceExtra config={normalizedConfig} palette={palette} paints={paints} />
+            <g data-avatar-face-features="true" transform={headFeatureTransform}>
+              <FaceModeling config={normalizedConfig} palette={palette} paints={paints} />
+              <FaceExtra config={normalizedConfig} palette={palette} paints={paints} />
+              <Eyes config={normalizedConfig} palette={palette} paints={paints} />
+              <Mouth config={normalizedConfig} palette={palette} paints={paints} />
+            </g>
           </g>
         </g>
         <g data-avatar-layer="front-hair" transform={frontHairMarginTransform}>
