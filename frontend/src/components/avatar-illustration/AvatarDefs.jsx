@@ -11,7 +11,7 @@ function AvatarGradient({ id, finish }) {
   );
 }
 
-export function AvatarDefs({ ids, palette, build = 'regular' }) {
+export function AvatarDefs({ ids, palette, build = 'regular', compact = false }) {
   return (
     <defs>
       <clipPath id={ids.outfitClip}>
@@ -31,22 +31,24 @@ export function AvatarDefs({ ids, palette, build = 'regular' }) {
         <stop offset="1" stopColor={palette.background.deep} />
       </radialGradient>
 
-      <filter
-        id={ids.silhouetteShadow}
-        x="-20%"
-        y="-20%"
-        width="140%"
-        height="150%"
-        colorInterpolationFilters="sRGB"
-      >
-        <feDropShadow
-          dx="0"
-          dy="4"
-          stdDeviation="3"
-          floodColor={palette.background.deep}
-          floodOpacity="0.28"
-        />
-      </filter>
+      {!compact ? (
+        <filter
+          id={ids.silhouetteShadow}
+          x="-20%"
+          y="-20%"
+          width="140%"
+          height="150%"
+          colorInterpolationFilters="sRGB"
+        >
+          <feDropShadow
+            dx="0"
+            dy="4"
+            stdDeviation="3"
+            floodColor={palette.background.deep}
+            floodOpacity="0.28"
+          />
+        </filter>
+      ) : null}
     </defs>
   );
 }

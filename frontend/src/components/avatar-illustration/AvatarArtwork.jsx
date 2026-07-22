@@ -87,6 +87,7 @@ export function AvatarArtwork({
   const prefix = `cq-avatar-${reactId.replace(UNSAFE_ID_CHARACTERS, '') || 'instance'}`;
   const ids = useMemo(() => buildAvatarIds(prefix), [prefix]);
   const paints = useMemo(() => buildAvatarPaints(ids), [ids]);
+  const isCompact = crop === 'icon';
   const hasBackground = crop === 'portrait' || crop === 'icon';
   const Head = resolveAvatarPart(HEAD_RENDERERS, normalizedConfig.head, 'round');
   const Eyes = resolveAvatarPart(EYE_RENDERERS, normalizedConfig.eyes, 'normal');
@@ -109,6 +110,18 @@ export function AvatarArtwork({
   const resolvedAccessories = normalizedConfig.accessories.map((id, index) => ({ id, index, entry: ACCESSORY_RENDERERS[id] }));
   const rearAccessories = resolvedAccessories.filter(({ entry }) => entry && entry.layer === 'rear');
   const frontAccessories = resolvedAccessories.filter(({ entry }) => entry && entry.layer === 'front');
+  const selectionKey = [
+    normalizedConfig.head,
+    normalizedConfig.hair,
+    normalizedConfig.eyes,
+    normalizedConfig.mouth,
+    normalizedConfig.hat,
+    normalizedConfig.body,
+    normalizedConfig.outfit_pattern,
+    normalizedConfig.face_extra,
+    normalizedConfig.pet,
+    ...normalizedConfig.accessories,
+  ].join('|');
 
   return (
     <svg
@@ -117,9 +130,15 @@ export function AvatarArtwork({
       role="img"
       aria-label={label}
       data-avatar-motion={motionEnabled ? 'on' : 'off'}
+      data-avatar-detail={isCompact ? 'compact' : 'full'}
       preserveAspectRatio="xMidYMid meet"
     >
-      <AvatarDefs ids={ids} palette={palette} build={normalizedConfig.body} />
+      <AvatarDefs
+        ids={ids}
+        palette={palette}
+        build={normalizedConfig.body}
+        compact={isCompact}
+      />
       {hasBackground ? (
         <rect
           className="avatar-artwork__background"
@@ -133,70 +152,76 @@ export function AvatarArtwork({
       <g data-avatar-camera={crop} transform={cameraTransform}>
         <g data-avatar-layer="rear-effects">
           <ellipse
-            className="avatar-contact-shadow avatar-detail"
+            className="avatar-contact-shadow avatar-detail avatar-compact-optional"
             cx="120"
             cy={CONTACT_SHADOW_Y}
             rx="58"
             ry="4"
             fill={palette.background.deep}
             opacity="0.24"
-            filter={`url(#${ids.silhouetteShadow})`}
+            filter={isCompact ? undefined : `url(#${ids.silhouetteShadow})`}
           />
         </g>
         <g data-avatar-layer="rear-pet" />
-        <g data-avatar-layer="rear-accessories">
-          {rearAccessories.map((item) => renderAccessoryItem(item, normalizedConfig, palette, paints))}
-        </g>
-        <g data-avatar-layer="rear-hair" transform={rearHairMarginTransform}>
-          <g data-avatar-head-rig="true" transform={headRigTransform}>
-            <Hair.Rear config={normalizedConfig} palette={palette} paints={paints} />
+        <g className="avatar-figure-breath">
+          <g data-avatar-layer="rear-accessories">
+            {rearAccessories.map((item) => renderAccessoryItem(item, normalizedConfig, palette, paints))}
           </g>
-        </g>
-        <g data-avatar-layer="legs">
-          <Anatomy palette={palette} paints={paints} build={normalizedConfig.body} section="legs" />
-        </g>
-        <g data-avatar-layer="torso-arms">
-          <Anatomy palette={palette} paints={paints} build={normalizedConfig.body} section="torso-arms" />
-          <Body config={normalizedConfig} palette={palette} paints={paints} section="base" />
-          <OutfitPattern
-            patternId={normalizedConfig.outfit_pattern}
-            palette={palette}
-            clipId={ids.outfitClip}
-          />
-          <Body config={normalizedConfig} palette={palette} paints={paints} section="finish" />
-        </g>
-        <g data-avatar-layer="neck-ears">
-          <g data-avatar-head-rig="true" transform={headRigTransform}>
-            <Anatomy palette={palette} paints={paints} build={normalizedConfig.body} />
-          </g>
-        </g>
-        <g data-avatar-layer="head">
-          <g data-avatar-head-rig="true" transform={headRigTransform}>
-            <Head config={normalizedConfig} palette={palette} paints={paints} />
-          </g>
-        </g>
-        <g data-avatar-layer="face">
-          <g data-avatar-head-rig="true" transform={headRigTransform}>
-            <g data-avatar-face-features="true" transform={headFeatureTransform}>
-              <FaceModeling config={normalizedConfig} palette={palette} paints={paints} />
-              <FaceExtra config={normalizedConfig} palette={palette} paints={paints} />
-              <Eyes config={normalizedConfig} palette={palette} paints={paints} />
-              <Mouth config={normalizedConfig} palette={palette} paints={paints} />
+          <g data-avatar-layer="rear-hair" transform={rearHairMarginTransform}>
+            <g data-avatar-head-rig="true" transform={headRigTransform}>
+              <Hair.Rear config={normalizedConfig} palette={palette} paints={paints} />
             </g>
           </g>
-        </g>
-        <g data-avatar-layer="front-hair" transform={frontHairMarginTransform}>
-          <g data-avatar-head-rig="true" transform={headRigTransform}>
-            <Hair.Front config={normalizedConfig} palette={palette} paints={paints} />
+          <g data-avatar-layer="legs">
+            <Anatomy palette={palette} paints={paints} build={normalizedConfig.body} section="legs" />
           </g>
-        </g>
-        <g data-avatar-layer="hat">
-          <g data-avatar-head-rig="true" transform={headRigTransform}>
-            <Hat config={normalizedConfig} palette={palette} paints={paints} />
+          <g data-avatar-layer="torso-arms">
+            <Anatomy palette={palette} paints={paints} build={normalizedConfig.body} section="torso-arms" />
+            <Body config={normalizedConfig} palette={palette} paints={paints} section="base" />
+            <OutfitPattern
+              patternId={normalizedConfig.outfit_pattern}
+              palette={palette}
+              clipId={ids.outfitClip}
+            />
+            <g className="avatar-fabric-microdetail avatar-compact-optional">
+              <Body config={normalizedConfig} palette={palette} paints={paints} section="finish" />
+            </g>
           </g>
-        </g>
-        <g data-avatar-layer="front-accessories">
-          {frontAccessories.map((item) => renderAccessoryItem(item, normalizedConfig, palette, paints))}
+          <g data-avatar-layer="neck-ears">
+            <g data-avatar-head-rig="true" transform={headRigTransform}>
+              <Anatomy palette={palette} paints={paints} build={normalizedConfig.body} />
+            </g>
+          </g>
+          <g data-avatar-layer="head">
+            <g data-avatar-head-rig="true" transform={headRigTransform}>
+              <Head config={normalizedConfig} palette={palette} paints={paints} />
+            </g>
+          </g>
+          <g data-avatar-layer="face">
+            <g data-avatar-head-rig="true" transform={headRigTransform}>
+              <g data-avatar-face-features="true" transform={headFeatureTransform}>
+                <FaceModeling config={normalizedConfig} palette={palette} paints={paints} />
+                <FaceExtra config={normalizedConfig} palette={palette} paints={paints} />
+                <Eyes config={normalizedConfig} palette={palette} paints={paints} />
+                <Mouth config={normalizedConfig} palette={palette} paints={paints} />
+              </g>
+            </g>
+          </g>
+          <g data-avatar-layer="front-hair" transform={frontHairMarginTransform}>
+            <g data-avatar-head-rig="true" transform={headRigTransform}>
+              <g className="avatar-hair-secondary">
+                <Hair.Front config={normalizedConfig} palette={palette} paints={paints} />
+              </g>
+            </g>
+          </g>
+          <g data-avatar-layer="hat">
+            <g data-avatar-head-rig="true" transform={headRigTransform}>
+              <Hat config={normalizedConfig} palette={palette} paints={paints} />
+            </g>
+          </g>
+          <g data-avatar-layer="front-accessories">
+            {frontAccessories.map((item) => renderAccessoryItem(item, normalizedConfig, palette, paints))}
+          </g>
         </g>
         <g data-avatar-layer="pet">
           <PetArtwork
@@ -205,7 +230,16 @@ export function AvatarArtwork({
             motionEnabled={motionEnabled}
           />
         </g>
-        <g data-avatar-layer="finish" />
+        <g data-avatar-layer="finish">
+          <g
+            key={selectionKey}
+            className="avatar-selection-flash avatar-compact-optional"
+            aria-hidden="true"
+          >
+            <path d="M64 81 L67 87 L73 90 L67 93 L64 99 L61 93 L55 90 L61 87 Z" fill={palette.gear.highlight} />
+            <path d="M176 72 L178 77 L183 79 L178 81 L176 86 L174 81 L169 79 L174 77 Z" fill={palette.gear.highlight} />
+          </g>
+        </g>
       </g>
     </svg>
   );

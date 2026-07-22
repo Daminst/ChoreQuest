@@ -4,15 +4,13 @@ import { readFileSync } from 'node:fs';
 
 
 const artworkFiles = [
-  './heads.jsx',
-  './eyes.jsx',
-  './mouths.jsx',
-  './faceExtras.jsx',
-  './hair.jsx',
-  './bodies.jsx',
-  './hats.jsx',
-  './accessories.jsx',
-  './pets.jsx',
+  '../avatar-illustration/parts/heads.jsx',
+  '../avatar-illustration/parts/faces.jsx',
+  '../avatar-illustration/parts/hair.jsx',
+  '../avatar-illustration/parts/hats.jsx',
+  '../avatar-illustration/parts/outfits.jsx',
+  '../avatar-illustration/parts/accessories.jsx',
+  '../avatar-illustration/parts/pets.jsx',
 ];
 
 test('every avatar artwork family contains visible finish details', () => {

@@ -145,7 +145,7 @@ test('one camera wrapper owns one literal sequence of all named artwork layers',
   assert.match(compositor, /const cameraTransform = getAvatarCameraTransform\(crop\);/);
   assert.match(
     compositor,
-    /<g data-avatar-camera=\{crop\} transform=\{cameraTransform\}>[\s\S]*?<g data-avatar-layer="finish"\s*\/>\s*<\/g>/,
+    /<g data-avatar-camera=\{crop\} transform=\{cameraTransform\}>[\s\S]*?<g data-avatar-layer="finish">[\s\S]*?avatar-selection-flash[\s\S]*?<\/g>\s*<\/g>/,
     'every named layer must live inside the same camera wrapper',
   );
   for (const layer of getAvatarLayerOrder()) {
@@ -204,7 +204,7 @@ test('selected headwear is resolved once and painted after front hair inside the
   assert.match(hats, /avatar-hood-occluder/, 'hood occlusion must be authored in headwear artwork');
 });
 
-test('contact shadow is painted in rear effects and finish stays semantically empty', () => {
+test('contact shadow stays behind the figure and finish owns only the selection reaction', () => {
   const source = readFileSync(new URL('./AvatarArtwork.jsx', import.meta.url), 'utf8');
   const rearEffects = source.indexOf('data-avatar-layer="rear-effects"');
   const rearPet = source.indexOf('data-avatar-layer="rear-pet"');
@@ -214,7 +214,7 @@ test('contact shadow is painted in rear effects and finish stays semantically em
   assert.ok(rearEffects >= 0 && rearPet > rearEffects);
   assert.ok(contactShadow > rearEffects && contactShadow < rearPet, 'shadow must be inside rear-effects');
   assert.ok(contactShadow < finish, 'shadow must be behind the figure');
-  assert.match(source, /<g data-avatar-layer="finish"\s*\/>/);
+  assert.match(source, /<g data-avatar-layer="finish">[\s\S]*?avatar-selection-flash[\s\S]*?<\/g>/);
 });
 
 test('pet artwork occupies the existing pet layer without adding cameras or layers', () => {
@@ -259,7 +259,7 @@ test('outfit clip is instance-local and selected pattern sits between base mass 
     compositor.includes('outfitClip: `${prefix}-outfit-clip`,'),
     'outfit clip id must derive from the useId-backed prefix',
   );
-  assert.match(compositor, /<AvatarDefs ids=\{ids\} palette=\{palette\} build=\{normalizedConfig\.body\} \/>/);
+  assert.match(compositor, /<AvatarDefs[\s\S]*?ids=\{ids\}[\s\S]*?palette=\{palette\}[\s\S]*?build=\{normalizedConfig\.body\}[\s\S]*?compact=\{isCompact\}/);
   assert.match(defs, /<clipPath id=\{ids\.outfitClip\}>/);
   assert.match(defs, /<OutfitClip build=\{build\} \/>/);
   assert.doesNotMatch(defs, /id="[^\"]*outfit[^\"]*"/, 'clip ids may not be global literals');

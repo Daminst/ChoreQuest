@@ -17,8 +17,8 @@ export function getAvatarStageCharacterClassName() {
   return 'avatar-stage__character';
 }
 
-export function getAvatarStageMotionClassName(placementMode) {
-  return `avatar-stage__motion${placementMode ? '' : ' avatar-idle'}`;
+export function getAvatarStageMotionClassName() {
+  return 'avatar-stage__motion';
 }
 
 export function clampPetCoordinate(value) {

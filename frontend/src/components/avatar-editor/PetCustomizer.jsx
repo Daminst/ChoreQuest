@@ -32,6 +32,7 @@ function PetPreview({ config, level }) {
       position="right"
       level={level}
       compact
+      motionEnabled={false}
     />
   );
 }

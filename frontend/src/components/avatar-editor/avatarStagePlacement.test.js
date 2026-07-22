@@ -68,7 +68,7 @@ test('placement keyboard interaction moves in two dimensions and confirms with E
   assert.equal(resolvePetPlacementKey(16, 16, 'Escape'), null);
 });
 
-test('placement mode keeps centering and animation on separate elements', async () => {
+test('placement mode keeps centering and internal motion on separate elements without a second idle sway', async () => {
   const {
     getAvatarStageCharacterClassName,
     getAvatarStageMotionClassName,
@@ -76,12 +76,13 @@ test('placement mode keeps centering and animation on separate elements', async 
 
   assert.equal(getAvatarStageCharacterClassName(false), 'avatar-stage__character');
   assert.equal(getAvatarStageCharacterClassName(true), 'avatar-stage__character');
-  assert.equal(getAvatarStageMotionClassName(false), 'avatar-stage__motion avatar-idle');
+  assert.equal(getAvatarStageMotionClassName(false), 'avatar-stage__motion');
   assert.equal(getAvatarStageMotionClassName(true), 'avatar-stage__motion');
 
   const stage = readFileSync(new URL('./AvatarStage.jsx', import.meta.url), 'utf8');
   assert.match(stage, /className=\{getAvatarStageCharacterClassName\(placementMode\)\}/);
   assert.match(stage, /className=\{getAvatarStageMotionClassName\(placementMode\)\}[\s\S]*<AvatarDisplay/);
+  assert.match(stage, /<AvatarDisplay[\s\S]*animate=\{!placementMode\}/);
   assert.match(stage, /data-avatar-placement-active=\{placementMode \? 'true' : 'false'\}/);
   assert.match(stage, /data-avatar-motion=\{placementMode \? 'off' : 'on'\}/);
 });

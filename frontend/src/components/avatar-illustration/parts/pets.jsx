@@ -563,17 +563,19 @@ export function PetArtwork({
       data-pet-motion={motionEnabled ? 'on' : 'off'}
       transform={`translate(${placement.baselineX} ${placement.baselineY}) scale(${placement.placementScale}) scale(${placement.facing} 1)`}
     >
-      <g data-pet-level={resolvedLevel} data-pet-level-scale={levelScale.toFixed(2)} transform={`scale(${levelScale})`}>
-        <PetRearEffects level={resolvedLevel} finishes={finishes} />
-        <PetRenderer colors={colors} finishes={finishes} level={resolvedLevel} />
-        <g
-          data-pet-accessory-role={accessoryAttachment.role}
-          data-pet-accessory-anchor={`${accessoryX},${accessoryY}`}
-          transform={`translate(${accessoryX} ${accessoryY})`}
-        >
-          <PetAccessory colors={colors} finishes={finishes} />
+      <g className="avatar-pet-motion">
+        <g data-pet-level={resolvedLevel} data-pet-level-scale={levelScale.toFixed(2)} transform={`scale(${levelScale})`}>
+          <PetRearEffects level={resolvedLevel} finishes={finishes} />
+          <PetRenderer colors={colors} finishes={finishes} level={resolvedLevel} />
+          <g
+            data-pet-accessory-role={accessoryAttachment.role}
+            data-pet-accessory-anchor={`${accessoryX},${accessoryY}`}
+            transform={`translate(${accessoryX} ${accessoryY})`}
+          >
+            <PetAccessory colors={colors} finishes={finishes} />
+          </g>
+          <PetFrontEffects level={resolvedLevel} finishes={finishes} />
         </g>
-        <PetFrontEffects level={resolvedLevel} finishes={finishes} />
       </g>
     </g>
   );

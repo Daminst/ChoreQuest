@@ -44,7 +44,12 @@ export function AvatarStage({ config, placementMode = false, previewMessage = ''
         data-avatar-motion={placementMode ? 'off' : 'on'}
       >
         <div className={getAvatarStageMotionClassName(placementMode)}>
-          <AvatarDisplay config={config} size="studio" crop="full" />
+          <AvatarDisplay
+            config={config}
+            size="studio"
+            crop="full"
+            animate={!placementMode}
+          />
         </div>
         {placementMode && (
           <svg

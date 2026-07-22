@@ -15,3 +15,126 @@
 .avatar-artwork__background {
   pointer-events: none;
 }
+
+.avatar-figure-breath,
+.avatar-eyelids,
+.avatar-hair-secondary,
+.avatar-selection-flash,
+.avatar-pet-motion {
+  transform-box: fill-box;
+}
+
+.avatar-figure-breath {
+  transform-origin: center bottom;
+}
+
+.avatar-eyelids {
+  transform-origin: center;
+}
+
+.avatar-hair-secondary {
+  transform-origin: center 72%;
+}
+
+.avatar-pet-motion {
+  transform-origin: center bottom;
+}
+
+.avatar-selection-flash {
+  opacity: 0;
+  transform-origin: center;
+}
+
+.avatar-artwork[data-avatar-motion='on'] .avatar-figure-breath {
+  animation: avatar-figure-breathe 6.8s ease-in-out infinite;
+  animation-delay: var(--avatar-delay, 0s);
+}
+
+.avatar-artwork[data-avatar-motion='on'] .avatar-eyelids {
+  animation: avatar-eyelid-blink 7s linear infinite;
+  animation-delay: var(--avatar-delay, 0s);
+}
+
+.avatar-artwork[data-avatar-motion='on'] .avatar-hair-secondary {
+  animation: avatar-hair-secondary 8.4s ease-in-out infinite;
+  animation-delay: var(--avatar-delay, 0s);
+}
+
+.avatar-artwork[data-avatar-motion='on'] .avatar-selection-flash {
+  animation: avatar-selection-flash 620ms ease-out both;
+}
+
+.avatar-artwork[data-avatar-motion='on'] .avatar-pet-motion,
+[data-pet-motion='on'] > .avatar-pet-motion {
+  animation: avatar-pet-float 3.8s ease-in-out infinite;
+  animation-delay: var(--avatar-delay, 0s);
+}
+
+.avatar-artwork[data-avatar-motion='off'] :is(
+  .avatar-figure-breath,
+  .avatar-eyelids,
+  .avatar-hair-secondary,
+  .avatar-selection-flash,
+  .avatar-pet-motion
+) {
+  animation: none !important;
+  transform: none !important;
+}
+
+[data-pet-motion='off'] > .avatar-pet-motion {
+  animation: none !important;
+  transform: none !important;
+}
+
+.avatar-artwork[data-avatar-detail='compact'] .avatar-compact-optional {
+  display: none;
+}
+
+.avatar-artwork--portrait :is(
+  .avatar-sock-detail,
+  .avatar-shoe-lace,
+  .avatar-shoe-sole,
+  .avatar-shoe-panel
+) {
+  display: none;
+}
+
+@keyframes avatar-figure-breathe {
+  0%, 100% { transform: translateY(0) scaleY(1); }
+  50% { transform: translateY(-1.5px) scaleY(1.006); }
+}
+
+@keyframes avatar-eyelid-blink {
+  0%, 47%, 49%, 100% { transform: scaleY(1); }
+  48% { transform: scaleY(0.08); }
+}
+
+@keyframes avatar-hair-secondary {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(0.7deg); }
+}
+
+@keyframes avatar-selection-flash {
+  0% { opacity: 0; transform: scale(0.82); }
+  24% { opacity: 0.72; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.08); }
+}
+
+@keyframes avatar-pet-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-2px) rotate(1deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .avatar-artwork :is(
+    .avatar-figure-breath,
+    .avatar-eyelids,
+    .avatar-hair-secondary,
+    .avatar-selection-flash,
+    .avatar-pet-motion
+  ),
+  [data-pet-motion] > .avatar-pet-motion {
+    animation: none !important;
+    transform: none !important;
+  }
+}
