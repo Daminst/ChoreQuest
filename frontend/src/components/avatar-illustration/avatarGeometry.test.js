@@ -85,6 +85,62 @@ test('body rebalance is authored in final canvas anchors without vertical scalin
   );
 });
 
+test('body build rigs freeze the exact width ratios and fixed sole pivots', () => {
+  const {
+    AVATAR_BODY_BUILD_RIGS,
+    AVATAR_HEAD_RIG,
+    AVATAR_POSE_ANCHORS,
+    getAvatarBuildRig,
+  } = avatarGeometry;
+  assert.ok(AVATAR_BODY_BUILD_RIGS, 'missing body-build rig contract');
+  assert.equal(typeof getAvatarBuildRig, 'function');
+  assert.ok(Object.isFrozen(AVATAR_BODY_BUILD_RIGS));
+  assert.deepEqual(
+    Object.fromEntries(Object.entries(AVATAR_BODY_BUILD_RIGS).map(([id, rig]) => [id, rig.widthRatio])),
+    { slim: 0.9, regular: 1, broad: 1.12 },
+  );
+
+  for (const build of ['slim', 'regular', 'broad']) {
+    const rig = getAvatarBuildRig(build);
+    assert.equal(rig, AVATAR_BODY_BUILD_RIGS[build]);
+    assert.ok(Object.isFrozen(rig));
+    assert.ok(Object.isFrozen(rig.torso));
+    assert.ok(Object.isFrozen(rig.legs));
+    assert.ok(Object.isFrozen(rig.legs.free));
+    assert.ok(Object.isFrozen(rig.legs.weight));
+    assert.equal(rig.torso.anchorX, 120);
+    assert.equal(rig.legs.free.anchorX, AVATAR_POSE_ANCHORS.soles.free.x);
+    assert.equal(rig.legs.weight.anchorX, AVATAR_POSE_ANCHORS.soles.weight.x);
+    assert.equal(AVATAR_HEAD_RIG.anchor.x, 120, 'body build must not move the head anchor');
+    assert.equal(AVATAR_HEAD_RIG.sourceBounds.neckBottom, 142, 'body build must not move the neck');
+  }
+  assert.equal(getAvatarBuildRig('future-build'), AVATAR_BODY_BUILD_RIGS.regular);
+});
+
+test('hands translate with arm attachment but never scale across builds', () => {
+  const {
+    AVATAR_BODY_BUILD_RIGS,
+    AVATAR_POSE_ANCHORS,
+    getAvatarHandTransform,
+  } = avatarGeometry;
+  assert.equal(typeof getAvatarHandTransform, 'function');
+
+  for (const build of ['slim', 'regular', 'broad']) {
+    const rig = AVATAR_BODY_BUILD_RIGS[build];
+    for (const side of ['hip', 'relaxed']) {
+      const hand = rig.hands[side];
+      assert.ok(Object.isFrozen(hand));
+      assert.equal(hand.anchorX, AVATAR_POSE_ANCHORS.hands[side].x);
+      assert.match(hand.transform, /^translate\(-?[\d.]+ 0\)$/);
+      assert.doesNotMatch(hand.transform, /scale/, `${build} ${side} hand must keep authored size`);
+      assert.equal(getAvatarHandTransform(build, side), hand.transform);
+    }
+  }
+
+  assert.notEqual(getAvatarHandTransform('slim', 'hip'), getAvatarHandTransform('regular', 'hip'));
+  assert.notEqual(getAvatarHandTransform('broad', 'relaxed'), getAvatarHandTransform('regular', 'relaxed'));
+});
+
 test('hood and upper torso stay compact against the transformed chin', () => {
   const {
     AVATAR_BODY_PROPORTIONS,

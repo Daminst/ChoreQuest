@@ -1,3 +1,5 @@
+import { OutfitClip } from './parts/outfits.jsx';
+
 function AvatarGradient({ id, finish }) {
   return (
     <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
@@ -9,9 +11,13 @@ function AvatarGradient({ id, finish }) {
   );
 }
 
-export function AvatarDefs({ ids, palette }) {
+export function AvatarDefs({ ids, palette, build = 'regular' }) {
   return (
     <defs>
+      <clipPath id={ids.outfitClip}>
+        <OutfitClip build={build} />
+      </clipPath>
+
       <AvatarGradient id={ids.skinGradient} finish={palette.skin} />
       <AvatarGradient id={ids.hairGradient} finish={palette.hair} />
       <AvatarGradient id={ids.outfitGradient} finish={palette.outfit} />

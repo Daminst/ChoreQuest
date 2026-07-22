@@ -3,6 +3,17 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { AVATAR_LAYER_ORDER, getAvatarLayerOrder } from './avatarLayers.js';
 
+const functionSource = (source, functionName) => {
+  const match = new RegExp(`(?:export )?function ${functionName}\\(`).exec(source);
+  assert.ok(match, `missing function ${functionName}`);
+  const rest = source.slice(match.index + match[0].length);
+  const next = /\n(?:export )?function [A-Z]/.exec(rest);
+  const registry = /\nexport const [A-Z_]+ = Object\.freeze/.exec(rest);
+  const ends = [next, registry].filter(Boolean).map((entry) => entry.index);
+  const end = ends.length ? Math.min(...ends) : rest.length;
+  return source.slice(match.index, match.index + match[0].length + end);
+};
+
 test('avatar layer order is deterministic and immutable', () => {
   assert.deepEqual(getAvatarLayerOrder(), [
     'rear-effects', 'rear-pet', 'rear-accessories', 'rear-hair', 'legs', 'torso-arms',
@@ -204,4 +215,62 @@ test('contact shadow is painted in rear effects and finish stays semantically em
   assert.ok(contactShadow > rearEffects && contactShadow < rearPet, 'shadow must be inside rear-effects');
   assert.ok(contactShadow < finish, 'shadow must be behind the figure');
   assert.match(source, /<g data-avatar-layer="finish"\s*\/>/);
+});
+
+test('body limbs use regional transforms while both hands legs and shoes remain explicit', () => {
+  const anatomy = readFileSync(new URL('parts/anatomy.jsx', import.meta.url), 'utf8');
+  for (const marker of [
+    'avatar-leg-left', 'avatar-leg-right', 'avatar-hand-left', 'avatar-hand-right',
+    'avatar-shoe-left', 'avatar-shoe-right',
+  ]) {
+    assert.equal((anatomy.match(new RegExp(marker, 'g')) || []).length, 1, `${marker} must render once`);
+  }
+  assert.match(anatomy, /const rig = getAvatarBuildRig\(build\);/);
+  assert.match(anatomy, /transform=\{rig\.legs\.free\.transform\}/);
+  assert.match(anatomy, /transform=\{rig\.legs\.weight\.transform\}/);
+  assert.match(anatomy, /transform=\{rig\.torso\.transform\}/);
+  assert.match(anatomy, /transform=\{rig\.hands\.hip\.transform\}/);
+  assert.match(anatomy, /transform=\{rig\.hands\.relaxed\.transform\}/);
+  assert.doesNotMatch(
+    anatomy,
+    /<g transform=\{buildTransform\}>[\s\S]*?avatar-hand-/,
+    'hands may not inherit the body width scale',
+  );
+});
+
+test('outfit clip is instance-local and selected pattern sits between base mass and finish', () => {
+  const compositor = readFileSync(new URL('./AvatarArtwork.jsx', import.meta.url), 'utf8');
+  const defs = readFileSync(new URL('./AvatarDefs.jsx', import.meta.url), 'utf8');
+  const registry = readFileSync(new URL('./registry.js', import.meta.url), 'utf8');
+
+  assert.ok(
+    compositor.includes('outfitClip: `${prefix}-outfit-clip`,'),
+    'outfit clip id must derive from the useId-backed prefix',
+  );
+  assert.match(compositor, /<AvatarDefs ids=\{ids\} palette=\{palette\} build=\{normalizedConfig\.body\} \/>/);
+  assert.match(defs, /<clipPath id=\{ids\.outfitClip\}>/);
+  assert.match(defs, /<OutfitClip build=\{build\} \/>/);
+  assert.doesNotMatch(defs, /id="[^\"]*outfit[^\"]*"/, 'clip ids may not be global literals');
+
+  const base = compositor.indexOf('<Body config={normalizedConfig} palette={palette} paints={paints} section="base" />');
+  const pattern = compositor.indexOf('<OutfitPattern');
+  const finish = compositor.indexOf('<Body config={normalizedConfig} palette={palette} paints={paints} section="finish" />');
+  assert.ok(base >= 0 && pattern > base && finish > pattern, 'paint order must be base, pattern, finish');
+  assert.match(
+    compositor,
+    /<OutfitPattern[\s\S]*?patternId=\{normalizedConfig\.outfit_pattern\}[\s\S]*?palette=\{palette\}[\s\S]*?clipId=\{ids\.outfitClip\}/,
+  );
+  assert.match(registry, /BODY_RENDERERS,[\s\S]*?OUTFIT_PATTERN_RENDERERS,/);
+});
+
+test('outfit finish owns every seam and footwear detail above the clipped pattern', () => {
+  const source = readFileSync(new URL('parts/outfits.jsx', import.meta.url), 'utf8');
+  const finish = functionSource(source, 'OutfitFinish');
+  for (const marker of [
+    'avatar-outfit-seam', 'avatar-drawstring', 'avatar-pocket-stitch', 'avatar-ribbing',
+    'avatar-shorts-boundary', 'avatar-sock-detail', 'avatar-shoe-lace', 'avatar-shoe-sole',
+  ]) {
+    assert.match(finish, new RegExp(marker), `finish must own ${marker}`);
+  }
+  assert.doesNotMatch(finish, /clipPath=/, 'finish details must remain above, not inside, the pattern clip');
 });

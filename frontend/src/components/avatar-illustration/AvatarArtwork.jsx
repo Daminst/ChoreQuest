@@ -44,6 +44,7 @@ function buildAvatarIds(prefix) {
     petGradient: `${prefix}-pet-gradient`,
     backgroundGradient: `${prefix}-background-gradient`,
     silhouetteShadow: `${prefix}-silhouette-shadow`,
+    outfitClip: `${prefix}-outfit-clip`,
   });
 }
 
@@ -95,7 +96,7 @@ export function AvatarArtwork({ config = EMPTY_CONFIG, crop = 'icon', label = 'C
       aria-label={label}
       preserveAspectRatio="xMidYMid meet"
     >
-      <AvatarDefs ids={ids} palette={palette} />
+      <AvatarDefs ids={ids} palette={palette} build={normalizedConfig.body} />
       {hasBackground ? (
         <rect
           className="avatar-artwork__background"
@@ -128,12 +129,16 @@ export function AvatarArtwork({ config = EMPTY_CONFIG, crop = 'icon', label = 'C
         </g>
         <g data-avatar-layer="legs">
           <Anatomy palette={palette} paints={paints} build={normalizedConfig.body} section="legs" />
-          <Body config={normalizedConfig} palette={palette} paints={paints} section="legs" />
         </g>
         <g data-avatar-layer="torso-arms">
           <Anatomy palette={palette} paints={paints} build={normalizedConfig.body} section="torso-arms" />
-          <Body config={normalizedConfig} palette={palette} paints={paints} section="torso-arms" />
-          <OutfitPattern config={normalizedConfig} palette={palette} paints={paints} />
+          <Body config={normalizedConfig} palette={palette} paints={paints} section="base" />
+          <OutfitPattern
+            patternId={normalizedConfig.outfit_pattern}
+            palette={palette}
+            clipId={ids.outfitClip}
+          />
+          <Body config={normalizedConfig} palette={palette} paints={paints} section="finish" />
         </g>
         <g data-avatar-layer="neck-ears">
           <g data-avatar-head-rig="true" transform={headRigTransform}>

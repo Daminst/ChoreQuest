@@ -2,7 +2,7 @@ import {
   AVATAR_BODY_PROPORTIONS,
   AVATAR_HEAD_RIG,
   AVATAR_POSE_ANCHORS,
-  getAvatarBuildTransform,
+  getAvatarBuildRig,
 } from '../avatarGeometry.js';
 
 const {
@@ -22,161 +22,189 @@ const HIP_HAND_PATH = `M${hands.hip.x - 7} ${hands.hip.y - 5} C76 196 82 197 86 
 const RELAXED_HAND_PATH = `M${hands.relaxed.x - 6} ${hands.relaxed.y - 10} C159 218 159 225 162 230 C164 234 167 230 168 226 C167 232 169 235 172 233 C175 231 174 226 175 223 C175 228 178 229 180 226 C182 221 178 215 174 212 C170 209 166 211 163 214 Z`;
 
 export function Anatomy({ palette, paints, build = 'regular', section }) {
-  const buildTransform = getAvatarBuildTransform(build);
+  const rig = getAvatarBuildRig(build);
 
   if (section === 'legs') {
     return (
-      <g transform={buildTransform}>
-        <path
-          className="avatar-leg-left avatar-outline"
-          d={FREE_LEG_PATH}
-          fill={paints.skin}
-          stroke={palette.skin.outline}
-          strokeWidth="2.8"
-          strokeLinejoin="round"
-        />
-        <path
-          className="avatar-leg-right avatar-outline"
-          d={WEIGHT_LEG_PATH}
-          fill={palette.skin.shadow}
-          stroke={palette.skin.outline}
-          strokeWidth="2.8"
-          strokeLinejoin="round"
-        />
-        <path
-          className="avatar-face-plane"
-          d={`M${freeLeg.kneeLeft + 1} 258 C88 262 102 262 ${freeLeg.kneeRight} 258 L108 272 C100 276 88 275 80 271 Z`}
-          fill={palette.skin.light}
-          opacity="0.25"
-        />
-        <path
-          className="avatar-face-plane"
-          d={`M${weightLeg.kneeLeft} 259 C135 263 148 262 ${weightLeg.kneeRight} 256 L${weightLeg.kneeRight} 270 C148 278 135 279 ${weightLeg.kneeLeft + 1} 273 Z`}
-          fill={palette.skin.deep}
-          opacity="0.16"
-        />
-        <path
-          className="avatar-detail"
-          d={`M${freeLeg.kneeLeft + 2} 257 C89 260 ${knees.free.x + 7} 260 ${freeLeg.kneeRight - 1} 256 M${weightLeg.kneeLeft + 2} 255 C136 258 ${knees.weight.x + 7} 258 ${weightLeg.kneeRight - 2} 254`}
-          fill="none"
-          stroke={palette.skin.cheek}
-          strokeWidth="2"
-          strokeLinecap="round"
-          opacity="0.48"
-        />
-        <path
-          className="avatar-shoe-left avatar-outline"
-          d={FREE_SHOE_PATH}
-          fill={paints.gear}
-          stroke={palette.gear.outline}
-          strokeWidth="3.1"
-          strokeLinejoin="round"
-        />
-        <path
-          className="avatar-shoe-right avatar-outline"
-          d={WEIGHT_SHOE_PATH}
-          fill={paints.gear}
-          stroke={palette.gear.outline}
-          strokeWidth="3.1"
-          strokeLinejoin="round"
-        />
-        <path
-          className="avatar-highlight"
-          d="M65 300 C75 295 90 296 99 300"
-          fill="none"
-          stroke={palette.gear.highlight}
-          strokeWidth="3"
-          strokeLinecap="round"
-          opacity="0.75"
-        />
-        <path
-          className="avatar-detail"
-          d="M133 304 C144 299 155 300 164 306"
-          fill="none"
-          stroke={palette.gear.highlight}
-          strokeWidth="3"
-          strokeLinecap="round"
-          opacity="0.75"
-        />
+      <g data-avatar-body-region="legs">
+        <g transform={rig.legs.free.transform}>
+          <path
+            className="avatar-leg-left avatar-outline"
+            d={FREE_LEG_PATH}
+            fill={paints.skin}
+            stroke={palette.skin.outline}
+            strokeWidth="2.8"
+            strokeLinejoin="round"
+          />
+          <path
+            className="avatar-face-plane"
+            d={`M${freeLeg.kneeLeft + 1} 258 C88 262 102 262 ${freeLeg.kneeRight} 258 L108 272 C100 276 88 275 80 271 Z`}
+            fill={palette.skin.light}
+            opacity="0.25"
+          />
+          <path
+            className="avatar-detail"
+            d={`M${freeLeg.kneeLeft + 2} 257 C89 260 ${knees.free.x + 7} 260 ${freeLeg.kneeRight - 1} 256`}
+            fill="none"
+            stroke={palette.skin.cheek}
+            strokeWidth="2"
+            strokeLinecap="round"
+            opacity="0.48"
+          />
+          <path
+            className="avatar-shoe-left avatar-outline"
+            d={FREE_SHOE_PATH}
+            fill={paints.gear}
+            stroke={palette.gear.outline}
+            strokeWidth="3.1"
+            strokeLinejoin="round"
+          />
+          <path
+            className="avatar-highlight"
+            d="M65 300 C75 295 90 296 99 300"
+            fill="none"
+            stroke={palette.gear.highlight}
+            strokeWidth="3"
+            strokeLinecap="round"
+            opacity="0.75"
+          />
+        </g>
+        <g transform={rig.legs.weight.transform}>
+          <path
+            className="avatar-leg-right avatar-outline"
+            d={WEIGHT_LEG_PATH}
+            fill={palette.skin.shadow}
+            stroke={palette.skin.outline}
+            strokeWidth="2.8"
+            strokeLinejoin="round"
+          />
+          <path
+            className="avatar-face-plane"
+            d={`M${weightLeg.kneeLeft} 259 C135 263 148 262 ${weightLeg.kneeRight} 256 L${weightLeg.kneeRight} 270 C148 278 135 279 ${weightLeg.kneeLeft + 1} 273 Z`}
+            fill={palette.skin.deep}
+            opacity="0.16"
+          />
+          <path
+            className="avatar-detail"
+            d={`M${weightLeg.kneeLeft + 2} 255 C136 258 ${knees.weight.x + 7} 258 ${weightLeg.kneeRight - 2} 254`}
+            fill="none"
+            stroke={palette.skin.cheek}
+            strokeWidth="2"
+            strokeLinecap="round"
+            opacity="0.48"
+          />
+          <path
+            className="avatar-shoe-right avatar-outline"
+            d={WEIGHT_SHOE_PATH}
+            fill={paints.gear}
+            stroke={palette.gear.outline}
+            strokeWidth="3.1"
+            strokeLinejoin="round"
+          />
+          <path
+            className="avatar-detail"
+            d="M133 304 C144 299 155 300 164 306"
+            fill="none"
+            stroke={palette.gear.highlight}
+            strokeWidth="3"
+            strokeLinecap="round"
+            opacity="0.75"
+          />
+        </g>
       </g>
     );
   }
 
   if (section === 'torso-arms') {
     return (
-      <g transform={buildTransform}>
-        <path
-          className="avatar-outline"
-          d={`M84 144 C95 132 108 ${torsoTop} 122 ${torsoTop} C139 ${torsoTop} 154 133 162 148 L158 219 C141 229 110 227 88 218 Z`}
-          fill={paints.outfit}
-          stroke={palette.outfit.outline}
-          strokeWidth="3.3"
-          strokeLinejoin="round"
-        />
-        <path
-          className="avatar-face-plane"
-          d="M139 128 C153 135 161 151 161 175 L158 218 C149 223 141 225 132 225 C142 202 145 170 139 128 Z"
-          fill={palette.outfit.deep}
-          opacity="0.22"
-        />
-        <path
-          className="avatar-outline"
-          d={HIP_ARM_PATH}
-          fill={paints.outfit}
-          stroke={palette.outfit.outline}
-          strokeWidth="3.1"
-          strokeLinejoin="round"
-        />
-        <path
-          className="avatar-outline"
-          d={RELAXED_ARM_PATH}
-          fill={palette.outfit.shadow}
-          stroke={palette.outfit.outline}
-          strokeWidth="3.1"
-          strokeLinejoin="round"
-        />
-        <path
-          className="avatar-hand-left avatar-outline"
-          d={HIP_HAND_PATH}
-          fill={paints.skin}
-          stroke={palette.skin.outline}
-          strokeWidth="2.2"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-        <path
-          className="avatar-hand-right avatar-outline"
-          d={RELAXED_HAND_PATH}
-          fill={palette.skin.shadow}
-          stroke={palette.skin.outline}
-          strokeWidth="2.2"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-        <path
-          className="avatar-detail"
-          d="M75 201 L79 208 M80 200 L84 206 M164 218 L168 226 M170 216 L175 223"
-          fill="none"
-          stroke={palette.skin.outline}
-          strokeWidth="1.3"
-          strokeLinecap="round"
-          opacity="0.62"
-        />
-        <path
-          className="avatar-highlight"
-          d="M93 137 C103 129 114 127 125 129"
-          fill="none"
-          stroke={palette.outfit.light}
-          strokeWidth="3"
-          strokeLinecap="round"
-          opacity="0.65"
-        />
+      <g data-avatar-body-region="torso-arms">
+        <g transform={rig.torso.transform}>
+          <path
+            className="avatar-outline"
+            d={`M84 144 C95 132 108 ${torsoTop} 122 ${torsoTop} C139 ${torsoTop} 154 133 162 148 L158 219 C141 229 110 227 88 218 Z`}
+            fill={paints.outfit}
+            stroke={palette.outfit.outline}
+            strokeWidth="3.3"
+            strokeLinejoin="round"
+          />
+          <path
+            className="avatar-face-plane"
+            d="M139 128 C153 135 161 151 161 175 L158 218 C149 223 141 225 132 225 C142 202 145 170 139 128 Z"
+            fill={palette.outfit.deep}
+            opacity="0.22"
+          />
+          <path
+            className="avatar-outline"
+            d={HIP_ARM_PATH}
+            fill={paints.outfit}
+            stroke={palette.outfit.outline}
+            strokeWidth="3.1"
+            strokeLinejoin="round"
+          />
+          <path
+            className="avatar-outline"
+            d={RELAXED_ARM_PATH}
+            fill={palette.outfit.shadow}
+            stroke={palette.outfit.outline}
+            strokeWidth="3.1"
+            strokeLinejoin="round"
+          />
+          <path
+            className="avatar-highlight"
+            d="M93 137 C103 129 114 127 125 129"
+            fill="none"
+            stroke={palette.outfit.light}
+            strokeWidth="3"
+            strokeLinecap="round"
+            opacity="0.65"
+          />
+        </g>
+        <g transform={rig.hands.hip.transform}>
+          <path
+            className="avatar-hand-left avatar-outline"
+            d={HIP_HAND_PATH}
+            fill={paints.skin}
+            stroke={palette.skin.outline}
+            strokeWidth="2.2"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+          <path
+            className="avatar-detail"
+            d="M75 201 L79 208 M80 200 L84 206"
+            fill="none"
+            stroke={palette.skin.outline}
+            strokeWidth="1.3"
+            strokeLinecap="round"
+            opacity="0.62"
+          />
+        </g>
+        <g transform={rig.hands.relaxed.transform}>
+          <path
+            className="avatar-hand-right avatar-outline"
+            d={RELAXED_HAND_PATH}
+            fill={palette.skin.shadow}
+            stroke={palette.skin.outline}
+            strokeWidth="2.2"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+          <path
+            className="avatar-detail"
+            d="M164 218 L168 226 M170 216 L175 223"
+            fill="none"
+            stroke={palette.skin.outline}
+            strokeWidth="1.3"
+            strokeLinecap="round"
+            opacity="0.62"
+          />
+        </g>
       </g>
     );
   }
 
   return (
-    <g>
+    <g data-avatar-fixed-region="head-neck">
       <path
         className="avatar-outline"
         d={`M108 121 H132 L133 ${neckBottom} H107 Z`}

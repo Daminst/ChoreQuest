@@ -223,6 +223,71 @@ test('hair and hat registries exactly cover the editor catalog', () => {
   assert.deepEqual(registryKeys('./parts/hats.jsx', 'HAT_RENDERERS'), ids(AVATAR_CATALOG.hat));
 });
 
+test('body and outfit-pattern registries exactly cover the editor catalog', () => {
+  assert.deepEqual(registryKeys('./parts/outfits.jsx', 'BODY_RENDERERS'), ids(AVATAR_CATALOG.body));
+  assert.deepEqual(
+    registryKeys('./parts/outfits.jsx', 'OUTFIT_PATTERN_RENDERERS'),
+    ids(AVATAR_CATALOG.pattern),
+  );
+});
+
+test('three body builds are frozen unique renderers with semantic surfaces', () => {
+  const source = readFileSync(new URL('./parts/outfits.jsx', import.meta.url), 'utf8');
+  const entries = registryEntries(source, 'BODY_RENDERERS');
+  assert.deepEqual(Object.fromEntries(entries.map(({ id, renderer }) => [id, renderer])), {
+    slim: 'SlimBody',
+    regular: 'RegularBody',
+    broad: 'BroadBody',
+  });
+  assert.equal(new Set(entries.map(({ renderer }) => renderer)).size, 3);
+
+  for (const { id, renderer } of entries) {
+    const body = functionSource(source, renderer);
+    assert.match(body, new RegExp(`data-avatar-variant="body:${id}"`));
+    assert.match(body, new RegExp(`build="${id}"`));
+  }
+
+  assert.doesNotMatch(source, /\.map\s*\(/, 'body surfaces must not allocate mapped arrays per render');
+});
+
+test('every non-none outfit pattern is a distinct clipped semantic renderer', () => {
+  const source = readFileSync(new URL('./parts/outfits.jsx', import.meta.url), 'utf8');
+  const entries = registryEntries(source, 'OUTFIT_PATTERN_RENDERERS');
+  const expectedRenderers = Object.freeze({
+    none: 'EmptyPart',
+    stripes: 'StripesPattern',
+    stars: 'StarsPattern',
+    camo: 'CamoPattern',
+    tie_dye: 'TieDyePattern',
+    plaid: 'PlaidPattern',
+    neon_pulse: 'NeonPulsePattern',
+    moon_sigil: 'MoonSigilPattern',
+    tiny_bows: 'TinyBowsPattern',
+    bat_stars: 'BatStarsPattern',
+  });
+  assert.deepEqual(Object.fromEntries(entries.map(({ id, renderer }) => [id, renderer])), expectedRenderers);
+
+  const patternedEntries = entries.filter(({ id }) => id !== 'none');
+  assert.equal(new Set(patternedEntries.map(({ renderer }) => renderer)).size, 9);
+  const geometries = [];
+  for (const { id, renderer } of patternedEntries) {
+    const body = functionSource(source, renderer);
+    assert.match(body, /\{\s*patternId\s*,\s*palette\s*,\s*clipId\s*\}/);
+    assert.match(body, new RegExp(`data-avatar-variant="pattern:${id}"`));
+    assert.match(body, /data-pattern-id=\{patternId\}/);
+    assert.match(body, /clipPath=\{`url\(#\$\{clipId\}\)`\}/);
+    geometries.push(
+      body
+        .replace(new RegExp(`pattern:${id}`, 'g'), 'pattern:variant')
+        .replace(new RegExp(renderer, 'g'), 'PatternRenderer')
+        .replace(/\s+/g, ' ')
+        .trim(),
+    );
+  }
+  assert.equal(new Set(geometries).size, 9, 'patterns must differ beyond their semantic labels');
+  assert.doesNotMatch(source, /\.map\s*\(/, 'pattern renderers must not allocate mapped arrays per render');
+});
+
 test('hair entries are frozen two-pass contracts with unique authored fronts', () => {
   const source = readFileSync(new URL('./parts/hair.jsx', import.meta.url), 'utf8');
   const entries = registryEntries(source, 'HAIR_RENDERERS');

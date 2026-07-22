@@ -1,5 +1,4 @@
 import {
-  EmptyPart,
   EYE_RENDERERS,
   FACE_EXTRA_RENDERERS,
   FaceModeling,
@@ -8,12 +7,10 @@ import {
 import { HAIR_RENDERERS } from './parts/hair.jsx';
 import { HAT_RENDERERS } from './parts/hats.jsx';
 import { HEAD_FEATURE_OFFSETS, HEAD_RENDERERS } from './parts/heads.jsx';
-import { RegularOutfit } from './parts/outfits.jsx';
-
-export const BODY_RENDERERS = Object.freeze({ regular: RegularOutfit });
-export const OUTFIT_PATTERN_RENDERERS = Object.freeze({ none: EmptyPart });
+import { BODY_RENDERERS, OUTFIT_PATTERN_RENDERERS } from './parts/outfits.jsx';
 
 export {
+  BODY_RENDERERS,
   EYE_RENDERERS,
   FACE_EXTRA_RENDERERS,
   FaceModeling,
@@ -22,6 +19,7 @@ export {
   HEAD_FEATURE_OFFSETS,
   HEAD_RENDERERS,
   MOUTH_RENDERERS,
+  OUTFIT_PATTERN_RENDERERS,
 };
 
 export function resolveAvatarPart(registry, id, fallbackId) {

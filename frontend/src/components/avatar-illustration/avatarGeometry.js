@@ -77,7 +77,52 @@ export const AVATAR_BODY_PROPORTIONS = Object.freeze({
   }),
 });
 
-const AVATAR_BUILD_SCALE_X = Object.freeze({ slim: 0.9, regular: 1, broad: 1.12 });
+const BODY_BUILD_CENTER_X = 120;
+
+function formatTransformNumber(value) {
+  const rounded = Number(Number(value).toFixed(2));
+  return Object.is(rounded, -0) ? 0 : rounded;
+}
+
+function freezeScaledRegion(anchorX, widthRatio) {
+  return Object.freeze({
+    anchorX,
+    scaleX: widthRatio,
+    scaleY: 1,
+    transform: `translate(${anchorX} 0) scale(${widthRatio} 1) translate(${-anchorX} 0)`,
+  });
+}
+
+function freezeTranslatedHand(anchorX, widthRatio) {
+  const translateX = formatTransformNumber((anchorX - BODY_BUILD_CENTER_X) * (widthRatio - 1));
+  return Object.freeze({
+    anchorX,
+    translateX,
+    transform: `translate(${translateX} 0)`,
+  });
+}
+
+function freezeBodyBuildRig(id, widthRatio) {
+  return Object.freeze({
+    id,
+    widthRatio,
+    torso: freezeScaledRegion(BODY_BUILD_CENTER_X, widthRatio),
+    legs: Object.freeze({
+      free: freezeScaledRegion(AVATAR_POSE_ANCHORS.soles.free.x, widthRatio),
+      weight: freezeScaledRegion(AVATAR_POSE_ANCHORS.soles.weight.x, widthRatio),
+    }),
+    hands: Object.freeze({
+      hip: freezeTranslatedHand(AVATAR_POSE_ANCHORS.hands.hip.x, widthRatio),
+      relaxed: freezeTranslatedHand(AVATAR_POSE_ANCHORS.hands.relaxed.x, widthRatio),
+    }),
+  });
+}
+
+export const AVATAR_BODY_BUILD_RIGS = Object.freeze({
+  slim: freezeBodyBuildRig('slim', 0.9),
+  regular: freezeBodyBuildRig('regular', 1),
+  broad: freezeBodyBuildRig('broad', 1.12),
+});
 
 export const AVATAR_FRAMES = Object.freeze({
   full: Object.freeze({ viewBox: '0 0 240 320', circular: false }),
@@ -137,8 +182,16 @@ export function getAvatarHeadFeatureTransform(offset = {}) {
 }
 
 export function getAvatarBuildTransform(build = 'regular') {
-  const scaleX = AVATAR_BUILD_SCALE_X[build] || AVATAR_BUILD_SCALE_X.regular;
-  return `translate(120 0) scale(${scaleX} 1) translate(-120 0)`;
+  return getAvatarBuildRig(build).torso.transform;
+}
+
+export function getAvatarBuildRig(build = 'regular') {
+  return AVATAR_BODY_BUILD_RIGS[build] || AVATAR_BODY_BUILD_RIGS.regular;
+}
+
+export function getAvatarHandTransform(build = 'regular', hand = 'hip') {
+  const rig = getAvatarBuildRig(build);
+  return (rig.hands[hand] || rig.hands.hip).transform;
 }
 
 export function getAvatarRenderDimensions(size, crop = 'icon') {
