@@ -10,6 +10,7 @@
 
 ## Global Constraints
 
+- **Approved amendment (2026-07-22):** portrait quality takes precedence over the earlier crop. The binding portrait frame is `48 4 144 144`; `full` and `icon` remain unchanged. Geometry tests and visual QA must enforce this value.
 - Use an internal `0 0 240 320` full-body canvas.
 - Support exactly three crop modes: `full`, `portrait`, and `icon`.
 - `studio` defaults to `full`; `option` defaults by editor category; small application avatars default to `icon`.
@@ -170,7 +171,7 @@ export const AVATAR_CANVAS = Object.freeze({ width: 240, height: 320 });
 
 export const AVATAR_FRAMES = Object.freeze({
   full: Object.freeze({ viewBox: '0 0 240 320', circular: false }),
-  portrait: Object.freeze({ viewBox: '28 8 184 184', circular: true }),
+  portrait: Object.freeze({ viewBox: '48 4 144 144', circular: true }),
   icon: Object.freeze({ viewBox: '42 18 156 156', circular: true }),
 });
 

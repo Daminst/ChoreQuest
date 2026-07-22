@@ -14,9 +14,11 @@ test('mixHex supports shorthand colours and clamps the mix amount', () => {
   assert.equal(mixHex('#fff', '#000', -1), '#ffffff');
 });
 
-test('liftHex brightens dark colours without washing their hue toward white', () => {
-  assert.equal(liftHex('#4a3728', 0.5), '#6f533c');
-  assert.equal(liftHex('#f08020', 1), '#ffff40');
+test('liftHex raises HSL lightness for black, near-black, brown, and saturated orange', () => {
+  assert.equal(liftHex('#000000'), '#2e2e2e');
+  assert.equal(liftHex('#050301'), '#513110');
+  assert.equal(liftHex('#4a3728'), '#866348');
+  assert.equal(liftHex('#f08020'), '#f6b176');
 });
 
 test('avatar palette preserves base user colours', () => {
@@ -27,7 +29,7 @@ test('avatar palette preserves base user colours', () => {
 
   assert.equal(palette.skin.base, '#c68642');
   assert.equal(palette.hair.base, '#4a3728');
-  assert.equal(palette.hair.lifted, '#6f533c');
+  assert.equal(palette.hair.lifted, '#866348');
   assert.notEqual(palette.skin.light, palette.skin.base);
   assert.notEqual(palette.skin.shadow, palette.skin.base);
 });

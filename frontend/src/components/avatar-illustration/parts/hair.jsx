@@ -3,92 +3,78 @@ export function ShortHairFront({ palette }) {
     <g>
       <path
         className="avatar-outline"
-        d="M76 79 C70 70 70 61 75 53 L67 53 C75 48 82 45 90 44 L77 38 C88 39 96 35 102 29 L93 24 C103 27 112 24 118 17 C123 24 128 27 135 28 C142 27 149 29 153 34 L155 25 C160 32 162 39 160 45 C167 44 172 48 174 54 C168 53 164 55 161 58 C167 65 165 74 158 82 C153 75 148 69 143 64 C130 51 111 48 98 54 C87 59 81 69 76 79 Z"
+        d="M77 82 C71 74 70 66 74 58 C68 58 64 56 61 52 C72 53 82 47 88 41 C80 42 74 38 71 33 C82 37 95 33 103 26 C96 26 92 22 90 17 C100 22 111 20 118 12 C123 20 132 24 141 25 C151 26 158 32 161 41 C168 42 173 47 176 55 C169 52 164 54 160 59 C166 67 164 76 157 84 C153 76 147 71 141 67 C132 61 124 57 115 57 C101 57 90 65 83 84 Z"
         fill={palette.hair.shadow}
         stroke={palette.hair.outline}
         strokeWidth="3.4"
         strokeLinejoin="round"
       />
       <path
-        className="avatar-hair-plane avatar-outline"
-        d="M75 58 C78 45 90 35 103 31 C116 26 133 27 145 34 C157 40 163 52 160 64 C156 57 150 51 143 47 C132 40 117 38 104 42 C91 46 82 53 75 58 Z"
+        className="avatar-hair-plane"
+        d="M75 57 C82 43 93 34 106 28 C120 22 137 26 149 35 C158 42 162 52 159 62 C151 54 143 48 134 45 C116 38 96 43 83 57 Z"
         fill={palette.hair.lifted}
-        stroke={palette.hair.outline}
-        strokeWidth="2.4"
-        strokeLinejoin="round"
       />
       <path
-        className="avatar-hair-lock avatar-hair-plane"
-        d="M76 53 C84 42 94 36 105 33 C100 42 94 50 84 58 C87 51 84 49 76 53 Z"
-        fill={palette.hair.lifted}
-        stroke={palette.hair.outline}
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      <path
-        className="avatar-hair-lock avatar-hair-plane"
-        d="M94 39 C104 30 114 27 124 29 C120 40 113 49 102 57 C106 47 103 42 94 39 Z"
-        fill={palette.hair.base}
-        stroke={palette.hair.outline}
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      <path
-        className="avatar-hair-lock avatar-hair-plane"
-        d="M118 29 C130 27 141 31 148 38 C143 47 136 54 128 59 C132 47 128 37 118 29 Z"
-        fill={palette.hair.base}
-        stroke={palette.hair.outline}
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      <path
-        className="avatar-hair-lock avatar-hair-plane"
-        d="M86 51 C97 43 108 42 118 46 C112 57 104 65 94 71 C98 61 95 55 86 51 Z"
-        fill={palette.hair.base}
-        stroke={palette.hair.outline}
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
-      <path
-        className="avatar-hair-lock avatar-hair-plane"
-        d="M109 44 C121 39 133 42 142 49 C138 61 131 69 122 75 C125 62 120 52 109 44 Z"
-        fill={palette.hair.base}
-        stroke={palette.hair.outline}
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
-      <path
-        className="avatar-hair-lock avatar-hair-plane"
-        d="M136 46 C147 50 154 58 157 68 C154 75 151 80 147 84 C147 70 144 58 136 46 Z"
+        className="avatar-hair-root-shadow avatar-hair-plane"
+        d="M79 60 C91 48 104 44 119 46 C136 47 151 57 158 72 C157 77 154 82 150 86 C143 73 132 64 118 61 C103 58 90 66 83 84 C81 76 79 68 79 60 Z"
         fill={palette.hair.deep}
+        opacity="0.78"
+      />
+      <path
+        className="avatar-hair-lock avatar-hair-plane"
+        d="M76 54 C84 42 94 34 106 29 C102 40 95 50 84 59 C88 51 85 49 76 54 Z"
+        fill={palette.hair.lifted}
+      />
+      <path
+        className="avatar-hair-lock avatar-hair-plane"
+        d="M94 38 C103 29 114 25 126 27 C124 40 117 52 104 61 C109 49 106 41 94 38 Z"
+        fill={palette.hair.base}
+      />
+      <path
+        className="avatar-hair-lock avatar-hair-plane"
+        d="M118 26 C132 26 143 31 151 39 C147 51 139 60 128 66 C132 51 128 36 118 26 Z"
+        fill={palette.hair.base}
+      />
+      <path
+        className="avatar-hair-lock avatar-hair-plane"
+        d="M84 55 C96 45 109 43 121 47 C117 60 108 70 96 77 C100 65 96 58 84 55 Z"
+        fill={palette.hair.base}
+      />
+      <path
+        className="avatar-hair-lock avatar-hair-plane"
+        d="M112 44 C127 40 142 46 152 56 C150 69 144 78 134 84 C137 68 128 53 112 44 Z"
+        fill={palette.hair.base}
+      />
+      <path
+        className="avatar-hair-boundary avatar-detail"
+        d="M106 29 C103 40 96 51 85 59 M126 27 C124 40 117 52 105 61 M151 39 C147 50 140 59 129 65 M121 47 C117 59 109 69 97 76 M152 56 C150 68 144 77 135 83"
+        fill="none"
         stroke={palette.hair.outline}
-        strokeWidth="1.7"
-        strokeLinejoin="round"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        opacity="0.82"
+      />
+      <path
+        className="avatar-hair-directional-highlight avatar-highlight"
+        d="M82 49 C89 40 97 35 104 32 M100 35 C107 29 115 28 121 29 M124 31 C134 31 142 35 147 41 M91 55 C99 49 107 47 114 49 M120 48 C131 48 141 53 146 60"
+        fill="none"
+        stroke={palette.hair.lifted}
+        strokeWidth="3"
+        strokeLinecap="round"
+        opacity="0.86"
       />
       <path
         className="avatar-hair-strand avatar-detail"
-        d="M83 47 C91 39 100 35 110 33 M104 31 C114 27 125 29 133 35 M127 31 C138 34 146 41 151 50 M98 49 C108 44 117 43 126 46 M133 45 C143 50 149 57 151 66"
+        d="M88 45 C94 39 99 36 104 34 M108 32 C115 29 121 29 127 31 M132 34 C139 36 145 41 149 47 M99 53 C106 49 112 48 118 50 M130 52 C139 55 145 61 148 68"
         fill="none"
         stroke={palette.hair.shadow}
-        strokeWidth="1.5"
+        strokeWidth="1.25"
         strokeLinecap="round"
-        opacity="0.54"
-      />
-      <path
-        className="avatar-highlight avatar-hair-lock avatar-hair-plane"
-        d="M82 47 C90 39 99 34 109 32 C104 36 100 40 96 45 C91 45 86 46 82 47 Z"
-        fill={palette.hair.lifted}
-        opacity="0.54"
-      />
-      <path
-        className="avatar-highlight avatar-hair-lock avatar-hair-plane"
-        d="M119 29 C129 29 139 33 146 40 C139 36 132 35 126 36 C124 33 122 31 119 29 Z"
-        fill={palette.hair.lifted}
-        opacity="0.42"
+        opacity="0.58"
       />
       <path
         className="avatar-detail"
-        d="M76 62 C78 71 80 78 83 84 M159 59 C161 68 159 77 155 83"
+        d="M76 63 C77 72 80 79 83 84 M159 61 C162 69 159 78 155 83"
         fill="none"
         stroke={palette.hair.outline}
         strokeWidth="2"

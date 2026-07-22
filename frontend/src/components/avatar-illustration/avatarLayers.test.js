@@ -39,7 +39,9 @@ test('vertical slice models hair, face, hoodie, shorts, and shoes with distinct 
   for (const marker of [
     'avatar-hair-lock', 'avatar-hair-plane', 'avatar-face-plane', 'avatar-hood-volume',
     'avatar-sleeve-fold', 'avatar-ribbing', 'avatar-pocket-stitch',
-    'avatar-shorts-panel', 'avatar-shoe-panel',
+    'avatar-shorts-panel', 'avatar-shoe-panel', 'avatar-hair-root-shadow',
+    'avatar-hair-boundary', 'avatar-hair-directional-highlight',
+    'avatar-jaw-shadow', 'avatar-eye-shadow', 'avatar-nose-plane',
   ]) {
     assert.match(source, new RegExp(marker), `missing ${marker}`);
   }

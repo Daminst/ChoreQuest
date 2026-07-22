@@ -12,6 +12,8 @@ import { AVATAR_CATALOG, DEFAULT_CONFIG } from '../avatar-editor/avatarCatalog.j
 test('full artwork uses a 3:4 240x320 canvas', () => {
   assert.deepEqual(AVATAR_CANVAS, { width: 240, height: 320 });
   assert.equal(getAvatarFrame('full').viewBox, '0 0 240 320');
+  assert.equal(getAvatarFrame('portrait').viewBox, '48 4 144 144');
+  assert.equal(getAvatarFrame('icon').viewBox, '42 18 156 156');
   assert.deepEqual(getAvatarRenderDimensions(420, 'full'), { width: 315, height: 420 });
   assert.deepEqual(getAvatarRenderDimensions(76, 'portrait'), { width: 76, height: 76 });
 });

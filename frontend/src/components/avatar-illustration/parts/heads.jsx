@@ -10,16 +10,16 @@ export function RoundHead({ palette }) {
         strokeLinejoin="round"
       />
       <path
-        className="avatar-face-plane"
-        d="M147 48 C155 61 157 79 153 96 C149 113 139 124 126 130 C137 128 147 119 153 108 C161 93 163 70 156 55 C153 50 150 48 147 48 Z"
+        className="avatar-jaw-shadow avatar-face-plane"
+        d="M143 45 C154 57 158 76 154 95 C151 112 141 124 126 131 C137 128 146 119 151 107 C157 93 159 75 154 59 C151 51 147 47 143 45 Z"
         fill={palette.skin.shadow}
-        opacity="0.46"
+        opacity="0.68"
       />
       <path
         className="avatar-face-plane"
-        d="M82 84 C82 103 91 120 106 128 C96 118 92 105 92 89 C92 78 94 68 98 59 C87 65 82 73 82 84 Z"
+        d="M82 80 C80 101 90 120 106 128 C97 117 93 104 93 89 C93 77 97 65 103 55 C90 60 83 69 82 80 Z"
         fill={palette.skin.light}
-        opacity="0.16"
+        opacity="0.3"
       />
       <path
         className="avatar-highlight"

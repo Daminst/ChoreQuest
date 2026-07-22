@@ -2,7 +2,7 @@ export const AVATAR_CANVAS = Object.freeze({ width: 240, height: 320 });
 
 export const AVATAR_FRAMES = Object.freeze({
   full: Object.freeze({ viewBox: '0 0 240 320', circular: false }),
-  portrait: Object.freeze({ viewBox: '28 8 184 184', circular: true }),
+  portrait: Object.freeze({ viewBox: '48 4 144 144', circular: true }),
   icon: Object.freeze({ viewBox: '42 18 156 156', circular: true }),
 });
 

@@ -11,6 +11,7 @@ Zmiana dotyczy grafiki postaci i sposobu jej kadrowania. Zachowuje istniejący e
 
 ## Zatwierdzone decyzje
 
+- Zatwierdzona poprawka z 2026-07-22 nadaje jakości portretu pierwszeństwo przed wcześniejszym kadrem: `portrait` używa teraz `viewBox="48 4 144 144"`; kadry `full` i `icon` pozostają bez zmian.
 - Renderer pozostaje modułowy i wektorowy; nie używa gotowych renderów całych kombinacji.
 - Główna scena pokazuje pełną postać.
 - Kafelki wariantów i avatary w pozostałej aplikacji pokazują portretowe kadrowanie tej samej kompozycji.
@@ -89,6 +90,7 @@ Renderer używa jednego wewnętrznego układu współrzędnych o orientacji pion
 
 ### Kadry
 
+- Obowiązujący kontrakt geometrii to `full="0 0 240 320"`, `portrait="48 4 144 144"` i `icon="42 18 156 156"`. Węższy kadr portretowy jest świadomą, zatwierdzoną zmianą zapewniającą czytelność włosów, oczu, nosa i policzków przy 76 × 76 px.
 - `full`: całe płótno z zapasem na wysokie fryzury, nakrycia głowy, skrzydła i pupila;
 - `portrait`: głowa, włosy, nakrycie głowy, twarz, barki i górna część stroju;
 - `icon`: ciaśniejszy portret optymalizowany dla rozmiarów 24–64 px.
