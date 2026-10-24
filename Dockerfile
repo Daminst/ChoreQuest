@@ -1,5 +1,5 @@
 # Stage 1: Build frontend
-FROM node:20-alpine AS frontend-build
+FROM node:24-alpine@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53 AS frontend-build
 WORKDIR /app/frontend
 COPY frontend/package.json frontend/package-lock.json* ./
 RUN npm install
@@ -13,7 +13,8 @@ WORKDIR /app
 RUN groupadd -g 1000 appuser && useradd -u 1000 -g appuser -m appuser
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -y --no-remove upgrade && apt-get clean
+RUN pip install --no-cache-dir -r requirements.txt && pip check && pip uninstall -y pip
 
 COPY backend/ ./backend/
 COPY --from=frontend-build /app/frontend/dist ./static/
