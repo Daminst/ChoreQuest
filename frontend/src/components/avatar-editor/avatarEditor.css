@@ -303,7 +303,12 @@
   min-height: 0;
   overflow: hidden;
   border-right: 1px solid var(--studio-border);
-  background: linear-gradient(180deg, var(--studio-stage), var(--studio-bg));
+  background:
+    radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--avatar-stage-bg) 72%, transparent) 0,
+      color-mix(in srgb, var(--avatar-stage-bg) 28%, transparent) 42%, transparent 72%),
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--avatar-stage-bg) 22%, var(--studio-stage)),
+      color-mix(in srgb, var(--avatar-stage-bg) 10%, var(--studio-bg)));
 }
 
 .avatar-stage__spotlight {
@@ -315,8 +320,9 @@
   aspect-ratio: 1;
   border: 2px solid color-mix(in srgb, var(--studio-border-strong) 72%, transparent);
   border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--color-accent) 32%, transparent) 0,
-    color-mix(in srgb, var(--color-accent) 11%, transparent) 42%, transparent 72%);
+  background: radial-gradient(circle,
+    color-mix(in srgb, var(--avatar-stage-bg) 58%, var(--color-accent)) 0,
+    color-mix(in srgb, var(--avatar-stage-bg) 22%, transparent) 42%, transparent 72%);
   box-shadow: inset 0 0 72px rgb(0 0 0 / 0.16), 0 24px 70px rgb(0 0 0 / 0.18);
   transform: translate(-50%, -50%);
   pointer-events: none;
@@ -325,13 +331,20 @@
 .avatar-stage__character {
   position: relative;
   z-index: 2;
-  width: 420px;
-  height: 420px;
+  width: auto;
+  height: min(72vh, 620px);
+  aspect-ratio: 3 / 4;
   filter: drop-shadow(0 24px 30px rgb(0 0 0 / 0.38));
 }
 
-.avatar-stage__character .avatar-svg {
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--studio-border-strong) 56%, transparent);
+.avatar-stage__motion {
+  width: 100%;
+  height: 100%;
+}
+
+.avatar-stage__motion > .avatar-display {
+  width: 100% !important;
+  height: 100% !important;
 }
 
 .avatar-stage__plinth {
@@ -489,8 +502,19 @@
   place-items: center;
   min-width: 0;
   overflow: hidden;
-  background: color-mix(in srgb, var(--studio-bg) 72%, var(--studio-raised));
+  background: radial-gradient(circle at 50% 42%,
+    color-mix(in srgb, var(--avatar-preview-bg) 78%, white 7%) 0,
+    color-mix(in srgb, var(--avatar-preview-bg) 72%, var(--studio-raised)) 58%,
+    color-mix(in srgb, var(--avatar-preview-bg) 42%, var(--studio-bg)) 100%);
   transition: filter 160ms ease;
+}
+
+.avatar-option-card__preview.is-full > .avatar-display {
+  aspect-ratio: 3 / 4;
+}
+
+.avatar-option-card__preview.is-portrait > .avatar-display {
+  aspect-ratio: 1;
 }
 
 .avatar-option-card__label {
@@ -988,7 +1012,7 @@
   .avatar-stage__character {
     width: min(420px, 100%);
     height: auto;
-    aspect-ratio: 1;
+    aspect-ratio: 3 / 4;
   }
 
   .avatar-category-rail {
@@ -1115,7 +1139,9 @@
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%) scale(0.56);
+    width: auto;
+    height: clamp(230px, 29dvh, 270px);
+    transform: translate(-50%, -50%);
   }
 
   .avatar-stage__plinth {

@@ -1,11 +1,13 @@
 import { useEffect, useId, useRef } from 'react';
 import { Check, Lock } from 'lucide-react';
 import AvatarDisplay from '../AvatarDisplay';
+import { getAvatarOptionCrop } from '../avatar-illustration/avatarGeometry';
 import { buildDisplayConfig } from './avatarEditorState';
 import { transitionLockedPreviewSources } from './lockedPreviewSources';
 
-export function AvatarOptionCard({ option, configKey, config, selected, locked = false, disabled = false, lockLabel = '', multiple = false, onSelect, onPreview, onPreviewEnd }) {
+export function AvatarOptionCard({ option, category, configKey, config, selected, locked = false, disabled = false, lockLabel = '', multiple = false, onSelect, onPreview, onPreviewEnd }) {
   const previewConfig = buildDisplayConfig(config, { key: configKey, value: option.id });
+  const crop = getAvatarOptionCrop(category);
   const sourceId = useId();
   const previewSourcesRef = useRef(new Set());
   const previewEndRef = useRef(onPreviewEnd);
@@ -48,7 +50,12 @@ export function AvatarOptionCard({ option, configKey, config, selected, locked =
       onFocus={() => updatePreviewSource('focus', true)}
       onBlur={() => updatePreviewSource('focus', false)}
     >
-      <span className="avatar-option-card__preview"><AvatarDisplay config={previewConfig} size="option" /></span>
+      <span
+        className={`avatar-option-card__preview is-${crop}`}
+        style={{ '--avatar-preview-bg': previewConfig.bg_color || '#1a1a2e' }}
+      >
+        <AvatarDisplay config={previewConfig} size="option" crop={crop} />
+      </span>
       <span className="avatar-option-card__label">{option.label}</span>
       {locked && lockLabel && <span className="avatar-option-card__requirement">{lockLabel}</span>}
       {locked && <span className="avatar-option-card__lock"><Lock size={13} /></span>}

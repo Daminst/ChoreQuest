@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
+import { AVATAR_CANVAS, mapLegacyPetPoint } from '../avatar-illustration/avatarGeometry.js';
 
 const loadPlacement = () => import('./avatarStagePlacement.js');
 
@@ -13,31 +15,37 @@ test('pet coordinates clamp to the safe 4..28 stage range', async () => {
   assert.equal(clampPetCoordinate(100), 28);
 });
 
-test('pointer coordinates map through the 32x32 stage before clamping', async () => {
+test('rendered pet anchors round-trip through pointer mapping on an actual 3:4 stage', async () => {
   const { mapPetPointerPosition } = await loadPlacement();
-  const rect = { left: 100, top: 50, width: 320, height: 160 };
+  const rect = { left: 100, top: 50, width: 465, height: 620 };
 
-  assert.deepEqual(mapPetPointerPosition(260, 130, rect), { x: 16, y: 16 });
-  assert.deepEqual(mapPetPointerPosition(100, 50, rect), { x: 4, y: 4 });
-  assert.deepEqual(mapPetPointerPosition(420, 210, rect), { x: 28, y: 28 });
+  for (const saved of [
+    { x: 4, y: 4 },
+    { x: 28, y: 4 },
+    { x: 4, y: 28 },
+    { x: 28, y: 28 },
+    { x: 16, y: 16 },
+  ]) {
+    const renderedAnchor = mapLegacyPetPoint(saved.x, saved.y);
+    const clientX = rect.left + ((renderedAnchor.x / AVATAR_CANVAS.width) * rect.width);
+    const clientY = rect.top + ((renderedAnchor.y / AVATAR_CANVAS.height) * rect.height);
+    assert.deepEqual(mapPetPointerPosition(clientX, clientY, rect), saved);
+  }
+
+  assert.deepEqual(mapPetPointerPosition(rect.left, rect.top, rect), { x: 4, y: 4 });
+  assert.deepEqual(
+    mapPetPointerPosition(rect.left + rect.width, rect.top + rect.height, rect),
+    { x: 28, y: 28 },
+  );
 });
 
-test('pointer coordinates ignore horizontal letterboxing around a square avatar', async () => {
-  const { mapPetPointerPosition } = await loadPlacement();
-  const rect = { left: 100, top: 50, width: 320, height: 160 };
+test('placement marker uses the renderer pet anchor on the full avatar frame', () => {
+  const stage = readFileSync(new URL('./AvatarStage.jsx', import.meta.url), 'utf8');
 
-  assert.deepEqual(mapPetPointerPosition(180, 130, rect), { x: 4, y: 16 });
-  assert.deepEqual(mapPetPointerPosition(220, 130, rect), { x: 8, y: 16 });
-  assert.deepEqual(mapPetPointerPosition(340, 130, rect), { x: 28, y: 16 });
-});
-
-test('pointer coordinates ignore vertical letterboxing around a square avatar', async () => {
-  const { mapPetPointerPosition } = await loadPlacement();
-  const rect = { left: 40, top: 20, width: 180, height: 360 };
-
-  assert.deepEqual(mapPetPointerPosition(130, 110, rect), { x: 16, y: 4 });
-  assert.deepEqual(mapPetPointerPosition(130, 155, rect), { x: 16, y: 8 });
-  assert.deepEqual(mapPetPointerPosition(130, 290, rect), { x: 16, y: 28 });
+  assert.match(stage, /const petMarker = mapLegacyPetPoint\(petX, petY\)/);
+  assert.match(stage, /viewBox=\{PET_PLACEMENT_FRAME\.viewBox\}/);
+  assert.match(stage, /cx=\{petMarker\.x\}/);
+  assert.match(stage, /cy=\{petMarker\.y\}/);
 });
 
 test('arrow movement is clamped and ignores unrelated keys', async () => {
@@ -60,9 +68,21 @@ test('placement keyboard interaction moves in two dimensions and confirms with E
   assert.equal(resolvePetPlacementKey(16, 16, 'Escape'), null);
 });
 
-test('placement mode keeps the shared pet coordinate frame still while normal preview remains animated', async () => {
-  const { getAvatarStageCharacterClassName } = await loadPlacement();
+test('placement mode keeps centering and internal motion on separate elements without a second idle sway', async () => {
+  const {
+    getAvatarStageCharacterClassName,
+    getAvatarStageMotionClassName,
+  } = await loadPlacement();
 
-  assert.equal(getAvatarStageCharacterClassName(false), 'avatar-stage__character avatar-idle');
+  assert.equal(getAvatarStageCharacterClassName(false), 'avatar-stage__character');
   assert.equal(getAvatarStageCharacterClassName(true), 'avatar-stage__character');
+  assert.equal(getAvatarStageMotionClassName(false), 'avatar-stage__motion');
+  assert.equal(getAvatarStageMotionClassName(true), 'avatar-stage__motion');
+
+  const stage = readFileSync(new URL('./AvatarStage.jsx', import.meta.url), 'utf8');
+  assert.match(stage, /className=\{getAvatarStageCharacterClassName\(placementMode\)\}/);
+  assert.match(stage, /className=\{getAvatarStageMotionClassName\(placementMode\)\}[\s\S]*<AvatarDisplay/);
+  assert.match(stage, /<AvatarDisplay[\s\S]*animate=\{!placementMode\}/);
+  assert.match(stage, /data-avatar-placement-active=\{placementMode \? 'true' : 'false'\}/);
+  assert.match(stage, /data-avatar-motion=\{placementMode \? 'off' : 'on'\}/);
 });

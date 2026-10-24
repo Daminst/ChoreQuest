@@ -38,6 +38,7 @@ export const PET_COLORS = Object.freeze([
 export const PET_LEVEL_THRESHOLDS = Object.freeze([0, 50, 150, 350, 700, 1200, 2000, 3500]);
 export const PET_LEVEL_NAMES = Object.freeze(['', 'Hatchling', 'Youngling', 'Companion', 'Loyal', 'Brave', 'Mighty', 'Majestic', 'Legendary']);
 export const PET_LEVEL_COLORS = Object.freeze(['', '#94a3b8', '#10b981', '#3b82f6', '#a855f7', '#f59e0b', '#f97316', '#ef4444', '#d946ef']);
+export const PET_LEVEL_SCALES = Object.freeze([1, 1.04, 1.08, 1.12, 1.16, 1.2, 1.24, 1.28]);
 
 export const PET_COLOR_RESET_PATCH = Object.freeze({
   pet_color_ears: '',
@@ -58,6 +59,16 @@ export function createPetBodyColorPatch(color) {
   return Object.freeze({ pet_color: color, pet_color_body: '' });
 }
 
+export function buildPetColors(config = {}) {
+  const base = config.pet_color || '#8b4513';
+  return Object.freeze({
+    body: config.pet_color_body || base,
+    ears: config.pet_color_ears || base,
+    tail: config.pet_color_tail || base,
+    accent: config.pet_color_accent || base,
+  });
+}
+
 export function getPetLevelInfo(petXp) {
   let level = 1;
   for (let index = 0; index < PET_LEVEL_THRESHOLDS.length; index += 1) {
@@ -75,6 +86,14 @@ export function getPetLevelInfo(petXp) {
     nextThreshold,
     progress,
   };
+}
+
+export function getPetLevelScale(level) {
+  const numericLevel = Number(level);
+  const boundedLevel = Number.isFinite(numericLevel)
+    ? Math.min(8, Math.max(1, Math.trunc(numericLevel)))
+    : 1;
+  return PET_LEVEL_SCALES[boundedLevel - 1];
 }
 
 export function getPetXpForPet(config, petType) {

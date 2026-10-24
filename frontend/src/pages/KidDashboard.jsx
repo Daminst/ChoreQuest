@@ -33,7 +33,8 @@ import ConfettiAnimation from '../components/ConfettiAnimation';
 import RankBadge from '../components/RankBadge';
 import PetLevelBadge from '../components/PetLevelBadge';
 import { QuestBoardOverlay, QuestBoardPageGlow, QuestBoardParticles, QuestBoardDecorations, QuestBoardTitle, BOARD_THEMES, getTheme } from '../components/QuestBoardTheme';
-import { renderPet, renderPetExtras, renderPetAccessory, buildPetColors } from '../components/avatar';
+import { PetArtwork } from '../components/avatar-illustration/parts/pets';
+import { buildPetColors } from '../components/avatar-editor/avatarPetCatalog';
 import {
   getKidDefaultBoardThemeId,
   getKidHomeHighlights,
@@ -483,12 +484,8 @@ export default function KidDashboard() {
         const config = user?.avatar_config || {};
         const petLevel = myStats?.pet?.level || 1;
         const petLevelName = myStats?.pet?.name || 'Hatchling';
-        const petAccessory = config.pet_accessory;
-        // Level-based scale (matches AvatarDisplay)
-        const sc = 1 + (petLevel - 1) * 0.04;
         const glowColor = petLevel >= 7 ? '#f59e0b' : petLevel >= 5 ? '#a855f7' : null;
-        // Pet center for 'right' position
-        const px = 26, py = 20;
+        const petConfig = { ...config, pet: petType, pet_position: 'right' };
 
         return (
         <div className="game-panel p-4">
@@ -508,18 +505,27 @@ export default function KidDashboard() {
               className={`pet-interaction-stage ${petAction ? `pet-action-${petAction}` : ''}`}
             >
               <div className="avatar-idle rounded-full overflow-hidden" style={{ width: 96, height: 96 }}>
-                <svg width={96} height={96} viewBox="19 13 14 14">
-                  <circle cx="26" cy="20" r="6.5" fill="rgba(255,255,255,0.06)" />
+                <svg
+                  className="avatar-artwork avatar-pet-care-artwork"
+                  width={96}
+                  height={96}
+                  viewBox="154 200 92 120"
+                  role="img"
+                  aria-label={`${petLevelName} pet`}
+                  data-avatar-motion="on"
+                  data-avatar-detail="full"
+                  preserveAspectRatio="xMidYMid meet"
+                >
+                  <circle cx="200" cy="278" r="43" fill={petColors.accent} opacity="0.08" />
                   {glowColor && (
-                    <circle cx={px} cy={py} r={4} fill={glowColor} opacity="0.15" />
+                    <circle cx="200" cy="278" r="34" fill={glowColor} opacity="0.15" />
                   )}
-                  <g className="avatar-pet">
-                    <g transform={sc !== 1 ? `translate(${px},${py}) scale(${sc}) translate(${-px},${-py})` : undefined}>
-                      {renderPet(petType, petColors, 'right')}
-                      {renderPetExtras(petType, petLevel, petColors, 'right')}
-                      {renderPetAccessory(petType, petAccessory, 'right')}
-                    </g>
-                  </g>
+                  <PetArtwork
+                    config={petConfig}
+                    position="right"
+                    level={petLevel}
+                    motionEnabled
+                  />
                 </svg>
               </div>
               {/* Floating particles during interaction */}

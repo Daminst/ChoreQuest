@@ -30,6 +30,7 @@ function unlockLabel(item) {
 function renderCards({
   options,
   configKey,
+  editorCategory,
   itemCategory,
   selected,
   locked,
@@ -48,6 +49,7 @@ function renderCards({
         <AvatarOptionCard
           key={option.id}
           option={option}
+          category={editorCategory}
           configKey={configKey}
           config={config}
           selected={selectedSet.has(option.id)}
@@ -165,7 +167,7 @@ function renderCategoryControls({
     return renderSingleChoice(entry, config, lockedByCategory, lockedItemMeta, onChange, onPreview, onPreviewEnd, selectionDisabled);
   }
   if (category === 'accessory') {
-    const entry = catalog.accessory;
+    const entry = { ...catalog.accessory, editorCategory: 'accessory' };
     const selected = config.accessories?.length
       ? config.accessories
       : config.accessory && config.accessory !== 'none' ? [config.accessory] : [];
